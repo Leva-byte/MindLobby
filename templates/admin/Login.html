@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Access — MindLobby</title>
+
+  <!-- Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Admin Login Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/admin-login.css') }}">
+</head>
+<body>
+
+  <!-- Animated scan line -->
+  <div class="scan-line"></div>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+
+      <!-- Corner decoration (top-right via CSS ::after, bottom-left via element) -->
+      <div class="corner-bl"></div>
+
+      <!-- Header -->
+      <div class="login-header">
+        <div class="shield-icon">
+          <i class="fas fa-user-shield"></i>
+        </div>
+        <h1>System Access</h1>
+        <p class="subtitle">MindLobby&nbsp;&nbsp;/&nbsp;&nbsp;Administrative Portal</p>
+      </div>
+
+      <!-- Live access indicator -->
+      <div class="access-code">
+        <span class="dot"></span>
+        Session monitoring active &nbsp;·&nbsp; All attempts logged
+      </div>
+
+      <!-- Login Form -->
+      <form id="adminLoginForm" autocomplete="off">
+
+        <div class="form-group">
+          <label class="form-label" for="username">
+            <i class="fas fa-terminal"></i>
+            Username
+          </label>
+          <div class="input-wrap">
+            <input
+              class="form-input"
+              type="text"
+              id="username"
+              name="username"
+              placeholder="admin"
+              required
+              autocomplete="username"
+              spellcheck="false"
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">
+            <i class="fas fa-lock"></i>
+            Password
+          </label>
+          <div class="input-wrap">
+            <input
+              class="form-input"
+              type="password"
+              id="password"
+              name="password"
+              placeholder="••••••••••••"
+              required
+              autocomplete="current-password"
+            >
+            <button type="button" class="toggle-pw" id="pwToggle" tabindex="-1" aria-label="Toggle password visibility">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="loginBtn">
+          <i class="fas fa-sign-in-alt"></i>
+          Sign In
+        </button>
+
+      </form>
+
+      <!-- Security Notice -->
+      <div class="security-notice">
+        <i class="fas fa-triangle-exclamation"></i>
+        Unauthorized access is strictly prohibited. All activity on this portal
+        is monitored and logged.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Admin Login Script -->
+  <script src="{{ url_for('static', filename='admin/js/admin-login.js') }}"></script>
+
+</body>
+</html>

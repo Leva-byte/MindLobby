@@ -1,0 +1,430 @@
+/* ============================================================================
+   MINDLOBBY ADMIN — LOGIN PAGE
+   Aesthetic: Secure terminal / classified access
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+
+/* ── Reset ── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ── Root Variables ── */
+:root {
+  --bg-deep:        #080b14;
+  --bg-panel:       #0d1120;
+  --bg-card:        #111827;
+  --border:         rgba(99, 102, 241, 0.25);
+  --border-bright:  rgba(99, 102, 241, 0.6);
+  --accent:         #6366f1;
+  --accent-light:   #818cf8;
+  --accent-glow:    rgba(99, 102, 241, 0.35);
+  --text-primary:   #f1f5f9;
+  --text-secondary: rgba(241, 245, 249, 0.55);
+  --text-muted:     rgba(241, 245, 249, 0.3);
+  --success:        #34d399;
+  --warning:        #fbbf24;
+  --danger:         #f87171;
+  --font-mono:      'JetBrains Mono', monospace;
+  --font-display:   'Syne', sans-serif;
+}
+
+/* ── Body & Background ── */
+body {
+  font-family: var(--font-mono);
+  background-color: var(--bg-deep);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Animated grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+  animation: gridDrift 20s linear infinite;
+}
+
+/* Radial glow from center */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes gridDrift {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: 40px 40px, 40px 40px; }
+}
+
+/* Scan line overlay */
+.scan-line {
+  position: fixed;
+  top: -100%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.6), transparent);
+  z-index: 1;
+  animation: scanDown 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scanDown {
+  0%   { top: -2px; opacity: 1; }
+  90%  { opacity: 0.4; }
+  100% { top: 100vh; opacity: 0; }
+}
+
+/* ── Login Card ── */
+.login-wrapper {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 460px;
+  padding: 20px;
+  animation: cardReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cardReveal {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 48px 44px;
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.05),
+    0 24px 64px rgba(0, 0, 0, 0.6),
+    0 0 80px rgba(99, 102, 241, 0.07);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top accent line */
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+/* Corner brackets */
+.login-card::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  border-top: 2px solid var(--border-bright);
+  border-right: 2px solid var(--border-bright);
+  border-radius: 0 4px 0 0;
+  opacity: 0.5;
+}
+
+.corner-bl {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  width: 20px;
+  height: 20px;
+  border-bottom: 2px solid var(--border-bright);
+  border-left: 2px solid var(--border-bright);
+  border-radius: 0 0 0 4px;
+  opacity: 0.5;
+}
+
+/* ── Header ── */
+.login-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.shield-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shield-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%);
+  animation: iconPulse 3s ease-in-out infinite;
+}
+
+.shield-icon i {
+  font-size: 2em;
+  color: var(--accent-light);
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 12px var(--accent-glow));
+}
+
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50%       { transform: scale(1.15); opacity: 1; }
+}
+
+.login-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.75em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.login-header .subtitle {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ── Access Code Display ── */
+.access-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 32px;
+  font-size: 0.72em;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+
+.access-code .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── Form ── */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--accent-light);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.form-label i {
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  outline: none;
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.06);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+/* Typing cursor on active input */
+.form-input:focus::after {
+  content: '|';
+  animation: cursor 1s step-end infinite;
+}
+
+/* Password toggle */
+.input-wrap .toggle-pw {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+  font-size: 0.95em;
+}
+
+.input-wrap .toggle-pw:hover {
+  color: var(--accent-light);
+}
+
+/* ── Submit Button ── */
+.submit-btn {
+  width: 100%;
+  padding: 15px;
+  margin-top: 8px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 0.95em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--accent-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+}
+
+.submit-btn:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Security Notice ── */
+.security-notice {
+  margin-top: 28px;
+  padding: 14px 16px;
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 8px;
+  font-size: 0.75em;
+  color: rgba(251, 191, 36, 0.75);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.5;
+}
+
+.security-notice i {
+  margin-top: 1px;
+  flex-shrink: 0;
+  color: var(--warning);
+}
+
+/* ── Notification Toast ── */
+.notification {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  padding: 14px 20px;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  z-index: 10000;
+  transform: translateX(calc(100% + 30px));
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 380px;
+  font-size: 0.88em;
+}
+
+.notification.show  { transform: translateX(0); }
+.notification.error { border-color: rgba(248, 113, 113, 0.5); }
+.notification.error i { color: var(--danger); }
+.notification.success { border-color: rgba(52, 211, 153, 0.5); }
+.notification.success i { color: var(--success); }
+
+/* ── Responsive ── */
+@media (max-width: 520px) {
+  .login-card {
+    padding: 36px 28px;
+  }
+
+  .login-header h1 {
+    font-size: 1.5em;
+  }
+
+  .notification {
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+}

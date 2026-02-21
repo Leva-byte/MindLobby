@@ -1,0 +1,11 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+
+# Database & Uploads
+mindlobby.db
+uploads/

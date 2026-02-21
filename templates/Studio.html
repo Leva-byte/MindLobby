@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio | MindLobby</title>
+  
+  <!-- External CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/studiostyle.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="studio-header">
+    <div class="header-container">
+      <a href="/" class="brand">
+        <i class="fas fa-brain"></i>
+        <span>MindLobby</span>
+      </a>
+      
+      <div class="header-actions">
+        <button class="btn-menu-toggle" onclick="toggleSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+        
+        <div class="user-info">
+          <div class="user-avatar">{{ username[0]|upper }}</div>
+          <span class="username">{{ username }}</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <!-- Main Navigation -->
+      <div class="nav-section">
+        <div class="nav-section-title">Main</div>
+        <a href="#" class="nav-item active" data-view="overview">
+          <i class="fas fa-home"></i>
+          <span>Overview</span>
+        </a>
+        <a href="#" class="nav-item" data-view="topics">
+          <i class="fas fa-folder"></i>
+          <span>My Topics</span>
+          <span class="nav-badge">0</span>
+        </a>
+        <a href="#" class="nav-item" data-view="upload">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <span>Upload Document</span>
+        </a>
+      </div>
+
+      <!-- Study Tools -->
+      <div class="nav-section">
+        <div class="nav-section-title">Study Tools</div>
+        <a href="#" class="nav-item" data-view="flashcards">
+          <i class="fas fa-layer-group"></i>
+          <span>Flashcards</span>
+        </a>
+        <a href="#" class="nav-item" data-view="quizzes">
+          <i class="fas fa-question-circle"></i>
+          <span>Quizzes</span>
+        </a>
+        <a href="/quickplay" class="nav-item">
+          <i class="fas fa-gamepad"></i>
+          <span>Quick Play</span>
+        </a>
+      </div>
+
+      <!-- Progress & Analytics -->
+      <div class="nav-section">
+        <div class="nav-section-title">Analytics</div>
+        <a href="#" class="nav-item" data-view="progress">
+          <i class="fas fa-chart-line"></i>
+          <span>Progress</span>
+        </a>
+        <a href="#" class="nav-item" data-view="history">
+          <i class="fas fa-history"></i>
+          <span>History</span>
+        </a>
+        <a href="#" class="nav-item" data-view="achievements">
+          <i class="fas fa-trophy"></i>
+          <span>Achievements</span>
+        </a>
+      </div>
+
+      <!-- Settings -->
+      <div class="nav-section">
+        <div class="nav-section-title">Account</div>
+        <a href="#" class="nav-item" data-view="profile">
+          <i class="fas fa-user"></i>
+          <span>Profile</span>
+        </a>
+        <a href="#" class="nav-item" data-view="settings">
+          <i class="fas fa-cog"></i>
+          <span>Settings</span>
+        </a>
+        <a href="#" class="nav-item" onclick="handleLogout(event)">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content" id="mainContent">
+    
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+      <div class="welcome-content">
+        <h1 class="welcome-title">Welcome back, {{ username }}!</h1>
+        <p class="welcome-text">Ready to continue your learning journey?</p>
+        
+        <div class="quick-stats">
+          <div class="stat-item">
+            <div class="stat-icon">
+              <i class="fas fa-folder"></i>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value">0</div>
+              <div class="stat-label">Topics</div>
+            </div>
+          </div>
+          
+          <div class="stat-item">
+            <div class="stat-icon">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value">0</div>
+              <div class="stat-label">Flashcards</div>
+            </div>
+          </div>
+          
+          <div class="stat-item">
+            <div class="stat-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value">0h</div>
+              <div class="stat-label">Study Time</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Quick Actions</h2>
+      </div>
+      
+      <!-- THIS IS THE FIX: Added quick-actions wrapper div -->
+      <div class="quick-actions">
+        <div class="action-card" onclick="triggerFileUpload()">
+          <div class="action-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <h3 class="action-title">Upload Document</h3>
+          <p class="action-desc">Add PDFs, Word docs, or text files</p>
+        </div>
+        
+        <div class="action-card" onclick="showView('topics')">
+          <div class="action-icon">
+            <i class="fas fa-folder-plus"></i>
+          </div>
+          <h3 class="action-title">Create Topic</h3>
+          <p class="action-desc">Organize your study materials</p>
+        </div>
+        
+        <a href="/quickplay" class="action-card">
+          <div class="action-icon">
+            <i class="fas fa-gamepad"></i>
+          </div>
+          <h3 class="action-title">Quick Play</h3>
+          <p class="action-desc">Join a study lobby instantly</p>
+        </a>
+        
+        <div class="action-card" onclick="showView('flashcards')">
+          <div class="action-icon">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <h3 class="action-title">Study Flashcards</h3>
+          <p class="action-desc">Review your created cards</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Documents Section -->
+    <div class="section" id="documentsSection">
+      <div class="section-header">
+        <h2 class="section-title">My Documents</h2>
+        <a href="#" class="section-action" onclick="triggerFileUpload(); return false;">
+          <span>Upload New</span>
+          <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+
+      <!-- Drop Zone Wrapper — drag files anywhere inside here -->
+      <div class="documents-drop-zone" id="documentsDropZone">
+
+        <!-- Drag Overlay (shown while dragging over the section) -->
+        <div class="drop-overlay" id="dropOverlay">
+          <div class="drop-overlay-content">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Drop your files here</p>
+            <span>PDF, Word, PowerPoint, TXT — up to 10MB each</span>
+          </div>
+        </div>
+
+        <!-- Empty State (shown when no documents) -->
+        <div class="empty-state" id="emptyState">
+          <i class="fas fa-file-alt empty-icon"></i>
+          <h3 class="empty-title">No documents yet</h3>
+          <p class="empty-text">Drag &amp; drop files here, or click the button below</p>
+          <p class="drop-hint"><i class="fas fa-hand-point-up"></i> Supports PDF, Word, PowerPoint &amp; TXT</p>
+          <button class="btn-primary" onclick="triggerFileUpload()">
+            <i class="fas fa-cloud-upload-alt"></i>
+            Upload Document
+          </button>
+        </div>
+
+        <!-- Documents Grid (populated by JavaScript) -->
+        <div class="documents-grid" id="documentsGrid" style="display:none;"></div>
+
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Recent Activity</h2>
+        <a href="#" class="section-action" onclick="showView('history'); return false;">
+          <span>View All</span>
+          <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+      
+      <div class="activity-feed">
+        <div class="activity-item">
+          <div class="activity-icon">
+            <i class="fas fa-user-check"></i>
+          </div>
+          <div class="activity-content">
+            <p class="activity-text">Account verified successfully</p>
+            <p class="activity-time">Just now</p>
+          </div>
+        </div>
+        
+        <div class="activity-item">
+          <div class="activity-icon">
+            <i class="fas fa-rocket"></i>
+          </div>
+          <div class="activity-content">
+            <p class="activity-text">Welcome to MindLobby Studio!</p>
+            <p class="activity-time">Just now</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- External JavaScript -->
+  <script src="/static/js/studio.js"></script>
+  
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — MindLobby</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/admin-dashboard.css') }}">
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="admin-header">
+    <div class="admin-brand">
+      <div class="brand-icon-wrap">
+        <i class="fas fa-shield-halved"></i>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">MindLobby</span>
+        <span class="brand-sub">Admin Console</span>
+      </div>
+    </div>
+    <div class="admin-user">
+      <div class="user-pill">
+        <div class="user-avatar">{{ username[0].upper() }}</div>
+        <div class="user-details">
+          <div class="user-name">{{ username }}</div>
+          <div class="user-role">Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">
+        <i class="fas fa-arrow-right-from-bracket"></i>
+        Sign Out
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Sidebar + Content layout ───────────────────────────────────────── -->
+  <div class="admin-layout">
+
+    <!-- Sidebar nav -->
+    <nav class="admin-sidebar">
+
+      <div class="sidebar-label">Overview</div>
+      <button class="sidebar-item active" onclick="showTab('tab-overview', this)">
+        <i class="fas fa-gauge-high"></i> Control Centre
+      </button>
+
+      <div class="sidebar-label">Management</div>
+      <button class="sidebar-item" onclick="showTab('tab-users', this)">
+        <i class="fas fa-users"></i> Users
+      </button>
+      <button class="sidebar-item" onclick="showTab('tab-security', this)">
+        <i class="fas fa-shield-halved"></i> Security
+      </button>
+
+      <div class="sidebar-label">Logs</div>
+      <button class="sidebar-item" onclick="showTab('tab-auditlog', this)">
+        <i class="fas fa-scroll"></i> Audit Log
+      </button>
+      <button class="sidebar-item" onclick="showTab('tab-failedlogins', this)">
+        <i class="fas fa-triangle-exclamation"></i> Failed Logins
+      </button>
+
+    </nav>
+
+    <!-- Content area -->
+    <main class="admin-content">
+
+      <!-- ── TAB: Control Centre ────────────────────────────────────────── -->
+      <div id="tab-overview" class="tab-section active">
+
+        <div class="page-title-row">
+          <div>
+            <div class="page-title">Control Centre</div>
+            <div class="page-subtitle">Last refreshed: <span id="lastRefresh">—</span></div>
+          </div>
+          <div class="live-indicator">
+            <span class="live-dot"></span> Live
+          </div>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-label">Total Users</div>
+              <div class="stat-icon"><i class="fas fa-users"></i></div>
+            </div>
+            <div class="stat-value" id="totalUsers">—</div>
+          </div>
+          <div class="stat-card stat-success">
+            <div class="stat-top">
+              <div class="stat-label">Verified</div>
+              <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+            </div>
+            <div class="stat-value" id="verifiedUsers">—</div>
+          </div>
+          <div class="stat-card stat-danger">
+            <div class="stat-top">
+              <div class="stat-label">Active Bans</div>
+              <div class="stat-icon"><i class="fas fa-ban"></i></div>
+            </div>
+            <div class="stat-value" id="activeBans">—</div>
+          </div>
+          <div class="stat-card stat-warning">
+            <div class="stat-top">
+              <div class="stat-label">Failed Attempts</div>
+              <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            </div>
+            <div class="stat-value" id="failedAttempts">—</div>
+          </div>
+        </div>
+
+        <!-- Recent activity snapshot -->
+        <div class="data-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fas fa-scroll"></i> Recent Activity
+            </div>
+            <div class="panel-actions">
+              <button class="btn-refresh" onclick="showTab('tab-auditlog', null)">
+                View All <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body" id="recentActivityContainer">
+            <div class="loading-state"><div class="spinner"></div><span>Loading…</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── TAB: Users ─────────────────────────────────────────────────── -->
+      <div id="tab-users" class="tab-section">
+
+        <div class="page-title-row">
+          <div>
+            <div class="page-title">User Management</div>
+            <div class="page-subtitle">Ban, promote, demote, or remove accounts</div>
+          </div>
+          <button class="btn-refresh" id="refreshUsersBtn" onclick="loadUsers()">
+            <i class="fas fa-rotate-right"></i> Refresh
+          </button>
+        </div>
+
+        <div class="data-panel">
+          <div class="panel-body">
+            <div id="usersTableContainer">
+              <div class="loading-state"><div class="spinner"></div><span>Loading users…</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── TAB: Security ──────────────────────────────────────────────── -->
+      <div id="tab-security" class="tab-section">
+
+        <div class="page-title-row">
+          <div>
+            <div class="page-title">Security Overview</div>
+            <div class="page-subtitle">Bans, failed logins, and threat indicators</div>
+          </div>
+          <button class="btn-refresh" id="refreshSecurityBtn" onclick="loadSecurityStats()">
+            <i class="fas fa-rotate-right"></i> Refresh
+          </button>
+        </div>
+
+        <div class="data-panel">
+          <div class="panel-body">
+            <div id="securityStatsContainer">
+              <div class="loading-state"><div class="spinner"></div><span>Loading…</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── TAB: Audit Log ─────────────────────────────────────────────── -->
+      <div id="tab-auditlog" class="tab-section">
+
+        <div class="page-title-row">
+          <div>
+            <div class="page-title">Audit Log</div>
+            <div class="page-subtitle">Every admin action, timestamped and attributed</div>
+          </div>
+          <button class="btn-refresh" id="refreshAuditBtn" onclick="loadAuditLog(true)">
+            <i class="fas fa-rotate-right"></i> Refresh
+          </button>
+        </div>
+
+        <div class="data-panel">
+          <div class="panel-body" id="auditLogContainer">
+            <div class="loading-state"><div class="spinner"></div><span>Loading audit log…</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── TAB: Failed Logins ─────────────────────────────────────────── -->
+      <div id="tab-failedlogins" class="tab-section">
+
+        <div class="page-title-row">
+          <div>
+            <div class="page-title">Failed Login Attempts</div>
+            <div class="page-subtitle">All blocked and failed access attempts</div>
+          </div>
+          <button class="btn-refresh" id="refreshFailedBtn" onclick="loadFailedLogins()">
+            <i class="fas fa-rotate-right"></i> Refresh
+          </button>
+        </div>
+
+        <div class="data-panel">
+          <div class="panel-body" id="failedLoginsContainer">
+            <div class="loading-state"><div class="spinner"></div><span>Loading…</span></div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ── Confirmation Modal ──────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+
+      <div class="modal-icon danger" id="modalIcon">
+        <i id="modalIconInner" class="fas fa-ban"></i>
+      </div>
+      <div class="modal-title"  id="modalTitle">Confirm Action</div>
+      <div class="modal-message" id="modalMessage">Are you sure?</div>
+
+      <!-- Ban-specific fields, hidden for other actions -->
+      <div id="banOptions" style="display:none">
+        <div class="modal-input-group">
+          <label class="modal-input-label">Reason</label>
+          <input class="modal-input" type="text" id="banReason"
+                 placeholder="e.g. Spamming, abusive behaviour…" maxlength="200">
+        </div>
+        <div class="modal-input-group">
+          <label class="modal-input-label">Duration (hours)</label>
+          <input class="modal-input" type="number" id="banDuration"
+                 value="168" min="1" max="8760">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn"
+                onclick="executeModalAction()">Confirm</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Flask injects admin path — JS never hardcodes the secret URL -->
+  <script>const ADMIN_PATH = "{{ admin_path }}";</script>
+  <script src="{{ url_for('static', filename='admin/js/admin-dashboard.js') }}"></script>
+
+</body>
+</html>
