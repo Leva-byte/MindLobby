@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
@@ -70,6 +71,20 @@ def init_db():
         )
     ''')
     
+    # Flashcards table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS flashcards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            document_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (document_id) REFERENCES documents (id),
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+
     # Room history table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS room_history (
@@ -332,6 +347,81 @@ def get_reset_token_metadata(plain_token):
             'created_at': result['created_at']
         }
     return None
+
+# ============================================================================
+# DOCUMENT & FLASHCARD FUNCTIONS
+# ============================================================================
+
+def save_document(user_id, filename, original_filename, file_type, file_path=None):
+    """Save a document record and return its ID."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO documents (user_id, filename, original_filename, file_type, upload_date)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (user_id, filename, original_filename, file_type, datetime.now().isoformat()))
+    conn.commit()
+    doc_id = cursor.lastrowid
+    conn.close()
+    return doc_id
+
+def save_flashcards(document_id, user_id, flashcards):
+    """Save a list of flashcard dicts [{"question": ..., "answer": ...}, ...]."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = datetime.now().isoformat()
+    for card in flashcards:
+        cursor.execute('''
+            INSERT INTO flashcards (document_id, user_id, question, answer, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (document_id, user_id, card['question'], card['answer'], now))
+    conn.commit()
+    conn.close()
+
+def get_documents_for_user(user_id):
+    """Return all documents for a user as a list of dicts (includes flashcard_count)."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT d.*, COALESCE(fc.cnt, 0) AS flashcard_count
+        FROM documents d
+        LEFT JOIN (SELECT document_id, COUNT(*) AS cnt FROM flashcards GROUP BY document_id) fc
+            ON fc.document_id = d.id
+        WHERE d.user_id = ?
+        ORDER BY d.upload_date DESC
+    ''', (user_id,)).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def get_flashcards_for_document(document_id, user_id):
+    """Return (document_dict, flashcards_list) or (None, []) if not found."""
+    conn = get_db_connection()
+    doc = conn.execute(
+        'SELECT * FROM documents WHERE id = ? AND user_id = ?', (document_id, user_id)
+    ).fetchone()
+    if doc is None:
+        conn.close()
+        return None, []
+    cards = conn.execute(
+        'SELECT * FROM flashcards WHERE document_id = ? ORDER BY id', (document_id,)
+    ).fetchall()
+    conn.close()
+    return dict(doc), [dict(c) for c in cards]
+
+def delete_document_and_flashcards(document_id, user_id):
+    """Delete a document and its flashcards. Returns the file path (for physical deletion) or None."""
+    conn = get_db_connection()
+    doc = conn.execute(
+        'SELECT * FROM documents WHERE id = ? AND user_id = ?', (document_id, user_id)
+    ).fetchone()
+    if doc is None:
+        conn.close()
+        return None
+    file_path = os.path.join('uploads', doc['filename'])
+    conn.execute('DELETE FROM flashcards WHERE document_id = ?', (document_id,))
+    conn.execute('DELETE FROM documents WHERE id = ?', (document_id,))
+    conn.commit()
+    conn.close()
+    return file_path
 
 # ============================================================================
 # CLEANUP FUNCTIONS

@@ -702,14 +702,21 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initialize drag-and-drop on My Documents section
   initDocumentsDropZone();
+
+  // Load saved documents from the server
+  loadDocuments();
   
-  // Uncomment to load sample documents for testing
-  // loadSampleDocuments();
-  
-  // Show welcome notification
-  setTimeout(() => {
-    showNotification('Welcome to your Studio! 🎉', 'success');
-  }, 500);
+  // Show welcome notification only once per login
+  fetch('/check-auth')
+    .then(res => res.json())
+    .then(data => {
+      if (data.show_welcome) {
+        setTimeout(() => {
+          showNotification('Welcome to your Studio! 🎉', 'success');
+        }, 500);
+      }
+    })
+    .catch(() => {});
 });
 
 // ============================================================================
@@ -805,189 +812,246 @@ async function deleteDocument(docId, btnEl) {
 }
 
 // ============================================================================
-// FLASHCARD MODAL STATE
+// FILE UPLOAD MODAL - Works with FINAL_FIXED_LOADING.js
 // ============================================================================
 
-let fcCards   = [];
-let fcIndex   = 0;
-let fcFlipped = false;
+let selectedFilesForUpload = [];
 
-function openFlashcardModal(cards, title, subtitle) {
-  fcCards   = cards;
-  fcIndex   = 0;
-  fcFlipped = false;
-
-  document.getElementById('fcModalTitle').textContent    = title    || 'Flashcards';
-  document.getElementById('fcModalSubtitle').textContent = subtitle || `${cards.length} cards`;
-
-  renderCurrentCard();
-
-  document.getElementById('fcModalBackdrop').classList.add('open');
-  // Small delay so CSS transition fires
-  setTimeout(() => document.getElementById('fcModal').classList.add('open'), 10);
-}
-
-function closeFlashcardModal() {
-  document.getElementById('fcModal').classList.remove('open');
-  document.getElementById('fcModalBackdrop').classList.remove('open');
-}
-
-function renderCurrentCard() {
-  const card = fcCards[fcIndex];
-  if (!card) return;
-
-  // Reset flip
-  fcFlipped = false;
-  document.getElementById('fcCardInner').classList.remove('flipped');
-
-  document.getElementById('fcQuestion').textContent = card.question;
-  document.getElementById('fcAnswer').textContent   = card.answer;
-
-  // Progress
-  const pct = ((fcIndex + 1) / fcCards.length) * 100;
-  document.getElementById('fcProgressFill').style.width = pct + '%';
-  document.getElementById('fcProgressLabel').textContent = `${fcIndex + 1} / ${fcCards.length}`;
-
-  // Nav buttons
-  document.getElementById('fcPrevBtn').disabled = fcIndex === 0;
-  document.getElementById('fcNextBtn').disabled = fcIndex === fcCards.length - 1;
-}
-
-function flipCard() {
-  fcFlipped = !fcFlipped;
-  document.getElementById('fcCardInner').classList.toggle('flipped', fcFlipped);
-}
-
-function navigateCard(direction) {
-  const next = fcIndex + direction;
-  if (next < 0 || next >= fcCards.length) return;
-  fcIndex = next;
-  renderCurrentCard();
-}
-
-function shuffleCards() {
-  for (let i = fcCards.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [fcCards[i], fcCards[j]] = [fcCards[j], fcCards[i]];
+function openUploadModal() {
+  const modal = document.getElementById('uploadModal');
+  const backdrop = document.getElementById('uploadModalBackdrop');
+  
+  if (modal && backdrop) {
+    backdrop.classList.add('open');
+    modal.classList.add('open');
+    clearSelectedFiles();
   }
-  fcIndex = 0;
-  renderCurrentCard();
-  showNotification('Cards shuffled!', 'info');
 }
 
-function restartCards() {
-  fcIndex   = 0;
-  fcFlipped = false;
-  renderCurrentCard();
+
+function closeUploadModal() {
+  const modal = document.getElementById('uploadModal');
+  const backdrop = document.getElementById('uploadModalBackdrop');
+  
+  if (backdrop) backdrop.classList.remove('open');
+  if (modal) modal.classList.remove('open');
+  
+  // DON'T clear files here - let startUpload() handle it after uploading!
 }
 
-// Keyboard navigation
-document.addEventListener('keydown', e => {
-  const modal = document.getElementById('fcModal');
-  if (!modal.classList.contains('open')) return;
-
-  if (e.key === 'ArrowRight') navigateCard(1);
-  if (e.key === 'ArrowLeft')  navigateCard(-1);
-  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
-  if (e.key === 'Escape') closeFlashcardModal();
+// Initialize upload modal
+document.addEventListener('DOMContentLoaded', () => {
+  const dropZone = document.getElementById('uploadDropZone');
+  const fileInput = document.getElementById('modalFileInput');
+  const browseButton = document.getElementById('browseButton');
+  
+  // Override triggerFileUpload to open modal
+  window.triggerFileUpload = function() {
+    openUploadModal();
+  };
+  
+  if (dropZone) {
+    dropZone.addEventListener('click', () => {
+      if (fileInput) fileInput.click();
+    });
+  }
+  
+  if (browseButton) {
+    browseButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (fileInput) fileInput.click();
+    });
+  }
+  
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      handleModalFiles(Array.from(e.target.files));
+    });
+  }
+  
+  if (dropZone) {
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('drag-over');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      handleModalFiles(Array.from(e.dataTransfer.files));
+    });
+  }
 });
 
-// ============================================================================
-// OPEN FLASHCARDS FOR AN EXISTING DOCUMENT
-// ============================================================================
-
-async function openFlashcardsForDocument(docId, filename) {
-  showLoadingOverlay(filename);
-  try {
-    const res  = await fetch(`/api/flashcards/${docId}`);
-    const data = await res.json();
-    hideLoadingOverlay();
-
-    if (data.success && data.flashcards.length > 0) {
-      openFlashcardModal(data.flashcards, filename, `${data.flashcards.length} flashcards`);
-    } else {
-      showNotification('No flashcards found for this document.', 'warning');
-    }
-  } catch (e) {
-    hideLoadingOverlay();
-    showNotification('Could not load flashcards.', 'error');
-  }
-}
-
-// ============================================================================
-// LOADING OVERLAY HELPERS
-// ============================================================================
-
-function showLoadingOverlay(filename) {
-  document.getElementById('fcLoadingFile').textContent = filename ? `Processing: ${filename}` : '';
-  document.getElementById('fcLoadingOverlay').classList.add('active');
-}
-
-function hideLoadingOverlay() {
-  document.getElementById('fcLoadingOverlay').classList.remove('active');
-}
-
-// ============================================================================
-// PATCH handleFileUpload TO SHOW LOADING + OPEN MODAL ON SUCCESS
-// ============================================================================
-
-// Override the uploadFile function to show the loading screen and open the
-// flashcard modal automatically after a successful upload.
-const _originalUploadFile = uploadFile;
-
-window.uploadFile = async function(file) {
-  showLoadingOverlay(file.name);
-
-  const formData = new FormData();
-  formData.append('file', file);
-
-  try {
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData
-    });
-
-    const data = await response.json();
-    hideLoadingOverlay();
-
-    if (response.ok && data.success) {
-      showNotification(`✅ ${data.flashcards_generated} flashcards created for "${file.name}"!`, 'success');
-      loadDocuments();  // refresh document grid
-
-      // Auto-open the flashcard modal
-      if (data.flashcards && data.flashcards.length > 0) {
-        setTimeout(() => {
-          openFlashcardModal(data.flashcards, file.name, `${data.flashcards.length} flashcards generated`);
-        }, 600);
+function handleModalFiles(files) {
+  const validTypes = ['application/pdf', 'application/msword', 
+                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                     'application/vnd.ms-powerpoint',
+                     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                     'text/plain'];
+  
+  const validExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt'];
+  const maxSize = 10 * 1024 * 1024;
+  
+  const validFiles = files.filter(file => {
+    const extension = '.' + file.name.split('.').pop().toLowerCase();
+    const isValidType = validTypes.includes(file.type) || validExtensions.includes(extension);
+    const isValidSize = file.size <= maxSize;
+    
+    if (!isValidType) {
+      if (typeof showNotification === 'function') {
+        showNotification(`❌ ${file.name}: Invalid file type`, 'error');
       }
-      return true;
-
-    } else {
-      const msg = data.message || 'Upload failed';
-      showNotification(msg, 'error');
       return false;
     }
+    
+    if (!isValidSize) {
+      if (typeof showNotification === 'function') {
+        showNotification(`❌ ${file.name}: File too large (max 10MB)`, 'error');
+      }
+      return false;
+    }
+    
+    return true;
+  });
+  
+  validFiles.forEach(file => {
+    const isDuplicate = selectedFilesForUpload.some(f => 
+      f.name === file.name && f.size === file.size
+    );
+    
+    if (!isDuplicate && selectedFilesForUpload.length < 10) {
+      selectedFilesForUpload.push(file);
+    }
+  });
+  
+  updateUploadFilesList();
+}
 
-  } catch (err) {
-    hideLoadingOverlay();
-    showNotification(`Network error uploading ${file.name}`, 'error');
-    return false;
+function updateUploadFilesList() {
+  const filesList = document.getElementById('uploadFilesList');
+  const filesGrid = document.getElementById('uploadFilesGrid');
+  const fileCount = document.getElementById('fileCount');
+  const uploadButton = document.getElementById('uploadButton');
+  const uploadCount = document.getElementById('uploadCount');
+  
+  if (!selectedFilesForUpload.length) {
+    if (filesList) filesList.style.display = 'none';
+    if (uploadButton) uploadButton.disabled = true;
+    if (uploadCount) uploadCount.textContent = '';
+    return;
   }
-};
+  
+  if (filesList) filesList.style.display = 'block';
+  if (fileCount) fileCount.textContent = selectedFilesForUpload.length;
+  if (uploadButton) uploadButton.disabled = false;
+  if (uploadCount) uploadCount.textContent = `(${selectedFilesForUpload.length})`;
+  
+  if (filesGrid) {
+    filesGrid.innerHTML = selectedFilesForUpload.map((file, index) => {
+      const icon = getFileIcon(file.name);
+      const size = formatFileSize(file.size);
+      
+      return `
+        <div class="upload-file-item">
+          <div class="upload-file-icon">
+            <i class="${icon}"></i>
+          </div>
+          <div class="upload-file-info">
+            <div class="upload-file-name">${file.name}</div>
+            <div class="upload-file-size">${size}</div>
+          </div>
+          <button class="upload-file-remove" onclick="removeFileFromUpload(${index})">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+}
 
-// ============================================================================
-// LOAD DOCUMENTS ON PAGE READY
-// ============================================================================
+function removeFileFromUpload(index) {
+  selectedFilesForUpload.splice(index, 1);
+  updateUploadFilesList();
+}
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadDocuments();
-});
+function clearSelectedFiles() {
+  selectedFilesForUpload = [];
+  updateUploadFilesList();
+  
+  const fileInput = document.getElementById('modalFileInput');
+  if (fileInput) fileInput.value = '';
+}
 
-// Expose new globals needed by HTML onclick handlers
-window.closeFlashcardModal      = closeFlashcardModal;
-window.flipCard                 = flipCard;
-window.navigateCard             = navigateCard;
-window.shuffleCards             = shuffleCards;
-window.restartCards             = restartCards;
-window.openFlashcardsForDocument = openFlashcardsForDocument;
-window.deleteDocument           = deleteDocument;
+
+async function startUpload() {
+  console.log('🔵 startUpload() called');
+  console.log('🔵 selectedFilesForUpload:', selectedFilesForUpload);
+  
+  if (!selectedFilesForUpload.length) {
+    console.log('⚠️ No files selected!');
+    return;
+  }
+  
+  console.log('🔵 Files count:', selectedFilesForUpload.length);
+  
+  // Close modal FIRST (but don't clear files yet)
+  const modal = document.getElementById('uploadModal');
+  const backdrop = document.getElementById('uploadModalBackdrop');
+  if (backdrop) backdrop.classList.remove('open');
+  if (modal) modal.classList.remove('open');
+  
+  console.log('🔵 Checking window.uploadFile:', typeof window.uploadFile);
+  
+  // Now upload the files
+  for (const file of selectedFilesForUpload) {
+    console.log('🔵 Processing file:', file.name);
+    
+    if (typeof window.uploadFile === 'function') {
+      console.log('✅ Calling window.uploadFile for:', file.name);
+      await window.uploadFile(file);
+      console.log('✅ Completed for:', file.name);
+    } else {
+      console.error('❌ window.uploadFile is NOT a function!', typeof window.uploadFile);
+    }
+  }
+  
+  // AFTER uploading, clear the files
+  console.log('🔵 Clearing selected files...');
+  clearSelectedFiles();
+  console.log('✅ startUpload() completed');
+}
+
+function getFileIcon(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  
+  switch(ext) {
+    case 'pdf': return 'fas fa-file-pdf';
+    case 'doc':
+    case 'docx': return 'fas fa-file-word';
+    case 'ppt':
+    case 'pptx': return 'fas fa-file-powerpoint';
+    case 'txt': return 'fas fa-file-alt';
+    default: return 'fas fa-file';
+  }
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+window.openUploadModal = openUploadModal;
+window.closeUploadModal = closeUploadModal;
+window.removeFileFromUpload = removeFileFromUpload;
+window.clearSelectedFiles = clearSelectedFiles;
+window.startUpload = startUpload;

@@ -1,0 +1,405 @@
+// ============================================================================
+// COMPLETE FIXED LOADING SYSTEM - Timer and Steps Working
+// ============================================================================
+
+let isUploading = false;
+let uploadTimer = null;
+let uploadStartTime = null;
+const ESTIMATED_UPLOAD_TIME = 60; // 60 seconds
+
+function showLoadingOverlay(filename) {
+  if (isUploading) {
+    showNotification('⏳ Please wait for the current upload to complete', 'warning');
+    return false;
+  }
+  
+  isUploading = true;
+  uploadStartTime = Date.now();
+  
+  const overlay = document.getElementById('fcLoadingOverlay');
+  if (!overlay) {
+    console.error('fcLoadingOverlay not found!');
+    return false;
+  }
+  
+  // Reset classes
+  overlay.classList.remove('completing');
+  overlay.classList.add('active');
+  
+  // Reset all steps
+  for (let i = 1; i <= 4; i++) {
+    const step = document.getElementById(`step${i}`);
+    if (step) {
+      step.classList.remove('active', 'complete');
+    }
+  }
+  
+  // Set filename
+  const fileEl = document.getElementById('fcLoadingFile');
+  if (fileEl) {
+    fileEl.textContent = filename || '';
+  }
+  
+  // IMPORTANT: Set initial timer text BEFORE starting interval
+  const timerText = document.getElementById('fcTimerText');
+  if (timerText) {
+    timerText.textContent = `${ESTIMATED_UPLOAD_TIME}s`;
+  }
+  
+  // Start countdown timer
+  startCountdownTimer();
+  
+  // Start Step 1 immediately
+  setTimeout(() => {
+    setLoadingStep(1, 'Uploading File...', 'Sending file to server...');
+  }, 100);
+  
+  return true;
+}
+
+function hideLoadingOverlay() {
+  isUploading = false;
+  
+  // Stop timer
+  if (uploadTimer) {
+    clearInterval(uploadTimer);
+    uploadTimer = null;
+  }
+  
+  const overlay = document.getElementById('fcLoadingOverlay');
+  if (!overlay) return;
+  
+  // Hide overlay
+  overlay.classList.remove('active', 'completing');
+  
+  // Reset timer display
+  const timerEl = document.getElementById('fcTimer');
+  const timerText = document.getElementById('fcTimerText');
+  if (timerEl) timerEl.classList.remove('warning');
+  if (timerText) timerText.textContent = `${ESTIMATED_UPLOAD_TIME}s`;
+}
+
+function startCountdownTimer() {
+  const timerEl = document.getElementById('fcTimer');
+  const timerText = document.getElementById('fcTimerText');
+  
+  if (!timerEl || !timerText) {
+    console.error('Timer elements not found!');
+    return;
+  }
+  
+  // Clear any existing timer
+  if (uploadTimer) {
+    clearInterval(uploadTimer);
+  }
+  
+  // Update immediately
+  timerText.textContent = `${ESTIMATED_UPLOAD_TIME}s`;
+  timerEl.classList.remove('warning');
+  
+  // Then start interval
+  uploadTimer = setInterval(() => {
+    if (!uploadStartTime) return;
+    
+    const elapsed = Math.floor((Date.now() - uploadStartTime) / 1000);
+    const remainingSeconds = Math.max(0, ESTIMATED_UPLOAD_TIME - elapsed);
+    
+    timerText.textContent = `${remainingSeconds}s`;
+    
+    // Turn orange when less than 15 seconds remain
+    if (remainingSeconds <= 15 && remainingSeconds > 0) {
+      timerEl.classList.add('warning');
+    }
+    
+    // If we go past estimated time, show overtime
+    if (remainingSeconds === 0 && elapsed > ESTIMATED_UPLOAD_TIME) {
+      const overtime = elapsed - ESTIMATED_UPLOAD_TIME;
+      timerText.textContent = `+${overtime}s`;
+      timerEl.classList.add('warning');
+    }
+  }, 100); // Update every 100ms for smoother countdown
+}
+
+function setLoadingStep(stepNumber, title, message) {
+  console.log(`Setting step ${stepNumber}: ${title}`);
+  
+  // Update title
+  const titleEl = document.getElementById('fcLoadingTitle');
+  if (titleEl) {
+    titleEl.textContent = title;
+  } else {
+    console.error('fcLoadingTitle not found!');
+  }
+  
+  // Update status message
+  const msgEl = document.getElementById('fcStatusMsg');
+  if (msgEl) {
+    msgEl.textContent = message;
+  } else {
+    console.error('fcStatusMsg not found!');
+  }
+  
+  // Mark previous steps as complete
+  for (let i = 1; i < stepNumber; i++) {
+    const step = document.getElementById(`step${i}`);
+    if (step) {
+      step.classList.remove('active');
+      step.classList.add('complete');
+    } else {
+      console.error(`step${i} not found!`);
+    }
+  }
+  
+  // Mark current step as active
+  const currentStep = document.getElementById(`step${stepNumber}`);
+  if (currentStep) {
+    currentStep.classList.remove('complete');
+    currentStep.classList.add('active');
+  } else {
+    console.error(`step${stepNumber} not found!`);
+  }
+  
+  // Remove active from future steps
+  for (let i = stepNumber + 1; i <= 4; i++) {
+    const step = document.getElementById(`step${i}`);
+    if (step) {
+      step.classList.remove('active', 'complete');
+    }
+  }
+}
+
+function completeLoadingSpinner() {
+  const overlay = document.getElementById('fcLoadingOverlay');
+  if (overlay) {
+    overlay.classList.add('completing');
+  }
+}
+
+// ============================================================================
+// UPLOAD FILE FUNCTION
+// ============================================================================
+
+window.uploadFile = async function(file) {
+  console.log('uploadFile called for:', file.name);
+  
+  if (!showLoadingOverlay(file.name)) {
+    return false;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    // Step 1 is already set in showLoadingOverlay
+    
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    // Step 2: Extracting
+    setLoadingStep(2, 'Extracting Text...', 'Reading document content...');
+    await sleep(800);
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // Step 3: AI Processing
+      setLoadingStep(3, 'AI Processing...', 'Generating flashcards with AI...');
+      await sleep(1200);
+      
+      // Step 4: Complete
+      setLoadingStep(4, 'Complete!', `${data.flashcards_generated} flashcards created!`);
+      completeLoadingSpinner();
+      await sleep(1200);
+      
+      hideLoadingOverlay();
+      
+      showNotification(`✅ ${data.flashcards_generated} flashcards created for "${file.name}"!`, 'success');
+      
+      // Refresh documents if function exists
+      if (typeof loadDocuments === 'function') {
+        loadDocuments();
+      }
+
+      // Auto-open flashcard modal
+      if (data.flashcards && data.flashcards.length > 0) {
+        setTimeout(() => {
+          openFlashcardModal(data.flashcards, file.name, `${data.flashcards.length} flashcards generated`);
+        }, 300);
+      }
+      return true;
+
+    } else {
+      hideLoadingOverlay();
+      const msg = data.message || 'Upload failed';
+      showNotification(msg, 'error');
+      return false;
+    }
+
+  } catch (err) {
+    hideLoadingOverlay();
+    showNotification(`Network error uploading ${file.name}`, 'error');
+    console.error('Upload error:', err);
+    return false;
+  }
+};
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ============================================================================
+// VIEW FLASHCARDS - No loading modal
+// ============================================================================
+
+window.openFlashcardsForDocument = async function(docId, filename) {
+  try {
+    const response = await fetch(`/api/flashcards/${docId}`);
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      const flashcards = data.flashcards || [];
+      
+      if (flashcards.length === 0) {
+        showNotification('No flashcards found for this document', 'warning');
+        return;
+      }
+      
+      openFlashcardModal(flashcards, filename, `${flashcards.length} flashcards`);
+      
+    } else {
+      showNotification(data.message || 'Failed to load flashcards', 'error');
+    }
+    
+  } catch (err) {
+    console.error('Error loading flashcards:', err);
+    showNotification('Failed to load flashcards', 'error');
+  }
+};
+
+// ============================================================================
+// FLASHCARD MODAL CONTROL
+// ============================================================================
+
+let fcCards = [];
+let fcIndex = 0;
+
+function openFlashcardModal(cards, title, subtitle) {
+  fcCards = cards || [];
+  fcIndex = 0;
+  
+  const modal = document.getElementById('fcModal');
+  const backdrop = document.getElementById('fcModalBackdrop');
+  const titleEl = document.getElementById('fcModalTitle');
+  const subtitleEl = document.getElementById('fcModalSubtitle');
+  
+  if (!modal || !backdrop) {
+    console.error('Modal elements not found!');
+    return;
+  }
+  
+  if (titleEl) titleEl.textContent = title || 'Flashcards';
+  if (subtitleEl) subtitleEl.textContent = subtitle || '';
+  
+  // Show modal
+  backdrop.classList.add('open');
+  modal.classList.add('open');
+  
+  renderCurrentCard();
+}
+
+function closeFlashcardModal() {
+  const modal = document.getElementById('fcModal');
+  const backdrop = document.getElementById('fcModalBackdrop');
+  
+  if (backdrop) backdrop.classList.remove('open');
+  if (modal) modal.classList.remove('open');
+  
+  // Reset flip
+  const cardInner = document.getElementById('fcCardInner');
+  if (cardInner) cardInner.classList.remove('flipped');
+}
+
+function renderCurrentCard() {
+  if (!fcCards.length) return;
+  
+  const card = fcCards[fcIndex];
+  const questionEl = document.getElementById('fcQuestion');
+  const answerEl = document.getElementById('fcAnswer');
+  const progressFill = document.getElementById('fcProgressFill');
+  const progressLabel = document.getElementById('fcProgressLabel');
+  const prevBtn = document.getElementById('fcPrevBtn');
+  const nextBtn = document.getElementById('fcNextBtn');
+  const cardInner = document.getElementById('fcCardInner');
+  
+  if (questionEl) questionEl.textContent = card.question || '';
+  if (answerEl) answerEl.textContent = card.answer || '';
+  
+  const progress = ((fcIndex + 1) / fcCards.length) * 100;
+  if (progressFill) progressFill.style.width = `${progress}%`;
+  if (progressLabel) progressLabel.textContent = `Card ${fcIndex + 1} of ${fcCards.length}`;
+  
+  if (prevBtn) prevBtn.disabled = fcIndex === 0;
+  if (nextBtn) nextBtn.disabled = fcIndex === fcCards.length - 1;
+  
+  if (cardInner) cardInner.classList.remove('flipped');
+}
+
+function flipCard() {
+  const cardInner = document.getElementById('fcCardInner');
+  if (cardInner) cardInner.classList.toggle('flipped');
+}
+
+function navigateCard(direction) {
+  const newIndex = fcIndex + direction;
+  if (newIndex >= 0 && newIndex < fcCards.length) {
+    fcIndex = newIndex;
+    renderCurrentCard();
+  }
+}
+
+function shuffleCards() {
+  for (let i = fcCards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [fcCards[i], fcCards[j]] = [fcCards[j], fcCards[i]];
+  }
+  fcIndex = 0;
+  renderCurrentCard();
+  showNotification('Cards shuffled!', 'success');
+}
+
+function restartCards() {
+  fcIndex = 0;
+  renderCurrentCard();
+  showNotification('Restarted from beginning', 'success');
+}
+
+// ============================================================================
+// UPLOAD BUTTON CONTROL
+// ============================================================================
+
+function disableUploadButtons() {
+  const uploadBtns = document.querySelectorAll('.upload-btn, [onclick*="uploadDocument"], button:has(i.fa-upload)');
+  uploadBtns.forEach(btn => {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+  });
+}
+
+function enableUploadButtons() {
+  const uploadBtns = document.querySelectorAll('.upload-btn, [onclick*="uploadDocument"], button:has(i.fa-upload)');
+  uploadBtns.forEach(btn => {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  });
+}
+
+// Expose functions globally
+window.closeFlashcardModal = closeFlashcardModal;
+window.flipCard = flipCard;
+window.navigateCard = navigateCard;
+window.shuffleCards = shuffleCards;
+window.restartCards = restartCards;

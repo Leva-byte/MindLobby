@@ -268,8 +268,194 @@
 
   </main>
 
+  <!-- =====================================================================
+       FLASHCARD VIEWER MODAL
+       ===================================================================== -->
+  <div class="fc-modal-backdrop" id="fcModalBackdrop" onclick="closeFlashcardModal()"></div>
+
+  <div class="fc-modal" id="fcModal">
+    <div class="fc-modal-header">
+      <div>
+        <h2 class="fc-modal-title" id="fcModalTitle">Flashcards</h2>
+        <p class="fc-modal-subtitle" id="fcModalSubtitle"></p>
+      </div>
+      <button class="fc-close-btn" onclick="closeFlashcardModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="fc-progress-bar">
+      <div class="fc-progress-fill" id="fcProgressFill"></div>
+    </div>
+    <p class="fc-progress-label" id="fcProgressLabel"></p>
+
+    <div class="fc-card-area">
+      <button class="fc-nav-btn" id="fcPrevBtn" onclick="navigateCard(-1)">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+
+      <div class="fc-card" id="fcCard" onclick="flipCard()">
+        <div class="fc-card-inner" id="fcCardInner">
+          <div class="fc-card-front">
+            <span class="fc-card-label">Question</span>
+            <p class="fc-card-text" id="fcQuestion"></p>
+            <span class="fc-flip-hint"><i class="fas fa-sync-alt"></i> Click to reveal answer</span>
+          </div>
+          <div class="fc-card-back">
+            <span class="fc-card-label">Answer</span>
+            <p class="fc-card-text" id="fcAnswer"></p>
+          </div>
+        </div>
+      </div>
+
+      <button class="fc-nav-btn" id="fcNextBtn" onclick="navigateCard(1)">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <div class="fc-controls">
+      <button class="fc-control-btn" onclick="shuffleCards()">
+        <i class="fas fa-random"></i> Shuffle
+      </button>
+      <button class="fc-control-btn" onclick="restartCards()">
+        <i class="fas fa-redo"></i> Restart
+      </button>
+    </div>
+  </div>
+
+  <div class="fc-loading-overlay" id="fcLoadingOverlay">
+  <div class="fc-loading-box">
+    <!-- Animated Progress Ring -->
+    <div class="fc-progress-ring">
+      <svg class="fc-ring-svg" width="120" height="120">
+        <circle class="fc-ring-bg" cx="60" cy="60" r="54"></circle>
+        <circle class="fc-ring-progress" cx="60" cy="60" r="54"></circle>
+      </svg>
+      <div class="fc-ring-icon">
+        <i class="fas fa-file-upload"></i>
+      </div>
+    </div>
+
+    <!-- Current Step Title -->
+    <p class="fc-loading-title" id="fcLoadingTitle">Uploading File...</p>
+    
+    <!-- Filename -->
+    <p class="fc-loading-file" id="fcLoadingFile"></p>
+
+    <!-- Live Timer -->
+    <div class="fc-timer" id="fcTimer">
+      <i class="fas fa-clock"></i>
+      <span id="fcTimerText">0s</span>
+    </div>
+
+    <!-- Step Progress Indicators -->
+    <div class="fc-steps">
+      <div class="fc-step" id="step1">
+        <div class="fc-step-icon">
+          <i class="fas fa-upload"></i>
+        </div>
+        <span class="fc-step-label">Uploading</span>
+      </div>
+
+      <div class="fc-step-connector"></div>
+
+      <div class="fc-step" id="step2">
+        <div class="fc-step-icon">
+          <i class="fas fa-file-alt"></i>
+        </div>
+        <span class="fc-step-label">Extracting</span>
+      </div>
+
+      <div class="fc-step-connector"></div>
+
+      <div class="fc-step" id="step3">
+        <div class="fc-step-icon">
+          <i class="fas fa-brain"></i>
+        </div>
+        <span class="fc-step-label">AI Processing</span>
+      </div>
+
+      <div class="fc-step-connector"></div>
+
+      <div class="fc-step" id="step4">
+        <div class="fc-step-icon">
+          <i class="fas fa-check"></i>
+        </div>
+        <span class="fc-step-label">Complete</span>
+      </div>
+    </div>
+
+    <!-- Status Message -->
+    <p class="fc-status-msg" id="fcStatusMsg">Preparing upload...</p>
+  </div>
+</div>
+
+  <!-- =====================================================================
+       FILE UPLOAD MODAL
+       ===================================================================== -->
+  <div class="upload-modal-backdrop" id="uploadModalBackdrop" onclick="closeUploadModal()"></div>
+
+  <div class="upload-modal" id="uploadModal">
+    <div class="upload-modal-header">
+      <div>
+        <h2 class="upload-modal-title">Upload Documents</h2>
+        <p class="upload-modal-subtitle">Add your study materials</p>
+      </div>
+      <button class="upload-close-btn" onclick="closeUploadModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="upload-modal-body">
+      <!-- Drop Zone -->
+      <div class="upload-drop-zone" id="uploadDropZone">
+        <div class="upload-drop-content">
+          <div class="upload-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <h3 class="upload-drop-title">Drag & drop files here</h3>
+          <p class="upload-drop-text">or click to browse</p>
+          <button class="btn-browse" id="browseButton">
+            <i class="fas fa-folder-open"></i>
+            Browse Files
+          </button>
+          <p class="upload-formats">
+            <i class="fas fa-info-circle"></i>
+            Supports: PDF, Word (.doc, .docx), PowerPoint (.ppt, .pptx), Text (.txt)
+          </p>
+          <p class="upload-limit">Maximum 10MB per file • Up to 10 files at once</p>
+        </div>
+      </div>
+
+      <!-- Selected Files List -->
+      <div class="upload-files-list" id="uploadFilesList" style="display: none;">
+        <div class="upload-files-header">
+          <h4>Selected Files (<span id="fileCount">0</span>)</h4>
+          <button class="btn-clear-files" onclick="clearSelectedFiles()">
+            <i class="fas fa-trash-alt"></i>
+            Clear All
+          </button>
+        </div>
+        <div class="upload-files-grid" id="uploadFilesGrid"></div>
+      </div>
+    </div>
+
+    <div class="upload-modal-footer">
+      <button class="btn-secondary" onclick="closeUploadModal()">
+        Cancel
+      </button>
+      <button class="btn-primary" id="uploadButton" onclick="startUpload()" disabled>
+        <i class="fas fa-upload"></i>
+        Upload <span id="uploadCount"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="modalFileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
+
   <!-- External JavaScript -->
   <script src="/static/js/studio.js"></script>
+  <script src="/static/js/FINAL_FIXED_LOADING.js"></script>
   
 </body>
-</html>

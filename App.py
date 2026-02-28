@@ -1,6 +1,7 @@
 import random
 import string
 import os
+import uuid
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session, abort
 from flask_socketio import SocketIO, join_room, leave_room, emit
@@ -19,6 +20,7 @@ from database import (
     update_last_login
 )
 from validators import validate_password_strength, validate_email_format, validate_username
+from flashcard_routes import flashcard_bp
 
 # ============================================================================
 # NEW: GATEKEEPER IMPORTS (ADMIN SECURITY)
@@ -49,8 +51,8 @@ except ImportError as e:
 
 app = Flask(__name__)
 
-# Secret key - change this!
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
+# Secret key - unique per app run so all sessions are invalidated on restart
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production') + uuid.uuid4().hex
 
 # SocketIO config - with Hostinger compatibility
 socketio = SocketIO(
@@ -61,6 +63,9 @@ socketio = SocketIO(
     ping_timeout=60,
     ping_interval=25
 )
+
+# Register flashcard/upload routes
+app.register_blueprint(flashcard_bp)
 
 # ============================================================================
 # DATABASE INITIALIZATION (ENHANCED)
@@ -174,7 +179,8 @@ def signup():
             session['user_id'] = user_id
             session['user_email'] = email
             session['username'] = username
-            
+            session['show_welcome'] = True
+
             logger.info(f"New user registered: {username}")
             return jsonify({'success': True, 'message': 'Account created successfully', 'username': username})
         else:
@@ -219,7 +225,8 @@ def login():
         session['user_email'] = user['email']
         session['username'] = user['username']
         session['role'] = user['role']
-        
+        session['show_welcome'] = True
+
         logger.info(f"User logged in: {user['username']}")
         return jsonify({'success': True, 'message': 'Login successful', 'username': user['username']})
         
@@ -239,11 +246,13 @@ def logout():
 def check_auth():
     """Check if user is authenticated"""
     if 'user_email' in session:
+        show_welcome = session.pop('show_welcome', False)
         return jsonify({
             'authenticated': True,
             'username': session.get('username'),
             'email': session.get('user_email'),
-            'role': session.get('role', 'user')
+            'role': session.get('role', 'user'),
+            'show_welcome': show_welcome
         })
     return jsonify({'authenticated': False})
 
@@ -262,7 +271,9 @@ def dashboard():
 # ============================================================================
 @app.route('/')
 def index():
-    """Render the main platform landing page"""
+    """Render the main platform landing page (redirects to studio if logged in)"""
+    if 'user_email' in session:
+        return redirect('/studio')
     return render_template('Home.html')
 
 @app.route('/quickplay')
@@ -272,7 +283,9 @@ def quickplay():
 
 @app.route('/home')
 def home():
-    """Render the main platform landing page (alias)"""
+    """Render the main platform landing page (redirects to studio if logged in)"""
+    if 'user_email' in session:
+        return redirect('/studio')
     return render_template('Home.html')
 
 @app.route('/about')
