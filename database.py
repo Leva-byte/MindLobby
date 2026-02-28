@@ -407,6 +407,19 @@ def get_flashcards_for_document(document_id, user_id):
     conn.close()
     return dict(doc), [dict(c) for c in cards]
 
+def rename_document(document_id, user_id, new_name):
+    """Rename a document's original_filename. Returns True if found and updated."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        'UPDATE documents SET original_filename = ? WHERE id = ? AND user_id = ?',
+        (new_name, document_id, user_id)
+    )
+    updated = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return updated
+
 def delete_document_and_flashcards(document_id, user_id):
     """Delete a document and its flashcards. Returns the file path (for physical deletion) or None."""
     conn = get_db_connection()

@@ -7,6 +7,7 @@ from database import (
     save_flashcards,
     get_documents_for_user,
     get_flashcards_for_document,
+    rename_document,
     delete_document_and_flashcards,
 )
 
@@ -63,12 +64,8 @@ def upload_document():
     file_ext = safe_filename.rsplit('.', 1)[1].lower()
 
     try:
-        # Number of flashcards - clamped between 5 and 20
-        num_cards = int(request.form.get('num_cards', 10))
-        num_cards = max(5, min(num_cards, 20))
-
         # Extract text -> generate flashcards via OpenRouter
-        flashcards, _ = process_file_to_flashcards(file_path, safe_filename, num_cards)
+        flashcards, _ = process_file_to_flashcards(file_path, safe_filename)
 
         # Save document record to DB
         doc_id = save_document(
@@ -147,3 +144,23 @@ def delete_document(document_id):
         os.remove(file_path)
 
     return jsonify({'success': True, 'message': 'Document and flashcards deleted'})
+
+
+@flashcard_bp.route('/api/documents/<int:document_id>/rename', methods=['PATCH'])
+def rename_doc(document_id):
+    """Rename a document's display name."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+
+    data = request.get_json()
+    new_name = (data or {}).get('name', '').strip()
+
+    if not new_name:
+        return jsonify({'success': False, 'message': 'Name cannot be empty'}), 400
+
+    updated = rename_document(document_id, session['user_id'], new_name)
+
+    if not updated:
+        return jsonify({'success': False, 'message': 'Document not found'}), 404
+
+    return jsonify({'success': True, 'message': 'Document renamed'})

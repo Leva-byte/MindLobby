@@ -5,7 +5,10 @@
 let isUploading = false;
 let uploadTimer = null;
 let uploadStartTime = null;
+let overtimeNotified = false;
+let uploadAbortController = null;
 const ESTIMATED_UPLOAD_TIME = 60; // 60 seconds
+const MAX_UPLOAD_TIME = 150;      // hard fail at 150 seconds
 
 function showLoadingOverlay(filename) {
   if (isUploading) {
@@ -15,6 +18,7 @@ function showLoadingOverlay(filename) {
   
   isUploading = true;
   uploadStartTime = Date.now();
+  overtimeNotified = false;
   
   const overlay = document.getElementById('fcLoadingOverlay');
   if (!overlay) {
@@ -116,6 +120,20 @@ function startCountdownTimer() {
       const overtime = elapsed - ESTIMATED_UPLOAD_TIME;
       timerText.textContent = `+${overtime}s`;
       timerEl.classList.add('warning');
+
+      // Show patience modal once at 60s
+      if (!overtimeNotified) {
+        overtimeNotified = true;
+        showOvertimeModal();
+      }
+
+      // Hard fail at 150s
+      if (elapsed >= MAX_UPLOAD_TIME) {
+        if (uploadAbortController) uploadAbortController.abort();
+        hideLoadingOverlay();
+        closeOvertimeModal();
+        showNotification('Upload timed out — the file was too large to process. Please try a smaller file.', 'error');
+      }
     }
   }, 100); // Update every 100ms for smoother countdown
 }
@@ -176,25 +194,47 @@ function completeLoadingSpinner() {
 }
 
 // ============================================================================
+// OVERTIME MODAL CONTROL
+// ============================================================================
+
+function showOvertimeModal() {
+  const backdrop = document.getElementById('overtimeBackdrop');
+  const modal = document.getElementById('overtimeModal');
+  if (backdrop) backdrop.classList.add('open');
+  if (modal) modal.classList.add('open');
+}
+
+function closeOvertimeModal() {
+  const backdrop = document.getElementById('overtimeBackdrop');
+  const modal = document.getElementById('overtimeModal');
+  if (backdrop) backdrop.classList.remove('open');
+  if (modal) modal.classList.remove('open');
+}
+
+window.closeOvertimeModal = closeOvertimeModal;
+
+// ============================================================================
 // UPLOAD FILE FUNCTION
 // ============================================================================
 
 window.uploadFile = async function(file) {
   console.log('uploadFile called for:', file.name);
-  
+
   if (!showLoadingOverlay(file.name)) {
     return false;
   }
 
+  uploadAbortController = new AbortController();
   const formData = new FormData();
   formData.append('file', file);
 
   try {
     // Step 1 is already set in showLoadingOverlay
-    
+
     const response = await fetch('/api/upload', {
       method: 'POST',
-      body: formData
+      body: formData,
+      signal: uploadAbortController.signal
     });
 
     // Step 2: Extracting
@@ -239,7 +279,11 @@ window.uploadFile = async function(file) {
 
   } catch (err) {
     hideLoadingOverlay();
-    showNotification(`Network error uploading ${file.name}`, 'error');
+    closeOvertimeModal();
+    // Don't show a duplicate error if the abort was triggered by the 150s timeout
+    if (err.name !== 'AbortError') {
+      showNotification(`Network error uploading ${file.name}`, 'error');
+    }
     console.error('Upload error:', err);
     return false;
   }

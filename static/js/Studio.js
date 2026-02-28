@@ -773,15 +773,21 @@ function renderDocumentGrid(documents) {
 
     const card = document.createElement('div');
     card.className = 'document-card';
+    const escapedName = (doc.original_filename || doc.filename).replace(/'/g, "\\'").replace(/"/g, '&quot;');
     card.innerHTML = `
       <div class="doc-header">
         <div class="doc-icon"><i class="fas ${icon}"></i></div>
-        <button class="doc-delete-btn" onclick="deleteDocument('${doc.id}', this)" title="Delete">
-          <i class="fas fa-trash"></i>
-        </button>
+        <div class="doc-actions">
+          <button class="doc-rename-btn" onclick="openRenameModal('${doc.id}', '${escapedName}')" title="Rename">
+            <i class="fas fa-pen"></i>
+          </button>
+          <button class="doc-delete-btn" onclick="deleteDocument('${doc.id}', this)" title="Delete">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
       </div>
       <span class="doc-type-badge doc-type-${ext}">${ext.toUpperCase()}</span>
-      <h3 class="doc-title">${doc.filename}</h3>
+      <h3 class="doc-title">${doc.original_filename || doc.filename}</h3>
       <div class="doc-meta">
         <span class="doc-meta-item"><i class="fas fa-layer-group"></i> ${doc.flashcard_count} cards</span>
         <span class="doc-meta-item"><i class="fas fa-calendar"></i> ${date}</span>
@@ -794,22 +800,117 @@ function renderDocumentGrid(documents) {
   });
 }
 
-async function deleteDocument(docId, btnEl) {
-  if (!confirm('Delete this document and all its flashcards?')) return;
+function deleteDocument(docId, btnEl) {
+  const backdrop = document.getElementById('confirmBackdrop');
+  const modal = document.getElementById('confirmModal');
+  const cancelBtn = document.getElementById('confirmCancel');
+  const deleteBtn = document.getElementById('confirmDelete');
 
-  try {
-    const res  = await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.success) {
-      showNotification('Document deleted', 'success');
-      loadDocuments();
-    } else {
-      showNotification(data.message || 'Delete failed', 'error');
-    }
-  } catch (e) {
-    showNotification('Network error deleting document', 'error');
+  if (!backdrop || !modal) return;
+
+  backdrop.classList.add('open');
+  modal.classList.add('open');
+
+  function closeModal() {
+    backdrop.classList.remove('open');
+    modal.classList.remove('open');
+    cancelBtn.removeEventListener('click', onCancel);
+    deleteBtn.removeEventListener('click', onConfirm);
+    backdrop.removeEventListener('click', onCancel);
   }
+
+  function onCancel() {
+    closeModal();
+  }
+
+  async function onConfirm() {
+    closeModal();
+    try {
+      const res  = await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('Document deleted', 'success');
+        loadDocuments();
+      } else {
+        showNotification(data.message || 'Delete failed', 'error');
+      }
+    } catch (e) {
+      showNotification('Network error deleting document', 'error');
+    }
+  }
+
+  cancelBtn.addEventListener('click', onCancel);
+  deleteBtn.addEventListener('click', onConfirm);
+  backdrop.addEventListener('click', onCancel);
 }
+
+function openRenameModal(docId, currentName) {
+  const backdrop = document.getElementById('renameBackdrop');
+  const modal = document.getElementById('renameModal');
+  const input = document.getElementById('renameInput');
+  const cancelBtn = document.getElementById('renameCancel');
+  const saveBtn = document.getElementById('renameSave');
+
+  if (!backdrop || !modal || !input) return;
+
+  // Strip extension for editing, keep it for saving
+  const dotIdx = currentName.lastIndexOf('.');
+  const nameOnly = dotIdx > 0 ? currentName.substring(0, dotIdx) : currentName;
+  const ext = dotIdx > 0 ? currentName.substring(dotIdx) : '';
+
+  input.value = nameOnly;
+  backdrop.classList.add('open');
+  modal.classList.add('open');
+  setTimeout(() => { input.focus(); input.select(); }, 100);
+
+  function closeModal() {
+    backdrop.classList.remove('open');
+    modal.classList.remove('open');
+    cancelBtn.removeEventListener('click', onCancel);
+    saveBtn.removeEventListener('click', onSave);
+    backdrop.removeEventListener('click', onCancel);
+    input.removeEventListener('keydown', onKeydown);
+  }
+
+  function onCancel() { closeModal(); }
+
+  function onKeydown(e) {
+    if (e.key === 'Enter') onSave();
+    if (e.key === 'Escape') onCancel();
+  }
+
+  async function onSave() {
+    const newName = input.value.trim();
+    if (!newName) {
+      showNotification('Name cannot be empty', 'warning');
+      return;
+    }
+    closeModal();
+    try {
+      const res = await fetch(`/api/documents/${docId}/rename`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName + ext })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('Document renamed', 'success');
+        loadDocuments();
+      } else {
+        showNotification(data.message || 'Rename failed', 'error');
+      }
+    } catch (e) {
+      showNotification('Network error renaming document', 'error');
+    }
+  }
+
+  cancelBtn.addEventListener('click', onCancel);
+  saveBtn.addEventListener('click', onSave);
+  backdrop.addEventListener('click', onCancel);
+  input.addEventListener('keydown', onKeydown);
+}
+
+window.openRenameModal = openRenameModal;
 
 // ============================================================================
 // FILE UPLOAD MODAL - Works with FINAL_FIXED_LOADING.js

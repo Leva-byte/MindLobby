@@ -63,21 +63,23 @@ def extract_text(file_path, filename):
 # FLASHCARD GENERATION VIA OPENROUTER
 # ============================================================================
 
-def generate_flashcards(markdown_text, num_cards=10):
+def generate_flashcards(markdown_text):
     """
     Send MarkItDown-parsed Markdown to OpenRouter and get back flashcards.
     Returns a list: [{"question": "...", "answer": "..."}, ...]
     """
     api_key = get_api_key()  # read fresh every call — fixes the timing bug
 
-    trimmed = markdown_text[:12000]
+    MAX_CHARS = 12000
+    trimmed = markdown_text[:MAX_CHARS]
 
-    prompt = f"""You are a study assistant. The following content has been extracted from a document and converted to Markdown format. Use the structure (headings, bullet points, tables) to understand the material and generate exactly {num_cards} high-quality flashcards.
+    prompt = f"""You are a study assistant. The following content has been extracted from a document and converted to Markdown format. Use the structure (headings, bullet points, tables) to understand the material and generate as many high-quality flashcards as the content warrants.
 
 Rules:
 - Each flashcard must have a clear, specific QUESTION and a concise ANSWER.
 - Use headings and sections to identify the most important topics.
 - Answers should be 1-3 sentences maximum.
+- Generate more flashcards for longer or denser content, fewer for shorter content.
 - Return ONLY valid JSON - no explanation, no markdown code fences, no extra text.
 
 Format:
@@ -172,7 +174,7 @@ Document content (Markdown):
 # MAIN ENTRY POINT
 # ============================================================================
 
-def process_file_to_flashcards(file_path, filename, num_cards=10):
+def process_file_to_flashcards(file_path, filename):
     """
     Full pipeline:
       1. MarkItDown converts the file to structured Markdown
@@ -181,7 +183,7 @@ def process_file_to_flashcards(file_path, filename, num_cards=10):
 
     Returns (flashcards_list, markdown_text)
     """
-    logger.info(f"🔄 Processing '{filename}' → {num_cards} flashcards")
+    logger.info(f"🔄 Processing '{filename}'")
     markdown_text = extract_text(file_path, filename)
-    flashcards = generate_flashcards(markdown_text, num_cards)
+    flashcards = generate_flashcards(markdown_text)
     return flashcards, markdown_text

@@ -451,6 +451,66 @@
     </div>
   </div>
 
+  <!-- =====================================================================
+       RENAME DOCUMENT MODAL
+       ===================================================================== -->
+  <div class="rename-modal-backdrop" id="renameBackdrop"></div>
+  <div class="rename-modal" id="renameModal">
+    <div class="rename-icon">
+      <i class="fas fa-pen"></i>
+    </div>
+    <h2 class="rename-title">Rename Document</h2>
+    <input type="text" class="rename-input" id="renameInput" placeholder="Enter new name..." maxlength="100" autocomplete="off">
+    <div class="rename-actions">
+      <button class="rename-btn-cancel" id="renameCancel">
+        Cancel
+      </button>
+      <button class="rename-btn-save" id="renameSave">
+        <i class="fas fa-check"></i> Save
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       DELETE CONFIRMATION MODAL
+       ===================================================================== -->
+  <div class="confirm-modal-backdrop" id="confirmBackdrop"></div>
+  <div class="confirm-modal" id="confirmModal">
+    <div class="confirm-icon">
+      <i class="fas fa-trash-alt"></i>
+    </div>
+    <h2 class="confirm-title">Delete Document</h2>
+    <p class="confirm-message">
+      This will permanently delete this document and all its flashcards. This action cannot be undone.
+    </p>
+    <div class="confirm-actions">
+      <button class="confirm-btn-cancel" id="confirmCancel">
+        Cancel
+      </button>
+      <button class="confirm-btn-delete" id="confirmDelete">
+        <i class="fas fa-trash-alt"></i> Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       OVERTIME MODAL (shows when upload exceeds 60s)
+       ===================================================================== -->
+  <div class="overtime-modal-backdrop" id="overtimeBackdrop" onclick="closeOvertimeModal()"></div>
+  <div class="overtime-modal" id="overtimeModal">
+    <div class="overtime-icon">
+      <i class="fas fa-hourglass-half"></i>
+    </div>
+    <h2 class="overtime-title">Hang Tight!</h2>
+    <p class="overtime-message">
+      Your file is a bit large and taking longer than usual to process.
+      Everything is still running — thanks for your patience!
+    </p>
+    <button class="overtime-btn" onclick="closeOvertimeModal()">
+      <i class="fas fa-check"></i> Got it
+    </button>
+  </div>
+
   <!-- Hidden file input -->
   <input type="file" id="modalFileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
 
