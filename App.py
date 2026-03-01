@@ -21,6 +21,7 @@ from database import (
 )
 from validators import validate_password_strength, validate_email_format, validate_username
 from flashcard_routes import flashcard_bp
+from topics_routes import topics_bp
 
 # ============================================================================
 # NEW: GATEKEEPER IMPORTS (ADMIN SECURITY)
@@ -64,8 +65,9 @@ socketio = SocketIO(
     ping_interval=25
 )
 
-# Register flashcard/upload routes
+# Register blueprints
 app.register_blueprint(flashcard_bp)
+app.register_blueprint(topics_bp)
 
 # ============================================================================
 # DATABASE INITIALIZATION (ENHANCED)

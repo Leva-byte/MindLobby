@@ -257,15 +257,14 @@ window.uploadFile = async function(file) {
       
       showNotification(`✅ ${data.flashcards_generated} flashcards created for "${file.name}"!`, 'success');
       
-      // Refresh documents if function exists
-      if (typeof loadDocuments === 'function') {
-        loadDocuments();
-      }
+      // Refresh documents and dashboard stats
+      if (typeof loadDocuments === 'function') loadDocuments();
+      if (typeof updateDashboardStats === 'function') updateDashboardStats();
 
-      // Auto-open flashcard modal
-      if (data.flashcards && data.flashcards.length > 0) {
+      // Auto-open flashcard panel
+      if (data.flashcards && data.flashcards.length > 0 && window.Flashcards) {
         setTimeout(() => {
-          openFlashcardModal(data.flashcards, file.name, `${data.flashcards.length} flashcards generated`);
+          Flashcards.openPanel(data.flashcards, file.name, `${data.flashcards.length} flashcards generated`);
         }, 300);
       }
       return true;
@@ -294,132 +293,6 @@ function sleep(ms) {
 }
 
 // ============================================================================
-// VIEW FLASHCARDS - No loading modal
-// ============================================================================
-
-window.openFlashcardsForDocument = async function(docId, filename) {
-  try {
-    const response = await fetch(`/api/flashcards/${docId}`);
-    const data = await response.json();
-    
-    if (response.ok && data.success) {
-      const flashcards = data.flashcards || [];
-      
-      if (flashcards.length === 0) {
-        showNotification('No flashcards found for this document', 'warning');
-        return;
-      }
-      
-      openFlashcardModal(flashcards, filename, `${flashcards.length} flashcards`);
-      
-    } else {
-      showNotification(data.message || 'Failed to load flashcards', 'error');
-    }
-    
-  } catch (err) {
-    console.error('Error loading flashcards:', err);
-    showNotification('Failed to load flashcards', 'error');
-  }
-};
-
-// ============================================================================
-// FLASHCARD MODAL CONTROL
-// ============================================================================
-
-let fcCards = [];
-let fcIndex = 0;
-
-function openFlashcardModal(cards, title, subtitle) {
-  fcCards = cards || [];
-  fcIndex = 0;
-  
-  const modal = document.getElementById('fcModal');
-  const backdrop = document.getElementById('fcModalBackdrop');
-  const titleEl = document.getElementById('fcModalTitle');
-  const subtitleEl = document.getElementById('fcModalSubtitle');
-  
-  if (!modal || !backdrop) {
-    console.error('Modal elements not found!');
-    return;
-  }
-  
-  if (titleEl) titleEl.textContent = title || 'Flashcards';
-  if (subtitleEl) subtitleEl.textContent = subtitle || '';
-  
-  // Show modal
-  backdrop.classList.add('open');
-  modal.classList.add('open');
-  
-  renderCurrentCard();
-}
-
-function closeFlashcardModal() {
-  const modal = document.getElementById('fcModal');
-  const backdrop = document.getElementById('fcModalBackdrop');
-  
-  if (backdrop) backdrop.classList.remove('open');
-  if (modal) modal.classList.remove('open');
-  
-  // Reset flip
-  const cardInner = document.getElementById('fcCardInner');
-  if (cardInner) cardInner.classList.remove('flipped');
-}
-
-function renderCurrentCard() {
-  if (!fcCards.length) return;
-  
-  const card = fcCards[fcIndex];
-  const questionEl = document.getElementById('fcQuestion');
-  const answerEl = document.getElementById('fcAnswer');
-  const progressFill = document.getElementById('fcProgressFill');
-  const progressLabel = document.getElementById('fcProgressLabel');
-  const prevBtn = document.getElementById('fcPrevBtn');
-  const nextBtn = document.getElementById('fcNextBtn');
-  const cardInner = document.getElementById('fcCardInner');
-  
-  if (questionEl) questionEl.textContent = card.question || '';
-  if (answerEl) answerEl.textContent = card.answer || '';
-  
-  const progress = ((fcIndex + 1) / fcCards.length) * 100;
-  if (progressFill) progressFill.style.width = `${progress}%`;
-  if (progressLabel) progressLabel.textContent = `Card ${fcIndex + 1} of ${fcCards.length}`;
-  
-  if (prevBtn) prevBtn.disabled = fcIndex === 0;
-  if (nextBtn) nextBtn.disabled = fcIndex === fcCards.length - 1;
-  
-  if (cardInner) cardInner.classList.remove('flipped');
-}
-
-function flipCard() {
-  const cardInner = document.getElementById('fcCardInner');
-  if (cardInner) cardInner.classList.toggle('flipped');
-}
-
-function navigateCard(direction) {
-  const newIndex = fcIndex + direction;
-  if (newIndex >= 0 && newIndex < fcCards.length) {
-    fcIndex = newIndex;
-    renderCurrentCard();
-  }
-}
-
-function shuffleCards() {
-  for (let i = fcCards.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [fcCards[i], fcCards[j]] = [fcCards[j], fcCards[i]];
-  }
-  fcIndex = 0;
-  renderCurrentCard();
-  showNotification('Cards shuffled!', 'success');
-}
-
-function restartCards() {
-  fcIndex = 0;
-  renderCurrentCard();
-  showNotification('Restarted from beginning', 'success');
-}
-
-// ============================================================================
 // UPLOAD BUTTON CONTROL
 // ============================================================================
 
@@ -441,9 +314,3 @@ function enableUploadButtons() {
   });
 }
 
-// Expose functions globally
-window.closeFlashcardModal = closeFlashcardModal;
-window.flipCard = flipCard;
-window.navigateCard = navigateCard;
-window.shuffleCards = shuffleCards;
-window.restartCards = restartCards;

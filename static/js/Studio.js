@@ -78,61 +78,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function showView(viewName) {
   console.log(`Switching to view: ${viewName}`);
-  
+
   // Update active nav item
   const navItems = document.querySelectorAll('.nav-item[data-view]');
   navItems.forEach(item => {
-    if (item.getAttribute('data-view') === viewName) {
-      item.classList.add('active');
-    } else {
-      item.classList.remove('active');
-    }
+    item.classList.toggle('active', item.getAttribute('data-view') === viewName);
   });
-  
-  // Handle specific views
-  switch(viewName) {
-    case 'upload':
-      // Scroll to My Documents section
-      scrollToMyDocuments();
-      break;
-    
-    case 'overview':
-      // Scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      break;
-  }
-}
 
-/**
- * Scroll to the My Documents section
- */
-function scrollToMyDocuments() {
-  // Find the My Documents section by its title
-  const sections = document.querySelectorAll('.section');
-  let documentsSection = null;
-  
-  sections.forEach(section => {
-    const title = section.querySelector('.section-title');
-    if (title && title.textContent.trim() === 'My Documents') {
-      documentsSection = section;
-    }
+  // Hide ALL view panels
+  document.querySelectorAll('.view-panel').forEach(panel => {
+    panel.style.display = 'none';
   });
-  
-  if (documentsSection) {
-    // Scroll to the section with smooth animation
-    documentsSection.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'start' 
-    });
-    
-    // Add a subtle highlight animation
-    documentsSection.style.transition = 'background-color 0.5s ease';
-    documentsSection.style.backgroundColor = 'rgba(124, 119, 198, 0.1)';
-    
-    setTimeout(() => {
-      documentsSection.style.backgroundColor = 'transparent';
-    }, 1500);
-    
+
+  // Show the target panel (fall back to overview if not found)
+  const target = document.getElementById(`panel-${viewName}`);
+  if (target) {
+    target.style.display = 'block';
+  } else {
+    const overview = document.getElementById('panel-overview');
+    if (overview) overview.style.display = 'block';
+  }
+
+  // Clear any active sidebar doc selection when switching views
+  document.querySelectorAll('.sidebar-doc-item').forEach(item => {
+    item.classList.remove('active');
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Panel-specific hooks
+  switch (viewName) {
+    case 'topics':
+      if (window.Topics) window.Topics.loadTopics();
+      break;
+    case 'flashcards':
+      // No extra hook needed — Flashcards.js handles rendering
+      break;
+    case 'upload':
+      // Show overview panel and open upload modal
+      const overview = document.getElementById('panel-overview');
+      if (overview) overview.style.display = 'block';
+      if (typeof openUploadModal === 'function') openUploadModal();
+      break;
   }
 }
 
@@ -488,159 +475,100 @@ async function uploadFile(file) {
 }
 
 /**
- * Update dashboard statistics after upload
+ * Fetch and render dashboard statistics + recent activity
  */
-function updateDashboardStats() {
-  // This function would fetch and update the stats displayed on the dashboard
-  // For now, it's a placeholder for future implementation
-  console.log('📊 Updating dashboard statistics...');
-  
-  // TODO: Fetch updated stats from server
-  // fetch('/api/stats')
-  //   .then(res => res.json())
-  //   .then(data => {
-  //     Update stat values in the UI
-  //   });
-}
+async function updateDashboardStats() {
+  try {
+    const res = await fetch('/api/stats');
+    const data = await res.json();
+    if (!data.success) return;
 
-// ============================================================================
-// MY DOCUMENTS SECTION — DRAG & DROP
-// ============================================================================
+    // --- Quick Stats ---
+    const topicsEl = document.getElementById('statTopics');
+    const flashcardsEl = document.getElementById('statFlashcards');
+    const studyTimeEl = document.getElementById('statStudyTime');
 
-/**
- * Initialises drag-and-drop directly on the My Documents section.
- * Dropping files here behaves exactly like using the upload button.
- */
-function initDocumentsDropZone() {
-  const dropZone = document.getElementById('documentsDropZone');
-  if (!dropZone) return;
+    if (topicsEl) topicsEl.textContent = data.topics || 0;
+    if (flashcardsEl) flashcardsEl.textContent = data.flashcards || 0;
 
-  // Track drag-enter depth so leaving a child element doesn't kill the highlight
-  let dragDepth = 0;
-
-  // Stop browser default for all drag events on the zone
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
-    dropZone.addEventListener(evt, e => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
-  });
-
-  // Show overlay when something is dragged into the zone
-  dropZone.addEventListener('dragenter', () => {
-    dragDepth++;
-    dropZone.classList.add('drag-active');
-  });
-
-  // Keep overlay visible while hovering over children
-  dropZone.addEventListener('dragover', e => {
-    e.dataTransfer.dropEffect = 'copy';
-  });
-
-  // Only remove overlay when cursor truly leaves the zone
-  dropZone.addEventListener('dragleave', () => {
-    dragDepth--;
-    if (dragDepth === 0) {
-      dropZone.classList.remove('drag-active');
+    // Study time = elapsed since account creation
+    if (studyTimeEl && data.created_at) {
+      studyTimeEl.textContent = _formatElapsed(data.created_at);
     }
-  });
 
-  // Handle the actual drop
-  dropZone.addEventListener('drop', e => {
-    dragDepth = 0;
-    dropZone.classList.remove('drag-active');
+    // Update the topic count badge in sidebar
+    const topicBadge = document.querySelector('.nav-item[data-view="topics"] .nav-badge');
+    if (topicBadge) topicBadge.textContent = data.topics || 0;
 
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      handleFileUpload(files);
+    // --- Recent Activity ---
+    const feed = document.getElementById('activityFeed');
+    if (!feed) return;
+
+    const activities = data.activities || [];
+    if (activities.length === 0) {
+      feed.innerHTML = `
+        <div class="activity-item">
+          <div class="activity-icon"><i class="fas fa-rocket"></i></div>
+          <div class="activity-content">
+            <p class="activity-text">Welcome to MindLobby Studio!</p>
+            <p class="activity-time">Get started by uploading a document</p>
+          </div>
+        </div>`;
+      return;
     }
-  });
+
+    feed.innerHTML = activities.map(a => `
+      <div class="activity-item">
+        <div class="activity-icon"><i class="${_esc(a.icon)}"></i></div>
+        <div class="activity-content">
+          <p class="activity-text">${_esc(a.text)}</p>
+          <p class="activity-time">${_relativeTime(a.time)}</p>
+        </div>
+      </div>`).join('');
+
+  } catch (e) {
+    console.error('Could not load dashboard stats:', e);
+  }
 }
 
-// ============================================================================
-// SAMPLE DOCUMENT DATA (for testing UI)
-// ============================================================================
+/** Format an ISO timestamp into relative time (e.g. "3 days ago") */
+function _relativeTime(isoStr) {
+  if (!isoStr) return '';
+  const then = new Date(isoStr);
+  const now = new Date();
+  const diffMs = now - then;
+  const seconds = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
 
-function loadSampleDocuments() {
-  const documentsGrid = document.getElementById('documentsGrid');
-  
-  if (!documentsGrid) return;
-  
-  // Sample data
-  const documents = [
-    {
-      id: 1,
-      title: 'Introduction to Python',
-      type: 'pdf',
-      size: '2.4 MB',
-      date: '2 days ago',
-      flashcards: 24
-    },
-    {
-      id: 2,
-      title: 'Data Structures Notes',
-      type: 'docx',
-      size: '1.8 MB',
-      date: '1 week ago',
-      flashcards: 18
-    },
-    {
-      id: 3,
-      title: 'Algorithm Analysis',
-      type: 'pdf',
-      size: '3.1 MB',
-      date: '2 weeks ago',
-      flashcards: 32
-    }
-  ];
-  
-  // Clear existing content
-  documentsGrid.innerHTML = '';
-  
-  // Create document cards
-  documents.forEach(doc => {
-    const card = createDocumentCard(doc);
-    documentsGrid.appendChild(card);
-  });
+  if (seconds < 60) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days === 1) return 'Yesterday';
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months > 1 ? 's' : ''} ago`;
+  return then.toLocaleDateString();
 }
 
-function createDocumentCard(doc) {
-  const card = document.createElement('div');
-  card.className = 'document-card';
-  
-  const iconMap = {
-    pdf: 'fa-file-pdf',
-    doc: 'fa-file-word',
-    docx: 'fa-file-word',
-    ppt: 'fa-file-powerpoint',
-    pptx: 'fa-file-powerpoint',
-    txt: 'fa-file-alt'
-  };
-  
-  card.innerHTML = `
-    <div class="doc-header">
-      <div class="doc-icon">
-        <i class="fas ${iconMap[doc.type] || 'fa-file'}"></i>
-      </div>
-      <button class="doc-menu">
-        <i class="fas fa-ellipsis-v"></i>
-      </button>
-    </div>
-    <h3 class="doc-title">${doc.title}</h3>
-    <div class="doc-meta">
-      <span class="doc-meta-item">
-        <i class="fas fa-layer-group"></i>
-        ${doc.flashcards} cards
-      </span>
-      <span class="doc-meta-item">
-        <i class="fas fa-clock"></i>
-        ${doc.date}
-      </span>
-    </div>
-  `;
-  
-  return card;
+/** Format elapsed time since account creation (e.g. "3d", "2mo", "1y") */
+function _formatElapsed(isoStr) {
+  if (!isoStr) return '0h';
+  const then = new Date(isoStr);
+  const now = new Date();
+  const diffMs = now - then;
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+
+  if (hours < 24) return `${hours}h`;
+  if (days < 30) return `${days}d`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo`;
+  const years = Math.floor(days / 365);
+  return `${years}y`;
 }
+
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -699,12 +627,12 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initialize upload area if it exists
   initUploadArea();
-  
-  // Initialize drag-and-drop on My Documents section
-  initDocumentsDropZone();
 
   // Load saved documents from the server
   loadDocuments();
+
+  // Load dashboard stats and recent activity
+  updateDashboardStats();
   
   // Show welcome notification only once per login
   fetch('/check-auth')
@@ -732,71 +660,68 @@ window.triggerFileUpload = triggerFileUpload;
 // DOCUMENT GRID — load from server and render cards
 // ============================================================================
 
+/** Escape HTML to prevent XSS in user-provided strings */
+function _esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
 async function loadDocuments() {
   try {
     const res = await fetch('/api/documents');
     const data = await res.json();
-    if (data.success) renderDocumentGrid(data.documents);
+    if (data.success) renderSidebarDocList(data.documents);
   } catch (e) {
     console.error('Could not load documents:', e);
   }
 }
 
-function renderDocumentGrid(documents) {
-  const grid      = document.getElementById('documentsGrid');
-  const emptyState = document.getElementById('emptyState');
-  if (!grid) return;
+function renderSidebarDocList(documents) {
+  const list = document.getElementById('sidebarDocsList');
+  const empty = document.getElementById('sidebarDocsEmpty');
+  if (!list) return;
 
   if (!documents || documents.length === 0) {
-    grid.style.display = 'none';
-    if (emptyState) emptyState.style.display = 'block';
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
     return;
   }
 
-  if (emptyState) emptyState.style.display = 'none';
-  grid.style.display = 'grid';
-  grid.innerHTML = '';
-
-  const iconMap = {
-    pdf:  'fa-file-pdf',
-    doc:  'fa-file-word',
-    docx: 'fa-file-word',
-    ppt:  'fa-file-powerpoint',
-    pptx: 'fa-file-powerpoint',
-    txt:  'fa-file-alt'
-  };
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = '';
 
   documents.forEach(doc => {
-    const ext  = doc.file_type || 'txt';
-    const icon = iconMap[ext] || 'fa-file';
-    const date = new Date(doc.upload_date).toLocaleDateString();
+    // Determine circle color: first topic's color or grey
+    let circleColor = '#6b6b8a';
+    if (doc.topics && doc.topics.length > 0) {
+      circleColor = doc.topics[0].color || circleColor;
+    }
 
-    const card = document.createElement('div');
-    card.className = 'document-card';
+    const displayName = _esc(doc.original_filename || doc.filename);
     const escapedName = (doc.original_filename || doc.filename).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    card.innerHTML = `
-      <div class="doc-header">
-        <div class="doc-icon"><i class="fas ${icon}"></i></div>
-        <div class="doc-actions">
-          <button class="doc-rename-btn" onclick="openRenameModal('${doc.id}', '${escapedName}')" title="Rename">
-            <i class="fas fa-pen"></i>
-          </button>
-          <button class="doc-delete-btn" onclick="deleteDocument('${doc.id}', this)" title="Delete">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-      </div>
-      <span class="doc-type-badge doc-type-${ext}">${ext.toUpperCase()}</span>
-      <h3 class="doc-title">${doc.original_filename || doc.filename}</h3>
-      <div class="doc-meta">
-        <span class="doc-meta-item"><i class="fas fa-layer-group"></i> ${doc.flashcard_count} cards</span>
-        <span class="doc-meta-item"><i class="fas fa-calendar"></i> ${date}</span>
-      </div>
-      <button class="doc-study-btn" onclick="openFlashcardsForDocument('${doc.id}', '${doc.filename}')">
-        <i class="fas fa-layer-group"></i> Study Flashcards
-      </button>
+
+    const item = document.createElement('div');
+    item.className = 'sidebar-doc-item';
+    item.dataset.docId = String(doc.id);
+    item.setAttribute('title', doc.original_filename || doc.filename);
+    item.onclick = () => {
+      if (window.Flashcards) Flashcards.openForDocument(doc.id, doc.original_filename || doc.filename);
+    };
+
+    item.innerHTML = `
+      <span class="sidebar-doc-circle" style="background: ${circleColor};"></span>
+      <span class="sidebar-doc-name">${displayName}</span>
+      <span class="sidebar-doc-actions">
+        <button class="sidebar-doc-rename" onclick="event.stopPropagation(); openRenameModal('${doc.id}', '${escapedName}')" title="Rename">
+          <i class="fas fa-pen"></i>
+        </button>
+        <button class="sidebar-doc-delete" onclick="event.stopPropagation(); deleteDocument('${doc.id}')" title="Delete">
+          <i class="fas fa-trash"></i>
+        </button>
+      </span>
     `;
-    grid.appendChild(card);
+    list.appendChild(item);
   });
 }
 
@@ -831,6 +756,7 @@ function deleteDocument(docId, btnEl) {
       if (data.success) {
         showNotification('Document deleted', 'success');
         loadDocuments();
+        if (window.Topics && window.Topics.refreshDetail) window.Topics.refreshDetail();
       } else {
         showNotification(data.message || 'Delete failed', 'error');
       }
@@ -896,6 +822,7 @@ function openRenameModal(docId, currentName) {
       if (data.success) {
         showNotification('Document renamed', 'success');
         loadDocuments();
+        if (window.Topics && window.Topics.refreshDetail) window.Topics.refreshDetail();
       } else {
         showNotification(data.message || 'Rename failed', 'error');
       }

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from werkzeug.utils import secure_filename
 from flashcard_service import process_file_to_flashcards
@@ -9,6 +10,9 @@ from database import (
     get_flashcards_for_document,
     rename_document,
     delete_document_and_flashcards,
+    get_topics_for_all_documents,
+    get_db_connection,
+    get_user_by_id,
 )
 
 # ============================================================================
@@ -105,7 +109,11 @@ def get_documents():
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Not logged in'}), 401
 
-    docs = get_documents_for_user(session['user_id'])
+    user_id = session['user_id']
+    docs = get_documents_for_user(user_id)
+    topic_map = get_topics_for_all_documents(user_id)
+    for doc in docs:
+        doc['topics'] = topic_map.get(doc['id'], [])
     return jsonify({'success': True, 'documents': docs})
 
 
@@ -164,3 +172,97 @@ def rename_doc(document_id):
         return jsonify({'success': False, 'message': 'Document not found'}), 404
 
     return jsonify({'success': True, 'message': 'Document renamed'})
+
+
+@flashcard_bp.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Return dashboard statistics and recent activity for the logged-in user."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+
+    # --- Counts ---
+    topic_count = conn.execute(
+        'SELECT COUNT(*) AS cnt FROM topics WHERE user_id = ?', (user_id,)
+    ).fetchone()['cnt']
+
+    flashcard_count = conn.execute(
+        'SELECT COUNT(*) AS cnt FROM flashcards WHERE user_id = ?', (user_id,)
+    ).fetchone()['cnt']
+
+    # --- Account created_at (for "study time" elapsed) ---
+    user = get_user_by_id(user_id)
+    created_at = user['created_at'] if user else None
+
+    # --- Recent Activity (last 20 events, newest first) ---
+    # We build a UNION of event types: account creation, document uploads,
+    # topic creations.  Each row has: event_type, title, icon, timestamp.
+    activities = []
+
+    # 1) Document uploads
+    doc_rows = conn.execute('''
+        SELECT original_filename, upload_date
+        FROM documents WHERE user_id = ?
+        ORDER BY upload_date DESC LIMIT 20
+    ''', (user_id,)).fetchall()
+    for r in doc_rows:
+        activities.append({
+            'type': 'upload',
+            'text': f'Uploaded "{r["original_filename"]}"',
+            'icon': 'fas fa-cloud-upload-alt',
+            'time': r['upload_date'],
+        })
+
+    # 2) Topic creations
+    topic_rows = conn.execute('''
+        SELECT name, created_at FROM topics WHERE user_id = ?
+        ORDER BY created_at DESC LIMIT 20
+    ''', (user_id,)).fetchall()
+    for r in topic_rows:
+        activities.append({
+            'type': 'topic',
+            'text': f'Created topic "{r["name"]}"',
+            'icon': 'fas fa-folder-plus',
+            'time': r['created_at'],
+        })
+
+    # 3) Room history (multiplayer sessions — future-proof)
+    try:
+        room_rows = conn.execute('''
+            SELECT room_code, created_at FROM room_history WHERE host_id = ?
+            ORDER BY created_at DESC LIMIT 10
+        ''', (user_id,)).fetchall()
+        for r in room_rows:
+            activities.append({
+                'type': 'room',
+                'text': f'Hosted study room {r["room_code"]}',
+                'icon': 'fas fa-gamepad',
+                'time': r['created_at'],
+            })
+    except Exception:
+        pass  # room_history may be empty or table may not exist yet
+
+    # 4) Account creation (always present)
+    if created_at:
+        activities.append({
+            'type': 'account',
+            'text': 'Account created — Welcome to MindLobby!',
+            'icon': 'fas fa-rocket',
+            'time': created_at,
+        })
+
+    conn.close()
+
+    # Sort all activities by time descending, keep top 15
+    activities.sort(key=lambda a: a['time'], reverse=True)
+    activities = activities[:15]
+
+    return jsonify({
+        'success': True,
+        'topics': topic_count,
+        'flashcards': flashcard_count,
+        'created_at': created_at,
+        'activities': activities,
+    })

@@ -1,0 +1,245 @@
+/* ============================================================================
+   MINDLOBBY - FLASHCARD PANEL STYLES
+   ============================================================================ */
+
+/* ---- Panel Header ---- */
+.fc-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.fc-panel-header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.fc-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.fc-back-btn:hover {
+  background: rgba(124, 119, 198, 0.1);
+  color: var(--primary-light);
+  border-color: var(--primary);
+  transform: translateX(-3px);
+}
+
+.fc-panel-title {
+  font-size: 1.8em;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.fc-panel-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.fc-panel-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.fc-control-btn {
+  background: rgba(124, 119, 198, 0.15);
+  border: 1px solid rgba(124, 119, 198, 0.3);
+  color: var(--primary-light);
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+}
+
+.fc-control-btn:hover {
+  background: rgba(124, 119, 198, 0.25);
+  border-color: var(--primary-light);
+  transform: translateY(-2px);
+}
+
+/* ---- Progress Bar ---- */
+.fc-panel-progress-bar {
+  height: 4px;
+  background: rgba(124, 119, 198, 0.2);
+  border-radius: 2px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.fc-panel-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+.fc-panel-progress-label {
+  text-align: center;
+  font-size: 0.85em;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* ---- Card Area ---- */
+.fc-panel-card-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 0;
+}
+
+.fc-nav-btn {
+  background: rgba(124, 119, 198, 0.15);
+  border: 1px solid rgba(124, 119, 198, 0.3);
+  color: var(--primary-light);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.fc-nav-btn:hover:not(:disabled) {
+  background: rgba(124, 119, 198, 0.25);
+  border-color: var(--primary-light);
+  transform: scale(1.1);
+}
+
+.fc-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ---- Flip Card ---- */
+.fc-panel-card {
+  width: 100%;
+  max-width: 600px;
+  height: 320px;
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+.fc-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.fc-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.fc-card-front,
+.fc-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  background: linear-gradient(135deg, rgba(26, 26, 62, 0.95), rgba(45, 27, 105, 0.95));
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.fc-card-back {
+  transform: rotateY(180deg);
+  background: linear-gradient(135deg, rgba(45, 27, 105, 0.95), rgba(26, 26, 62, 0.95));
+}
+
+.fc-card-label {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.fc-card-text {
+  font-size: 1.3em;
+  line-height: 1.6;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.fc-flip-hint {
+  position: absolute;
+  bottom: 16px;
+  font-size: 0.75em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.7;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .fc-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .fc-panel-card {
+    height: 260px;
+  }
+
+  .fc-panel-card-area {
+    padding: 24px 0;
+  }
+
+  .fc-nav-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1em;
+  }
+
+  .fc-card-text {
+    font-size: 1.1em;
+  }
+}

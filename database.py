@@ -96,7 +96,31 @@ def init_db():
             FOREIGN KEY (host_id) REFERENCES users (id)
         )
     ''')
-    
+
+    # Topics table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS topics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            color TEXT NOT NULL DEFAULT '#7c77c6',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+    ''')
+
+    # Document-Topic junction table (many-to-many)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS document_topics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            document_id INTEGER NOT NULL,
+            topic_id INTEGER NOT NULL,
+            UNIQUE(document_id, topic_id),
+            FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE,
+            FOREIGN KEY (topic_id) REFERENCES topics (id) ON DELETE CASCADE
+        )
+    ''')
+
     conn.commit()
     conn.close()
     print("✅ Database initialized successfully!")
@@ -435,6 +459,179 @@ def delete_document_and_flashcards(document_id, user_id):
     conn.commit()
     conn.close()
     return file_path
+
+# ============================================================================
+# TOPICS FUNCTIONS
+# ============================================================================
+
+def create_topic(user_id, name, color='#7c77c6'):
+    """Create a new topic for a user. Returns the new topic's id."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        'INSERT INTO topics (user_id, name, color, created_at) VALUES (?, ?, ?, ?)',
+        (user_id, name.strip(), color, datetime.now().isoformat())
+    )
+    conn.commit()
+    topic_id = cursor.lastrowid
+    conn.close()
+    return topic_id
+
+def get_topics_for_user(user_id):
+    """Return all topics for a user, each with a doc_count."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT t.id, t.name, t.color, t.created_at,
+               COUNT(dt.document_id) AS doc_count
+        FROM topics t
+        LEFT JOIN document_topics dt ON dt.topic_id = t.id
+        WHERE t.user_id = ?
+        GROUP BY t.id
+        ORDER BY t.created_at DESC
+    ''', (user_id,)).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def get_topic_by_id(topic_id, user_id):
+    """Return a single topic dict (with doc_count), or None if not found/not owned."""
+    conn = get_db_connection()
+    row = conn.execute('''
+        SELECT t.id, t.name, t.color, t.created_at,
+               COUNT(dt.document_id) AS doc_count
+        FROM topics t
+        LEFT JOIN document_topics dt ON dt.topic_id = t.id
+        WHERE t.id = ? AND t.user_id = ?
+        GROUP BY t.id
+    ''', (topic_id, user_id)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def update_topic(topic_id, user_id, name=None, color=None):
+    """Update name and/or color of a topic. Returns True if found and updated."""
+    conn = get_db_connection()
+    fields, values = [], []
+    if name is not None:
+        fields.append('name = ?')
+        values.append(name.strip())
+    if color is not None:
+        fields.append('color = ?')
+        values.append(color)
+    if not fields:
+        conn.close()
+        return False
+    values.extend([topic_id, user_id])
+    cursor = conn.cursor()
+    cursor.execute(
+        f'UPDATE topics SET {", ".join(fields)} WHERE id = ? AND user_id = ?',
+        values
+    )
+    updated = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return updated
+
+def delete_topic(topic_id, user_id):
+    """Delete a topic (cascade removes document_topics rows). Returns True if found."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM topics WHERE id = ? AND user_id = ?', (topic_id, user_id))
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+
+def add_document_to_topic(document_id, topic_id, user_id):
+    """Link a document to a topic. Verifies both belong to user_id."""
+    conn = get_db_connection()
+    doc = conn.execute(
+        'SELECT id FROM documents WHERE id = ? AND user_id = ?', (document_id, user_id)
+    ).fetchone()
+    topic = conn.execute(
+        'SELECT id FROM topics WHERE id = ? AND user_id = ?', (topic_id, user_id)
+    ).fetchone()
+    if not doc or not topic:
+        conn.close()
+        return False
+    try:
+        conn.execute(
+            'INSERT INTO document_topics (document_id, topic_id) VALUES (?, ?)',
+            (document_id, topic_id)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.IntegrityError:
+        conn.close()
+        return False
+
+def remove_document_from_topic(document_id, topic_id, user_id):
+    """Unlink a document from a topic. Verifies ownership."""
+    conn = get_db_connection()
+    topic = conn.execute(
+        'SELECT id FROM topics WHERE id = ? AND user_id = ?', (topic_id, user_id)
+    ).fetchone()
+    if not topic:
+        conn.close()
+        return False
+    cursor = conn.cursor()
+    cursor.execute(
+        'DELETE FROM document_topics WHERE document_id = ? AND topic_id = ?',
+        (document_id, topic_id)
+    )
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+
+def get_documents_for_topic(topic_id, user_id):
+    """Return documents inside a topic as simplified list dicts."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT d.id, d.original_filename, d.file_type, d.upload_date,
+               COALESCE(fc.cnt, 0) AS flashcard_count
+        FROM documents d
+        JOIN document_topics dt ON dt.document_id = d.id
+        LEFT JOIN (
+            SELECT document_id, COUNT(*) AS cnt
+            FROM flashcards GROUP BY document_id
+        ) fc ON fc.document_id = d.id
+        WHERE dt.topic_id = ? AND d.user_id = ?
+        ORDER BY d.upload_date DESC
+    ''', (topic_id, user_id)).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def get_topics_for_document(document_id, user_id):
+    """Return all topics a given document belongs to."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT t.id, t.name, t.color
+        FROM topics t
+        JOIN document_topics dt ON dt.topic_id = t.id
+        WHERE dt.document_id = ? AND t.user_id = ?
+        ORDER BY t.name ASC
+    ''', (document_id, user_id)).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def get_topics_for_all_documents(user_id):
+    """Return a dict mapping document_id -> list of {id, name, color} for all user docs."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT dt.document_id, t.id, t.name, t.color
+        FROM document_topics dt
+        JOIN topics t ON t.id = dt.topic_id
+        WHERE t.user_id = ?
+        ORDER BY t.name ASC
+    ''', (user_id,)).fetchall()
+    conn.close()
+    result = {}
+    for row in rows:
+        doc_id = row['document_id']
+        if doc_id not in result:
+            result[doc_id] = []
+        result[doc_id].append({'id': row['id'], 'name': row['name'], 'color': row['color']})
+    return result
 
 # ============================================================================
 # CLEANUP FUNCTIONS

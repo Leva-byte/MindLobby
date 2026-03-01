@@ -1,0 +1,55 @@
+<!-- =====================================================================
+     FLASHCARD VIEWER PANEL
+     ===================================================================== -->
+
+<!-- Panel Header -->
+<div class="fc-panel-header">
+  <div class="fc-panel-header-left">
+    <button class="fc-back-btn" onclick="Flashcards.closePanel()">
+      <i class="fas fa-arrow-left"></i> Back
+    </button>
+    <div>
+      <h1 class="fc-panel-title" id="fcPanelTitle">Flashcards</h1>
+      <p class="fc-panel-subtitle" id="fcPanelSubtitle"></p>
+    </div>
+  </div>
+  <div class="fc-panel-controls">
+    <button class="fc-control-btn" onclick="Flashcards.shuffleCards()">
+      <i class="fas fa-random"></i> Shuffle
+    </button>
+    <button class="fc-control-btn" onclick="Flashcards.restartCards()">
+      <i class="fas fa-redo"></i> Restart
+    </button>
+  </div>
+</div>
+
+<!-- Progress Bar -->
+<div class="fc-panel-progress-bar">
+  <div class="fc-panel-progress-fill" id="fcPanelProgressFill"></div>
+</div>
+<p class="fc-panel-progress-label" id="fcPanelProgressLabel"></p>
+
+<!-- Card Area -->
+<div class="fc-panel-card-area">
+  <button class="fc-nav-btn" id="fcPanelPrevBtn" onclick="Flashcards.navigateCard(-1)">
+    <i class="fas fa-chevron-left"></i>
+  </button>
+
+  <div class="fc-panel-card" onclick="Flashcards.flipCard()">
+    <div class="fc-card-inner" id="fcPanelCardInner">
+      <div class="fc-card-front">
+        <span class="fc-card-label">Question</span>
+        <p class="fc-card-text" id="fcPanelQuestion"></p>
+        <span class="fc-flip-hint"><i class="fas fa-sync-alt"></i> Click to reveal answer</span>
+      </div>
+      <div class="fc-card-back">
+        <span class="fc-card-label">Answer</span>
+        <p class="fc-card-text" id="fcPanelAnswer"></p>
+      </div>
+    </div>
+  </div>
+
+  <button class="fc-nav-btn" id="fcPanelNextBtn" onclick="Flashcards.navigateCard(1)">
+    <i class="fas fa-chevron-right"></i>
+  </button>
+</div>

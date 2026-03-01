@@ -1,0 +1,139 @@
+<!-- =====================================================================
+     TOPICS PANEL
+     ===================================================================== -->
+
+<!-- Topics Header -->
+<div class="topics-header">
+  <div class="topics-header-left">
+    <h1 class="topics-title">My Topics</h1>
+    <p class="topics-subtitle">Organize your documents into folders</p>
+  </div>
+  <button class="btn-create-topic" onclick="Topics.openCreateModal()">
+    <i class="fas fa-plus"></i>
+    New Topic
+  </button>
+</div>
+
+<!-- Search Bar -->
+<div class="topics-search-bar" id="topicsSearchBar" style="display:none;">
+  <div class="topics-search-input-wrap">
+    <i class="fas fa-search topics-search-icon"></i>
+    <input
+      type="text"
+      id="topicsSearchInput"
+      class="topics-search-input"
+      placeholder="Search topics..."
+      oninput="Topics.filterTopics(this.value)"
+    >
+  </div>
+</div>
+
+<!-- Topics Grid -->
+<div class="topics-grid" id="topicsGrid" style="display:none;"></div>
+
+<!-- Empty State -->
+<div class="topics-empty-state" id="topicsEmptyState">
+  <i class="fas fa-folder-open topics-empty-icon"></i>
+  <h3 class="topics-empty-title">No Topics Yet</h3>
+  <p class="topics-empty-text">Create a Topic to organize your documents!</p>
+  <button class="btn-create-topic" onclick="Topics.openCreateModal()">
+    <i class="fas fa-folder-plus"></i>
+    Create Your First Topic
+  </button>
+</div>
+
+<!-- Topic Detail View -->
+<div class="topic-detail" id="topicDetail" style="display:none;">
+  <div class="topic-detail-header">
+    <button class="btn-back-topics" onclick="Topics.closeDetail()">
+      <i class="fas fa-arrow-left"></i>
+      Back to Topics
+    </button>
+    <div class="topic-detail-title-row">
+      <div class="topic-detail-color-dot" id="detailColorDot"></div>
+      <h2 class="topic-detail-name" id="detailTopicName">Topic Name</h2>
+      <span class="topic-detail-doc-count" id="detailDocCount"></span>
+    </div>
+    <div class="topic-detail-actions">
+      <button class="btn-topic-action" onclick="Topics.openAddDocumentModal()">
+        <i class="fas fa-plus"></i> Add Document
+      </button>
+      <button class="btn-topic-action" onclick="Topics.openEditModal()">
+        <i class="fas fa-pen"></i> Edit
+      </button>
+      <button class="btn-topic-action btn-topic-danger" onclick="Topics.promptDeleteTopic()">
+        <i class="fas fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Document list inside topic -->
+  <div class="topic-doc-list" id="topicDocList"></div>
+
+  <!-- Empty state for topic with no documents -->
+  <div class="topic-doc-empty" id="topicDocEmpty" style="display:none;">
+    <i class="fas fa-file-circle-plus topic-doc-empty-icon"></i>
+    <p>No documents in this topic yet.</p>
+    <button class="btn-create-topic" onclick="Topics.openAddDocumentModal()">
+      <i class="fas fa-plus"></i> Add a Document
+    </button>
+  </div>
+</div>
+
+<!-- =====================================================================
+     CREATE / EDIT TOPIC MODAL
+     ===================================================================== -->
+<div class="topic-modal-backdrop" id="topicModalBackdrop"></div>
+<div class="topic-modal" id="topicModal">
+  <div class="topic-modal-header">
+    <h2 class="topic-modal-title" id="topicModalTitle">Create Topic</h2>
+    <button class="topic-modal-close" onclick="Topics.closeModal()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="topic-modal-body">
+    <label class="topic-field-label" for="topicNameInput">Topic Name</label>
+    <input
+      type="text"
+      id="topicNameInput"
+      class="topic-name-input"
+      placeholder="e.g. Biology, Chapter 5, Midterm..."
+      maxlength="80"
+    >
+
+    <label class="topic-field-label">Color</label>
+    <div class="topic-color-picker" id="topicColorPicker"></div>
+  </div>
+
+  <div class="topic-modal-footer">
+    <button class="btn-topic-cancel" onclick="Topics.closeModal()">Cancel</button>
+    <button class="btn-create-topic" id="topicModalSaveBtn" onclick="Topics.saveModal()">
+      <i class="fas fa-check"></i>
+      <span id="topicModalSaveBtnText">Create Topic</span>
+    </button>
+  </div>
+</div>
+
+<!-- =====================================================================
+     ADD DOCUMENT TO TOPIC MODAL
+     ===================================================================== -->
+<div class="topic-modal-backdrop" id="addDocModalBackdrop"></div>
+<div class="add-doc-modal" id="addDocModal">
+  <div class="topic-modal-header">
+    <h2 class="topic-modal-title">Add Document to Topic</h2>
+    <button class="topic-modal-close" onclick="Topics.closeAddDocModal()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <div class="add-doc-modal-body">
+    <p class="add-doc-modal-hint">Select documents to add to this topic:</p>
+    <div class="add-doc-list" id="addDocList"></div>
+    <div class="add-doc-empty" id="addDocEmpty" style="display:none;">
+      <p>No documents available. Upload some documents first!</p>
+    </div>
+  </div>
+  <div class="topic-modal-footer">
+    <button class="btn-topic-cancel" onclick="Topics.closeAddDocModal()">Done</button>
+  </div>
+</div>
