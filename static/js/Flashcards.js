@@ -7,6 +7,130 @@
   // --- State ---
   let _cards = [];
   let _index = 0;
+  let _allDocs = [];
+
+  // ===========================================================================
+  // BROWSE VIEW — document card grid
+  // ===========================================================================
+
+  async function loadDocs() {
+    try {
+      const res = await fetch('/api/documents');
+      const data = await res.json();
+      if (!data.success) return;
+
+      _allDocs = data.documents || [];
+      _renderDocGrid(_allDocs);
+    } catch (e) {
+      console.error('Could not load documents:', e);
+    }
+  }
+
+  function filterDocs(query) {
+    const q = (query || '').toLowerCase().trim();
+    if (!q) {
+      _renderDocGrid(_allDocs);
+      return;
+    }
+    const filtered = _allDocs.filter(d =>
+      (d.original_filename || d.filename || '').toLowerCase().includes(q)
+    );
+    _renderDocGrid(filtered);
+  }
+
+  function _renderDocGrid(docs) {
+    const grid = document.getElementById('fcDocsGrid');
+    const empty = document.getElementById('fcEmptyState');
+    const search = document.querySelector('.fc-search-wrapper');
+    if (!grid) return;
+
+    if (!docs || docs.length === 0) {
+      grid.style.display = 'none';
+      // Show empty state only when there are truly no docs at all
+      if (empty) empty.style.display = (_allDocs.length === 0) ? 'block' : 'none';
+      // If searching with no results, hide empty state but keep grid hidden
+      if (_allDocs.length > 0 && empty) empty.style.display = 'none';
+      if (search) search.style.display = (_allDocs.length >= 1) ? 'flex' : 'none';
+      // Show "no results" hint when filtering returns nothing
+      if (_allDocs.length > 0 && docs.length === 0) {
+        grid.style.display = 'grid';
+        grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px 0;">No documents match your search.</p>';
+      }
+      return;
+    }
+
+    if (empty) empty.style.display = 'none';
+    if (search) search.style.display = (_allDocs.length >= 1) ? 'flex' : 'none';
+    grid.style.display = 'grid';
+    grid.innerHTML = docs.map(_renderDocCard).join('');
+  }
+
+  function _renderDocCard(doc) {
+    const ext = doc.file_type || 'txt';
+    const icon = _fileIcon(ext);
+    const date = new Date(doc.upload_date).toLocaleDateString();
+    const name = _esc(doc.original_filename || doc.filename || '');
+    const nameAttr = (doc.original_filename || doc.filename || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+    return `
+      <div class="document-card" onclick="Flashcards.openForDocument('${doc.id}', '${nameAttr}')">
+        <div class="doc-header">
+          <div class="doc-icon"><i class="fas ${icon}"></i></div>
+          <div class="doc-actions">
+            <button class="doc-rename-btn" onclick="event.stopPropagation(); openRenameModal('${doc.id}', '${nameAttr}')" title="Rename">
+              <i class="fas fa-pen"></i>
+            </button>
+            <button class="doc-delete-btn" onclick="event.stopPropagation(); deleteDocument('${doc.id}', this)" title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        <span class="doc-type-badge doc-type-${ext}">${ext.toUpperCase()}</span>
+        <h3 class="doc-title">${name}</h3>
+        <div class="doc-meta">
+          <span class="doc-meta-item"><i class="fas fa-layer-group"></i> ${doc.flashcard_count || 0} cards</span>
+          <span class="doc-meta-item"><i class="fas fa-calendar"></i> ${date}</span>
+        </div>
+        <button class="doc-study-btn" onclick="event.stopPropagation(); Flashcards.openForDocument('${doc.id}', '${nameAttr}')">
+          <i class="fas fa-layer-group"></i> Study Flashcards
+        </button>
+      </div>
+    `;
+  }
+
+  function _fileIcon(ext) {
+    switch (ext) {
+      case 'pdf': return 'fa-file-pdf';
+      case 'doc': case 'docx': return 'fa-file-word';
+      case 'ppt': case 'pptx': return 'fa-file-powerpoint';
+      default: return 'fa-file-alt';
+    }
+  }
+
+  function _esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function showBrowse() {
+    const browse = document.getElementById('fcBrowseView');
+    const viewer = document.getElementById('fcViewerView');
+    if (browse) browse.style.display = 'block';
+    if (viewer) viewer.style.display = 'none';
+
+    // Clear sidebar doc selection
+    document.querySelectorAll('.sidebar-doc-item').forEach(item => {
+      item.classList.remove('active');
+    });
+
+    // Re-highlight the Flashcards nav item
+    document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+      item.classList.toggle('active', item.getAttribute('data-view') === 'flashcards');
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   // ===========================================================================
   // PUBLIC: Open flashcard panel for a document (fetches from API)
@@ -48,7 +172,7 @@
 
     _renderCurrentCard();
 
-    // Show flashcard panel WITHOUT highlighting the Flashcards nav item
+    // Show flashcard panel with viewer visible, browse hidden
     _showFlashcardPanel(docId);
   }
 
@@ -67,6 +191,12 @@
     const target = document.getElementById('panel-flashcards');
     if (target) target.style.display = 'block';
 
+    // Switch to viewer sub-view
+    const browse = document.getElementById('fcBrowseView');
+    const viewer = document.getElementById('fcViewerView');
+    if (browse) browse.style.display = 'none';
+    if (viewer) viewer.style.display = 'block';
+
     // Highlight the selected document in sidebar
     document.querySelectorAll('.sidebar-doc-item').forEach(item => {
       item.classList.remove('active');
@@ -83,9 +213,7 @@
   }
 
   function closePanel() {
-    if (typeof showView === 'function') {
-      showView('overview');
-    }
+    showBrowse();
   }
 
   // ===========================================================================
@@ -150,8 +278,8 @@
   // KEYBOARD SHORTCUTS
   // ===========================================================================
   document.addEventListener('keydown', (e) => {
-    const panel = document.getElementById('panel-flashcards');
-    if (!panel || panel.style.display === 'none') return;
+    const viewer = document.getElementById('fcViewerView');
+    if (!viewer || viewer.style.display === 'none') return;
 
     if (e.key === 'ArrowRight') navigateCard(1);
     if (e.key === 'ArrowLeft') navigateCard(-1);
@@ -169,6 +297,9 @@
     navigateCard,
     shuffleCards,
     restartCards,
+    loadDocs,
+    filterDocs,
+    showBrowse,
   };
 
   // Legacy compatibility shim for Topics.js inline onclick handlers

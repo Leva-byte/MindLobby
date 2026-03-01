@@ -121,6 +121,27 @@ def init_db():
         )
     ''')
 
+    # Quiz results table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS quiz_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            document_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            score INTEGER NOT NULL,
+            total INTEGER NOT NULL,
+            completed_at TEXT NOT NULL,
+            FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+    ''')
+
+    # --- Migrations: add profile columns if missing ---
+    existing_cols = [row[1] for row in cursor.execute('PRAGMA table_info(users)').fetchall()]
+    if 'profile_picture' not in existing_cols:
+        cursor.execute('ALTER TABLE users ADD COLUMN profile_picture TEXT')
+    if 'banner' not in existing_cols:
+        cursor.execute('ALTER TABLE users ADD COLUMN banner TEXT')
+
     conn.commit()
     conn.close()
     print("✅ Database initialized successfully!")
@@ -192,6 +213,67 @@ def update_user_password(user_id, new_password):
     conn.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_password, user_id))
     conn.commit()
     conn.close()
+
+def update_user_profile_picture(user_id, path):
+    """Update user's profile picture path."""
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET profile_picture = ? WHERE id = ?', (path, user_id))
+    conn.commit()
+    conn.close()
+
+def update_user_banner(user_id, path):
+    """Update user's banner image path."""
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET banner = ? WHERE id = ?', (path, user_id))
+    conn.commit()
+    conn.close()
+
+def update_username(user_id, new_username):
+    """Update username. Returns True if successful, False if taken."""
+    conn = get_db_connection()
+    existing = conn.execute(
+        'SELECT id FROM users WHERE username = ? AND id != ?', (new_username, user_id)
+    ).fetchone()
+    if existing:
+        conn.close()
+        return False
+    conn.execute('UPDATE users SET username = ? WHERE id = ?', (new_username, user_id))
+    conn.commit()
+    conn.close()
+    return True
+
+def delete_user_account(user_id):
+    """Delete a user account and all associated data. Returns list of file paths to delete."""
+    conn = get_db_connection()
+
+    # Collect physical file paths for cleanup
+    docs = conn.execute('SELECT filename FROM documents WHERE user_id = ?', (user_id,)).fetchall()
+    file_paths = [os.path.join('uploads', row['filename']) for row in docs]
+
+    # Also collect profile picture and banner paths
+    user = conn.execute('SELECT profile_picture, banner FROM users WHERE id = ?', (user_id,)).fetchone()
+    if user:
+        for field in ('profile_picture', 'banner'):
+            if user[field]:
+                file_paths.append(user[field])
+
+    # Cascade delete all user data
+    conn.execute('DELETE FROM quiz_results WHERE user_id = ?', (user_id,))
+    conn.execute('DELETE FROM flashcards WHERE user_id = ?', (user_id,))
+    conn.execute('DELETE FROM document_topics WHERE document_id IN (SELECT id FROM documents WHERE user_id = ?)', (user_id,))
+    conn.execute('DELETE FROM documents WHERE user_id = ?', (user_id,))
+    conn.execute('DELETE FROM topics WHERE user_id = ?', (user_id,))
+    conn.execute('DELETE FROM otp_codes WHERE user_id = ?', (user_id,))
+    conn.execute('DELETE FROM password_reset_tokens WHERE user_id = ?', (user_id,))
+    try:
+        conn.execute('DELETE FROM room_history WHERE host_id = ?', (user_id,))
+    except Exception:
+        pass
+    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+
+    conn.commit()
+    conn.close()
+    return file_paths
 
 # ============================================================================
 # OTP FUNCTIONS
@@ -454,11 +536,60 @@ def delete_document_and_flashcards(document_id, user_id):
         conn.close()
         return None
     file_path = os.path.join('uploads', doc['filename'])
+    conn.execute('DELETE FROM quiz_results WHERE document_id = ?', (document_id,))
     conn.execute('DELETE FROM flashcards WHERE document_id = ?', (document_id,))
     conn.execute('DELETE FROM documents WHERE id = ?', (document_id,))
     conn.commit()
     conn.close()
     return file_path
+
+# ============================================================================
+# QUIZ FUNCTIONS
+# ============================================================================
+
+def save_quiz_result(document_id, user_id, score, total):
+    """Save a completed quiz result. Returns the new row id."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO quiz_results (document_id, user_id, score, total, completed_at)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (document_id, user_id, score, total, datetime.now().isoformat()))
+    conn.commit()
+    result_id = cursor.lastrowid
+    conn.close()
+    return result_id
+
+def get_quiz_results_for_user(user_id):
+    """Return a dict mapping document_id -> {best_pct, attempts, last_completed_at}."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT document_id,
+               MAX(score * 100 / total) AS best_pct,
+               COUNT(*) AS attempts,
+               MAX(completed_at) AS last_completed_at
+        FROM quiz_results
+        WHERE user_id = ?
+        GROUP BY document_id
+    ''', (user_id,)).fetchall()
+    conn.close()
+    result = {}
+    for row in rows:
+        result[row['document_id']] = dict(row)
+    return result
+
+def get_quiz_history_for_document(document_id, user_id):
+    """Return list of past quiz attempts for a specific document."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT id, score, total, completed_at
+        FROM quiz_results
+        WHERE document_id = ? AND user_id = ?
+        ORDER BY completed_at DESC
+        LIMIT 10
+    ''', (document_id, user_id)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 # ============================================================================
 # TOPICS FUNCTIONS

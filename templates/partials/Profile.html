@@ -1,0 +1,124 @@
+<!-- =====================================================================
+     USER PROFILE PAGE
+     ===================================================================== -->
+
+<!-- Banner Section -->
+<div class="profile-banner-section">
+  <div class="profile-banner" id="profileBanner">
+    <img id="profileBannerImg" src="/static/img/default-banner.png" alt="Banner">
+    <button class="profile-banner-edit" onclick="Profile.changeBanner()" title="Change banner">
+      <i class="fas fa-camera"></i>
+    </button>
+  </div>
+
+  <!-- Avatar overlapping banner -->
+  <div class="profile-avatar-wrapper">
+    <div class="profile-avatar" id="profileAvatar">
+      <img id="profileAvatarImg" src="/static/img/default-pfp.png" alt="Profile" style="display:none;">
+      <span class="profile-avatar-letter" id="profileAvatarLetter">{{ username[0]|upper }}</span>
+    </div>
+    <button class="profile-avatar-edit" onclick="Profile.changePicture()" title="Change profile picture">
+      <i class="fas fa-camera"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Profile Info -->
+<div class="profile-info">
+  <h2 class="profile-display-name" id="profileDisplayName">{{ username }}</h2>
+  <p class="profile-email" id="profileEmail">Loading...</p>
+  <p class="profile-member-since" id="profileMemberSince"></p>
+</div>
+
+<!-- Account Settings -->
+<div class="profile-section">
+  <h3 class="profile-section-title">Account Settings</h3>
+
+  <div class="profile-settings-card">
+    <!-- Username -->
+    <div class="profile-setting-row">
+      <div class="profile-setting-info">
+        <div class="profile-setting-label">Username</div>
+        <div class="profile-setting-value" id="profileUsernameValue">{{ username }}</div>
+      </div>
+      <div class="profile-setting-edit" id="profileUsernameEdit" style="display:none;">
+        <input type="text" id="profileUsernameInput" class="profile-edit-input"
+               maxlength="20" placeholder="New username">
+        <button class="profile-edit-save" onclick="Profile.saveUsername()">
+          <i class="fas fa-check"></i>
+        </button>
+        <button class="profile-edit-cancel" onclick="Profile.cancelUsernameEdit()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <button class="profile-action-btn" id="profileUsernameBtn" onclick="Profile.editUsername()">
+        <i class="fas fa-pen"></i> Change
+      </button>
+    </div>
+
+    <!-- Password -->
+    <div class="profile-setting-row">
+      <div class="profile-setting-info">
+        <div class="profile-setting-label">Password</div>
+        <div class="profile-setting-value">••••••••</div>
+      </div>
+      <button class="profile-action-btn" onclick="Profile.resetPassword()">
+        <i class="fas fa-envelope"></i> Reset
+      </button>
+    </div>
+
+    <!-- Email (read-only) -->
+    <div class="profile-setting-row">
+      <div class="profile-setting-info">
+        <div class="profile-setting-label">Email</div>
+        <div class="profile-setting-value" id="profileEmailValue">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Danger Zone -->
+<div class="profile-section">
+  <h3 class="profile-section-title profile-danger-title">Danger Zone</h3>
+
+  <div class="profile-settings-card profile-danger-zone">
+    <div class="profile-setting-row">
+      <div class="profile-setting-info">
+        <div class="profile-setting-label">Delete Account</div>
+        <div class="profile-setting-value profile-danger-text">Permanently delete your account and all data</div>
+      </div>
+      <button class="profile-action-btn profile-delete-btn" onclick="Profile.showDeleteModal()">
+        <i class="fas fa-trash-alt"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden File Inputs -->
+<input type="file" id="profilePictureInput" accept=".jpg,.jpeg,.png,.webp" style="display:none;"
+       onchange="Profile.handlePictureUpload(this)">
+<input type="file" id="profileBannerInput" accept=".jpg,.jpeg,.png,.webp" style="display:none;"
+       onchange="Profile.handleBannerUpload(this)">
+
+<!-- Delete Account Confirmation Modal -->
+<div class="profile-modal-overlay" id="deleteAccountModal" style="display:none;">
+  <div class="profile-modal">
+    <h3 class="profile-modal-title">
+      <i class="fas fa-exclamation-triangle"></i> Delete Account
+    </h3>
+    <p class="profile-modal-text">
+      This action is <strong>permanent</strong> and cannot be undone. All your documents,
+      flashcards, topics, and data will be deleted forever.
+    </p>
+    <p class="profile-modal-text">Enter your password to confirm:</p>
+    <input type="password" id="deleteConfirmPassword" class="profile-modal-input"
+           placeholder="Your password">
+    <p class="profile-modal-error" id="deleteError" style="display:none;"></p>
+    <div class="profile-modal-actions">
+      <button class="profile-modal-cancel" onclick="Profile.hideDeleteModal()">Cancel</button>
+      <button class="profile-modal-confirm" id="deleteConfirmBtn" onclick="Profile.confirmDelete()">
+        <i class="fas fa-trash-alt"></i> Delete My Account
+      </button>
+    </div>
+  </div>
+</div>

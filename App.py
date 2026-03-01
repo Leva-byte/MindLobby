@@ -12,16 +12,26 @@ import logging
 # ORIGINAL IMPORTS (UNCHANGED)
 # ============================================================================
 from database import (
-    init_db, 
-    create_user, 
-    get_user_by_email, 
-    get_user_by_username, 
+    init_db,
+    create_user,
+    get_user_by_email,
+    get_user_by_username,
     get_user_by_id,
-    update_last_login
+    update_last_login,
+    create_otp,
+    verify_otp,
+    create_password_reset_token,
+    verify_reset_token,
+    mark_reset_token_used,
+    update_user_password,
 )
 from validators import validate_password_strength, validate_email_format, validate_username
+from email_service import send_otp_email, send_welcome_email, send_password_reset_email
 from flashcard_routes import flashcard_bp
 from topics_routes import topics_bp
+from chat_routes import chat_bp
+from profile_routes import profile_bp
+from quiz_routes import quiz_bp
 
 # ============================================================================
 # NEW: GATEKEEPER IMPORTS (ADMIN SECURITY)
@@ -68,6 +78,9 @@ socketio = SocketIO(
 # Register blueprints
 app.register_blueprint(flashcard_bp)
 app.register_blueprint(topics_bp)
+app.register_blueprint(chat_bp)
+app.register_blueprint(profile_bp)
+app.register_blueprint(quiz_bp)
 
 # ============================================================================
 # DATABASE INITIALIZATION (ENHANCED)
@@ -173,18 +186,31 @@ def signup():
         if get_user_by_username(username):
             return jsonify({'success': False, 'message': 'Username already taken'}), 400
         
-        # Create user in database
+        # Create user in database (email_verified defaults to 0)
         user_id = create_user(email, username, password)
-        
-        if user_id:
-            # Create session
-            session['user_id'] = user_id
-            session['user_email'] = email
-            session['username'] = username
-            session['show_welcome'] = True
 
-            logger.info(f"New user registered: {username}")
-            return jsonify({'success': True, 'message': 'Account created successfully', 'username': username})
+        if user_id:
+            # Generate and send OTP
+            import random as _r
+            otp_code = ''.join([str(_r.randint(0, 9)) for _ in range(6)])
+            create_otp(user_id, otp_code)
+
+            try:
+                send_otp_email(email, username, otp_code)
+            except Exception as e:
+                logger.error(f"Failed to send OTP email: {e}")
+
+            # Store pending user info in session for verification step
+            session['pending_user_id'] = user_id
+            session['pending_email'] = email
+            session['pending_username'] = username
+
+            logger.info(f"New user registered (pending OTP): {username}")
+            return jsonify({
+                'success': True,
+                'message': 'Verification code sent to your email',
+                'requires_verification': True,
+            })
         else:
             return jsonify({'success': False, 'message': 'Registration failed'}), 500
         
@@ -258,6 +284,138 @@ def check_auth():
         })
     return jsonify({'authenticated': False})
 
+# ============================================================================
+# OTP VERIFICATION ROUTES
+# ============================================================================
+@app.route('/api/verify-otp', methods=['POST'])
+def api_verify_otp():
+    """Verify OTP code and activate user account."""
+    pending_id = session.get('pending_user_id')
+    if not pending_id:
+        return jsonify({'success': False, 'message': 'No pending verification'}), 400
+
+    data = request.get_json()
+    otp_code = data.get('otp_code', '').strip()
+    if not otp_code:
+        return jsonify({'success': False, 'message': 'OTP code is required'}), 400
+
+    if verify_otp(pending_id, otp_code):
+        # OTP verified — create full session
+        user = get_user_by_id(pending_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
+        session.pop('pending_user_id', None)
+        session.pop('pending_email', None)
+        session.pop('pending_username', None)
+
+        session['user_id'] = user['id']
+        session['user_email'] = user['email']
+        session['username'] = user['username']
+        session['role'] = user['role']
+        session['show_welcome'] = True
+
+        # Send welcome email (non-blocking)
+        try:
+            send_welcome_email(user['email'], user['username'])
+        except Exception:
+            pass
+
+        logger.info(f"User verified: {user['username']}")
+        return jsonify({'success': True, 'message': 'Email verified! Welcome to MindLobby!'})
+    else:
+        return jsonify({'success': False, 'message': 'Invalid or expired code. Please try again.'}), 400
+
+
+@app.route('/api/resend-otp', methods=['POST'])
+def api_resend_otp():
+    """Resend OTP code to pending user."""
+    pending_id = session.get('pending_user_id')
+    pending_email = session.get('pending_email')
+    pending_username = session.get('pending_username')
+
+    if not pending_id or not pending_email:
+        return jsonify({'success': False, 'message': 'No pending verification'}), 400
+
+    import random as _r
+    otp_code = ''.join([str(_r.randint(0, 9)) for _ in range(6)])
+    create_otp(pending_id, otp_code)
+
+    try:
+        send_otp_email(pending_email, pending_username or 'User', otp_code)
+    except Exception as e:
+        logger.error(f"Failed to resend OTP: {e}")
+        return jsonify({'success': False, 'message': 'Failed to send email. Please try again.'}), 500
+
+    return jsonify({'success': True, 'message': 'New verification code sent!'})
+
+
+# ============================================================================
+# PASSWORD RESET ROUTES (LANDING PAGE FLOW)
+# ============================================================================
+@app.route('/api/forgot-password', methods=['POST'])
+def api_forgot_password():
+    """Send a password reset email."""
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    if not email:
+        return jsonify({'success': False, 'message': 'Email is required'}), 400
+
+    user = get_user_by_email(email)
+    if not user:
+        # Don't reveal whether the email exists
+        return jsonify({'success': True, 'message': 'If that email is registered, a reset link has been sent.'})
+
+    token = create_password_reset_token(
+        user['id'],
+        request_ip=request.remote_addr,
+        request_user_agent=request.headers.get('User-Agent', ''),
+    )
+
+    reset_link = f"{request.host_url}?reset_token={token}"
+
+    try:
+        success, msg = send_password_reset_email(
+            to_email=user['email'],
+            username=user['username'],
+            reset_link=reset_link,
+            request_ip=request.remote_addr,
+            request_user_agent=request.headers.get('User-Agent', ''),
+        )
+        if not success:
+            logger.error(f"Reset email failed: {msg}")
+    except Exception as e:
+        logger.error(f"Reset email error: {e}")
+
+    return jsonify({'success': True, 'message': 'If that email is registered, a reset link has been sent.'})
+
+
+@app.route('/api/reset-password', methods=['POST'])
+def api_reset_password():
+    """Reset password using a valid token."""
+    data = request.get_json()
+    token = data.get('token', '').strip()
+    new_password = data.get('new_password', '')
+
+    if not token or not new_password:
+        return jsonify({'success': False, 'message': 'Token and new password are required'}), 400
+
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(new_password)
+    if not is_valid:
+        return jsonify({'success': False, 'message': error_msg}), 400
+
+    user_id = verify_reset_token(token)
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Invalid or expired reset link. Please request a new one.'}), 400
+
+    update_user_password(user_id, new_password)
+    mark_reset_token_used(token)
+
+    logger.info(f"Password reset completed for user ID {user_id}")
+    return jsonify({'success': True, 'message': 'Password has been reset! You can now log in.'})
+
+
 @app.route('/dashboard')
 def dashboard():
     """User dashboard - requires authentication"""
@@ -274,6 +432,10 @@ def dashboard():
 @app.route('/')
 def index():
     """Render the main platform landing page (redirects to studio if logged in)"""
+    # If there's a reset_token, always show Home.html so the JS can open the reset modal
+    if request.args.get('reset_token'):
+        session.clear()  # Log out so the reset flow works cleanly
+        return render_template('Home.html')
     if 'user_email' in session:
         return redirect('/studio')
     return render_template('Home.html')
@@ -286,6 +448,9 @@ def quickplay():
 @app.route('/home')
 def home():
     """Render the main platform landing page (redirects to studio if logged in)"""
+    if request.args.get('reset_token'):
+        session.clear()
+        return render_template('Home.html')
     if 'user_email' in session:
         return redirect('/studio')
     return render_template('Home.html')

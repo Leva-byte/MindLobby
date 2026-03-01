@@ -106,13 +106,26 @@ function showView(viewName) {
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  // Refresh sidebar docs (topic dot colors may have changed)
+  loadDocuments();
+
   // Panel-specific hooks
   switch (viewName) {
+    case 'overview':
+      // Refresh welcome banner and header avatar
+      _loadWelcomeBannerProfile();
+      break;
     case 'topics':
       if (window.Topics) window.Topics.loadTopics();
       break;
     case 'flashcards':
-      // No extra hook needed — Flashcards.js handles rendering
+      if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
+      break;
+    case 'quizzes':
+      if (window.Quizzes) Quizzes.loadDocs();
+      break;
+    case 'profile':
+      if (window.Profile) Profile.loadProfile();
       break;
     case 'upload':
       // Show overview panel and open upload modal
@@ -500,6 +513,9 @@ async function updateDashboardStats() {
     const topicBadge = document.querySelector('.nav-item[data-view="topics"] .nav-badge');
     if (topicBadge) topicBadge.textContent = data.topics || 0;
 
+    // --- Load profile images for welcome banner ---
+    _loadWelcomeBannerProfile();
+
     // --- Recent Activity ---
     const feed = document.getElementById('activityFeed');
     if (!feed) return;
@@ -569,6 +585,48 @@ function _formatElapsed(isoStr) {
   return `${years}y`;
 }
 
+
+/** Load profile picture and banner into the welcome banner */
+async function _loadWelcomeBannerProfile() {
+  try {
+    const res = await fetch('/api/profile');
+    const data = await res.json();
+    if (!data.success) return;
+
+    const p = data.profile;
+
+    // Banner background
+    const bannerBg = document.getElementById('welcomeBannerBg');
+    if (bannerBg) {
+      bannerBg.src = p.banner ? '/' + p.banner : '/static/img/default-banner.png';
+    }
+
+    // Profile picture
+    const pfpImg = document.getElementById('welcomePfpImg');
+    if (pfpImg) {
+      pfpImg.src = p.profile_picture
+        ? '/' + p.profile_picture
+        : '/static/img/default-pfp.png';
+    }
+
+    // Also update header avatar
+    const headerAvatar = document.querySelector('.header-actions .user-avatar');
+    if (headerAvatar && p.profile_picture) {
+      const existingImg = headerAvatar.querySelector('img');
+      if (existingImg) {
+        existingImg.src = '/' + p.profile_picture;
+      } else {
+        headerAvatar.textContent = '';
+        const img = document.createElement('img');
+        img.src = '/' + p.profile_picture;
+        img.alt = 'Profile';
+        headerAvatar.appendChild(img);
+      }
+    }
+  } catch (err) {
+    // Silent fail — banner/pfp will use defaults
+  }
+}
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -756,6 +814,7 @@ function deleteDocument(docId, btnEl) {
       if (data.success) {
         showNotification('Document deleted', 'success');
         loadDocuments();
+        if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
         if (window.Topics && window.Topics.refreshDetail) window.Topics.refreshDetail();
       } else {
         showNotification(data.message || 'Delete failed', 'error');
@@ -822,6 +881,7 @@ function openRenameModal(docId, currentName) {
       if (data.success) {
         showNotification('Document renamed', 'success');
         loadDocuments();
+        if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
         if (window.Topics && window.Topics.refreshDetail) window.Topics.refreshDetail();
       } else {
         showNotification(data.message || 'Rename failed', 'error');
@@ -860,10 +920,15 @@ function openUploadModal() {
 function closeUploadModal() {
   const modal = document.getElementById('uploadModal');
   const backdrop = document.getElementById('uploadModalBackdrop');
-  
+
   if (backdrop) backdrop.classList.remove('open');
   if (modal) modal.classList.remove('open');
-  
+
+  // Revert nav active state back to Overview
+  document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+    item.classList.toggle('active', item.getAttribute('data-view') === 'overview');
+  });
+
   // DON'T clear files here - let startUpload() handle it after uploading!
 }
 

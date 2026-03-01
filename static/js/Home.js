@@ -494,17 +494,17 @@ function handleOTPComplete() {
 }
 
 function startOTPTimer() {
-  otpTimeLeft = 600;
+  otpTimeLeft = 60;
   document.getElementById('resendBtn').disabled = true;
-  
+
   otpTimer = setInterval(() => {
     otpTimeLeft--;
-    
+
     const minutes = Math.floor(otpTimeLeft / 60);
     const seconds = otpTimeLeft % 60;
-    document.getElementById('otpTimer').textContent = 
+    document.getElementById('otpTimer').textContent =
       `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    
+
     if (otpTimeLeft <= 0) {
       clearInterval(otpTimer);
       document.getElementById('otpTimer').textContent = 'Expired';

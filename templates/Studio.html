@@ -12,6 +12,9 @@
   <link rel="stylesheet" href="/static/css/studiostyle.css">
   <link rel="stylesheet" href="/static/css/topicstyle.css">
   <link rel="stylesheet" href="/static/css/flashcardstyle.css">
+  <link rel="stylesheet" href="/static/css/chatstyle.css">
+  <link rel="stylesheet" href="/static/css/profilestyle.css">
+  <link rel="stylesheet" href="/static/css/quizzestyle.css">
 </head>
 <body>
 
@@ -112,40 +115,49 @@
     <div class="view-panel" id="panel-overview">
 
     <!-- Welcome Banner -->
-    <div class="welcome-banner">
+    <div class="welcome-banner" id="welcomeBanner">
+      <img class="welcome-banner-bg" id="welcomeBannerBg" src="/static/img/default-banner.png" alt="">
+      <div class="welcome-banner-gradient"></div>
+
       <div class="welcome-content">
         <h1 class="welcome-title">Welcome back, {{ username }}!</h1>
         <p class="welcome-text">Ready to continue your learning journey?</p>
-        
-        <div class="quick-stats">
-          <div class="stat-item">
-            <div class="stat-icon">
-              <i class="fas fa-folder"></i>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value" id="statTopics">0</div>
-              <div class="stat-label">Topics</div>
-            </div>
-          </div>
+      </div>
 
-          <div class="stat-item">
-            <div class="stat-icon">
-              <i class="fas fa-layer-group"></i>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value" id="statFlashcards">0</div>
-              <div class="stat-label">Flashcards</div>
-            </div>
-          </div>
+      <!-- Profile picture at bottom-left -->
+      <div class="welcome-pfp" id="welcomePfp">
+        <img id="welcomePfpImg" src="/static/img/default-pfp.png" alt="Profile">
+      </div>
 
-          <div class="stat-item">
-            <div class="stat-icon">
-              <i class="fas fa-clock"></i>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value" id="statStudyTime">0h</div>
-              <div class="stat-label">Study Time</div>
-            </div>
+      <!-- Stats at bottom-right -->
+      <div class="welcome-stats">
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-folder"></i>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="statTopics">0</div>
+            <div class="stat-label">Topics</div>
+          </div>
+        </div>
+
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="statFlashcards">0</div>
+            <div class="stat-label">Flashcards</div>
+          </div>
+        </div>
+
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="statStudyTime">0h</div>
+            <div class="stat-label">Study Time</div>
           </div>
         </div>
       </div>
@@ -175,6 +187,14 @@
           <p class="action-desc">Organize your study materials</p>
         </div>
         
+        <div class="action-card" onclick="showView('flashcards')">
+          <div class="action-icon">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <h3 class="action-title">Study Flashcards</h3>
+          <p class="action-desc">Browse and study your flashcards</p>
+        </div>
+
         <a href="/quickplay" class="action-card">
           <div class="action-icon">
             <i class="fas fa-gamepad"></i>
@@ -182,14 +202,6 @@
           <h3 class="action-title">Quick Play</h3>
           <p class="action-desc">Join a study lobby instantly</p>
         </a>
-        
-        <div class="action-card" onclick="document.querySelector('.sidebar-docs-section').scrollIntoView({behavior:'smooth'})">
-          <div class="action-icon">
-            <i class="fas fa-layer-group"></i>
-          </div>
-          <h3 class="action-title">Study Flashcards</h3>
-          <p class="action-desc">Select a document from the sidebar</p>
-        </div>
       </div>
     </div>
 
@@ -222,6 +234,16 @@
     <!-- FLASHCARDS PANEL -->
     <div class="view-panel" id="panel-flashcards" style="display:none;">
       {% include 'partials/Flashcards.html' %}
+    </div>
+
+    <!-- QUIZZES PANEL -->
+    <div class="view-panel" id="panel-quizzes" style="display:none;">
+      {% include 'partials/Quizzes.html' %}
+    </div>
+
+    <!-- PROFILE PANEL -->
+    <div class="view-panel" id="panel-profile" style="display:none;">
+      {% include 'partials/Profile.html' %}
     </div>
 
   </main>
@@ -425,5 +447,10 @@
   <script src="/static/js/FINAL_FIXED_LOADING.js"></script>
   <script src="/static/js/Flashcards.js"></script>
   <script src="/static/js/Topics.js"></script>
-  
+  <script src="/static/js/Chatbot.js"></script>
+  <script src="/static/js/Quizzes.js"></script>
+  <script src="/static/js/Profile.js"></script>
+
+  {% include 'partials/Chatbot.html' %}
+
 </body>

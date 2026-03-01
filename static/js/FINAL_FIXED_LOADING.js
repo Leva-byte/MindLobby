@@ -257,9 +257,10 @@ window.uploadFile = async function(file) {
       
       showNotification(`✅ ${data.flashcards_generated} flashcards created for "${file.name}"!`, 'success');
       
-      // Refresh documents and dashboard stats
+      // Refresh documents, dashboard stats, and flashcards grid
       if (typeof loadDocuments === 'function') loadDocuments();
       if (typeof updateDashboardStats === 'function') updateDashboardStats();
+      if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
 
       // Auto-open flashcard panel
       if (data.flashcards && data.flashcards.length > 0 && window.Flashcards) {
