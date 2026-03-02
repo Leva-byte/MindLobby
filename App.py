@@ -24,6 +24,14 @@ from database import (
     verify_reset_token,
     mark_reset_token_used,
     update_user_password,
+    get_documents_for_user,
+    get_flashcards_for_document,
+    get_all_documents_admin,
+    admin_delete_document_by_id,
+    create_document_report,
+    get_reports_for_document,
+    update_report_status,
+    get_platform_analytics,
 )
 from validators import validate_password_strength, validate_email_format, validate_username
 from email_service import send_otp_email, send_welcome_email, send_password_reset_email
@@ -103,8 +111,11 @@ except Exception as e:
 
 # Data structures to store room information
 room_users = {}
-room_hosts = {}
+room_hosts = {}              # room_code -> host socket SID
+room_host_user_ids = {}      # room_code -> host's user_id (for DB access)
 room_creation_time = {}
+room_games = {}              # room_code -> game state dict
+room_settings = {}           # room_code -> {'public': True/False}
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -152,12 +163,8 @@ def cleanup_empty_rooms():
     """Remove empty rooms from memory"""
     empty_rooms = [room for room, users in room_users.items() if not users]
     for room in empty_rooms:
-        if room in room_users:
-            del room_users[room]
-        if room in room_hosts:
-            del room_hosts[room]
-        if room in room_creation_time:
-            del room_creation_time[room]
+        for d in [room_users, room_hosts, room_host_user_ids, room_creation_time, room_games, room_settings]:
+            d.pop(room, None)
         logger.info(f"Cleaned up empty room: {room}")
 
 # ============================================================================
@@ -475,22 +482,27 @@ def studio():
 # ============================================================================
 @app.route('/create_room')
 def create_room():
-    """Create a new room and redirect to it"""
+    """Create a new room and redirect to it (requires sign-in)"""
+    if 'user_id' not in session:
+        return redirect('/quickplay?error=login_required')
+
     room_code = generate_room_code()
-    
-    # Ensure room code is unique
     while room_code in room_users:
         room_code = generate_room_code()
-    
-    username = request.args.get('username', '').strip()
+
+    username = session.get('username', '').strip()
     if not username:
         username = f"Guest{random.randint(1000, 9999)}"
-    
+
+    is_public = request.args.get('public', 'true').lower() == 'true'
+
     # Initialize room
     room_users[room_code] = []
     room_creation_time[room_code] = datetime.now()
-    
-    logger.info(f"Created new room: {room_code} for user: {username}")
+    room_host_user_ids[room_code] = session['user_id']
+    room_settings[room_code] = {'public': is_public}
+
+    logger.info(f"Created new room: {room_code} by user: {username} (public={is_public})")
     return redirect(url_for('room', room_code=room_code, username=username))
 
 @app.route('/join', methods=['POST'])
@@ -533,6 +545,16 @@ def room_status(room_code):
         'players': [user['username'] for user in room_users[room_code]],
         'created': room_creation_time.get(room_code, datetime.now()).isoformat()
     })
+
+@app.route('/api/host-documents')
+def get_host_documents():
+    """Return documents for the logged-in user that have 4+ flashcards."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+
+    docs = get_documents_for_user(session['user_id'])
+    eligible = [d for d in docs if d.get('flashcard_count', 0) >= 4]
+    return jsonify({'success': True, 'documents': eligible})
 
 # ============================================================================
 # NEW: ADMIN ROUTES (Only if Gatekeeper available)
@@ -697,6 +719,28 @@ if GATEKEEPER_AVAILABLE:
         
         except Exception as e:
             logger.error(f"❌ Security stats error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route(f'/{ADMIN_URL_PATH}/api/banned-users', methods=['GET'])
+    @admin_required
+    def admin_get_banned_users():
+        """Return all currently banned users with ban details."""
+        try:
+            from database import get_db_connection
+            conn = get_db_connection()
+            rows = conn.execute('''
+                SELECT b.id, b.fingerprint, b.reason, b.banned_at, b.expires_at,
+                       b.permanent, b.ban_count,
+                       u.id AS user_id, u.username, u.email
+                FROM banned_entities b
+                JOIN users u ON b.fingerprint = 'user:' || u.id
+                WHERE b.permanent = 1 OR datetime(b.expires_at) > datetime('now')
+                ORDER BY b.banned_at DESC
+            ''').fetchall()
+            conn.close()
+            return jsonify({'success': True, 'banned_users': [dict(r) for r in rows]})
+        except Exception as e:
+            logger.error(f"Banned users list error: {e}")
             return jsonify({'success': False, 'message': str(e)}), 500
 
     # ── User Management ────────────────────────────────────────────────────
@@ -892,6 +936,194 @@ if GATEKEEPER_AVAILABLE:
             logger.error(f"❌ Failed logins error: {e}")
             return jsonify({'success': False, 'message': str(e)}), 500
 
+    # ── Analytics API ─────────────────────────────────────────────────────────
+    @app.route(f'/{ADMIN_URL_PATH}/api/analytics', methods=['GET'])
+    @admin_required
+    def admin_analytics():
+        """Return platform-wide aggregate statistics."""
+        try:
+            stats = get_platform_analytics()
+            return jsonify({'success': True, 'stats': stats})
+        except Exception as e:
+            logger.error(f"Admin analytics error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    # ── Lobby Monitoring API ───────────────────────────────────────────────────
+    @app.route(f'/{ADMIN_URL_PATH}/api/lobbies', methods=['GET'])
+    @admin_required
+    def admin_get_lobbies():
+        """Return all active in-memory rooms."""
+        try:
+            from database import get_db_connection
+            lobbies = []
+            for room_code, users in room_users.items():
+                host_user_id = room_host_user_ids.get(room_code)
+                created_at = room_creation_time.get(room_code)
+                settings = room_settings.get(room_code, {'public': True})
+                game = room_games.get(room_code, {})
+
+                host_username = None
+                if host_user_id:
+                    conn = get_db_connection()
+                    u = conn.execute(
+                        'SELECT username FROM users WHERE id = ?', (host_user_id,)
+                    ).fetchone()
+                    conn.close()
+                    host_username = u['username'] if u else f'user#{host_user_id}'
+
+                lobbies.append({
+                    'room_code': room_code,
+                    'host_username': host_username,
+                    'player_count': len(users),
+                    'players': [u['username'] for u in users],
+                    'public': settings.get('public', True),
+                    'created_at': created_at.isoformat() if created_at else None,
+                    'game_phase': game.get('phase', 'lobby'),
+                })
+
+            return jsonify({'success': True, 'lobbies': lobbies, 'total': len(lobbies)})
+        except Exception as e:
+            logger.error(f"Admin lobbies error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route(f'/{ADMIN_URL_PATH}/api/lobbies/<room_code>/close', methods=['POST'])
+    @admin_required
+    def admin_close_lobby(room_code):
+        """Force-close an active room, disconnect all players."""
+        try:
+            room_code = room_code.upper()
+            if room_code not in room_users:
+                return jsonify({'success': False, 'message': 'Room not found'}), 404
+
+            socketio.emit('room_closed', {'reason': 'Closed by administrator'}, to=room_code)
+
+            for d in [room_users, room_hosts, room_host_user_ids,
+                      room_creation_time, room_games, room_settings]:
+                d.pop(room_code, None)
+
+            log_admin_action(
+                session.get('admin_user_id'),
+                'close_lobby',
+                f"Force-closed room {room_code}",
+                request
+            )
+            logger.warning(f"Admin force-closed room: {room_code}")
+            return jsonify({'success': True, 'message': f'Room {room_code} closed'})
+
+        except Exception as e:
+            logger.error(f"Admin close lobby error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    # ── Content Moderation API ─────────────────────────────────────────────────
+    @app.route(f'/{ADMIN_URL_PATH}/api/content', methods=['GET'])
+    @admin_required
+    def admin_get_content():
+        """Return all documents across all users for moderation review."""
+        try:
+            search = request.args.get('search', '').strip() or None
+            docs = get_all_documents_admin(search=search)
+            return jsonify({'success': True, 'documents': docs, 'total': len(docs)})
+        except Exception as e:
+            logger.error(f"Admin content error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route(f'/{ADMIN_URL_PATH}/api/content/<int:document_id>', methods=['DELETE'])
+    @admin_required
+    def admin_delete_document(document_id):
+        """Admin deletes any document regardless of owner."""
+        try:
+            from database import get_db_connection
+            conn = get_db_connection()
+            doc = conn.execute(
+                'SELECT d.original_filename, u.username FROM documents d JOIN users u ON u.id = d.user_id WHERE d.id = ?',
+                (document_id,)
+            ).fetchone()
+            conn.close()
+
+            if not doc:
+                return jsonify({'success': False, 'message': 'Document not found'}), 404
+
+            file_path = admin_delete_document_by_id(document_id)
+
+            if file_path and os.path.exists(file_path):
+                os.remove(file_path)
+
+            log_admin_action(
+                session.get('admin_user_id'),
+                'delete_document',
+                f'Deleted document #{document_id} "{doc["original_filename"]}" (owner: {doc["username"]})',
+                request
+            )
+            return jsonify({'success': True, 'message': f'Document "{doc["original_filename"]}" deleted'})
+
+        except Exception as e:
+            logger.error(f"Admin delete document error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route(f'/{ADMIN_URL_PATH}/api/content/<int:document_id>/flag', methods=['POST'])
+    @admin_required
+    def admin_flag_document(document_id):
+        """Admin flags a document for review."""
+        try:
+            data = request.get_json() or {}
+            reason = data.get('reason', '').strip()
+            if not reason:
+                return jsonify({'success': False, 'message': 'Reason is required'}), 400
+
+            ok, result = create_document_report(document_id, session.get('admin_user_id'), reason)
+            if not ok:
+                return jsonify({'success': False, 'message': result}), 400
+
+            log_admin_action(
+                session.get('admin_user_id'),
+                'flag_document',
+                f'Flagged document #{document_id}: {reason}',
+                request
+            )
+            return jsonify({'success': True, 'message': 'Document flagged'})
+
+        except Exception as e:
+            logger.error(f"Admin flag document error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route(f'/{ADMIN_URL_PATH}/api/content/<int:document_id>/reports', methods=['GET'])
+    @admin_required
+    def admin_get_document_reports(document_id):
+        """Return all reports for a specific document."""
+        try:
+            reports = get_reports_for_document(document_id)
+            return jsonify({'success': True, 'reports': reports})
+        except Exception as e:
+            logger.error(f"Admin get reports error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route(f'/{ADMIN_URL_PATH}/api/reports/<int:report_id>/review', methods=['POST'])
+    @admin_required
+    def admin_review_report(report_id):
+        """Mark a report as reviewed or dismissed."""
+        try:
+            data = request.get_json() or {}
+            status = data.get('status', '').strip().lower()
+
+            if status not in ('reviewed', 'dismissed'):
+                return jsonify({'success': False, 'message': 'Status must be reviewed or dismissed'}), 400
+
+            updated = update_report_status(report_id, status, session.get('admin_user_id'))
+            if not updated:
+                return jsonify({'success': False, 'message': 'Report not found'}), 404
+
+            log_admin_action(
+                session.get('admin_user_id'),
+                'review_report',
+                f'Marked report #{report_id} as {status}',
+                request
+            )
+            return jsonify({'success': True, 'message': f'Report marked as {status}'})
+
+        except Exception as e:
+            logger.error(f"Admin review report error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
     @app.route('/emergency-access/<secret_token>', methods=['GET'])
     def emergency_unban(secret_token):
         """Emergency unban route"""
@@ -943,13 +1175,9 @@ def handle_disconnect():
                 emit('room_closed', {'reason': 'host_left'}, to=room_code)
                 logger.info(f"Room {room_code} closed - host left")
                 
-                # Clean up room data
-                if room_code in room_users:
-                    del room_users[room_code]
-                if room_code in room_hosts:
-                    del room_hosts[room_code]
-                if room_code in room_creation_time:
-                    del room_creation_time[room_code]
+                # Clean up all room data
+                for d in [room_users, room_hosts, room_host_user_ids, room_creation_time, room_games, room_settings]:
+                    d.pop(room_code, None)
             else:
                 # Update remaining players
                 if users:
@@ -966,22 +1194,27 @@ def handle_join_room(data):
         username = data.get('username', '').strip()
         room_code = data.get('room', '').strip().upper()
         sid = request.sid
-        
+
         if not username or not room_code:
             emit('error', {'message': 'Invalid username or room code'})
             return
-        
-        if not username:
-            username = f"Guest{random.randint(1000, 9999)}"
-        
+
         username = username[:20]
-        
-        join_room(room_code)
-        
+
+        # Reject if room does not exist (only /create_room route creates rooms)
         if room_code not in room_users:
-            room_users[room_code] = []
-            room_creation_time[room_code] = datetime.now()
-        
+            emit('error', {'message': 'Room not found. Check the code and try again.'})
+            return
+
+        # Private room check: require sign-in
+        settings = room_settings.get(room_code, {'public': True})
+        if not settings.get('public', True):
+            if not session.get('user_id'):
+                emit('error', {'message': 'This is a private lobby. Sign in to join.'})
+                return
+
+        join_room(room_code)
+
         if not room_users[room_code]:
             room_hosts[room_code] = sid
             logger.info(f"User {username} is now host of room {room_code}")
@@ -1027,46 +1260,371 @@ def handle_leave_room(data):
                 
                 if room_hosts.get(room_code) == sid:
                     emit('room_closed', {'reason': 'host_left'}, to=room_code)
-                    if room_code in room_users:
-                        del room_users[room_code]
-                    if room_code in room_hosts:
-                        del room_hosts[room_code]
-                    if room_code in room_creation_time:
-                        del room_creation_time[room_code]
+                    for d in [room_users, room_hosts, room_host_user_ids, room_creation_time, room_games, room_settings]:
+                        d.pop(room_code, None)
                 else:
                     if room_users[room_code]:
                         user_list = [u['username'] for u in room_users[room_code]]
                         emit('update_player_list', user_list, to=room_code)
                     else:
                         cleanup_empty_rooms()
-        
+
         emit('left_room', {'room': room_code})
-        
+
     except Exception as e:
         logger.error(f"Error in handle_leave_room: {str(e)}")
         emit('error', {'message': 'Failed to leave room'})
 
+@socketio.on('kick_player')
+def handle_kick_player(data):
+    """Host kicks a player from the room."""
+    try:
+        room_code = data.get('room', '').strip().upper()
+        target_username = data.get('username', '').strip()
+        sid = request.sid
+
+        if room_hosts.get(room_code) != sid:
+            emit('error', {'message': 'Only the host can kick players'})
+            return
+
+        if room_code not in room_users:
+            return
+
+        target_user = next(
+            (u for u in room_users[room_code] if u['username'] == target_username),
+            None
+        )
+        if not target_user:
+            emit('error', {'message': 'Player not found'})
+            return
+
+        if target_user['sid'] == sid:
+            emit('error', {'message': 'Cannot kick yourself'})
+            return
+
+        room_users[room_code].remove(target_user)
+
+        emit('player_kicked', {
+            'username': target_username,
+            'reason': 'Kicked by host'
+        }, to=target_user['sid'])
+
+        leave_room(room_code, sid=target_user['sid'])
+
+        user_list = [u['username'] for u in room_users[room_code]]
+        emit('update_player_list', user_list, to=room_code)
+        logger.info(f"Host kicked {target_username} from room {room_code}")
+
+    except Exception as e:
+        logger.error(f"Error in handle_kick_player: {str(e)}")
+        emit('error', {'message': 'Failed to kick player'})
+
+
+@socketio.on('select_document')
+def handle_select_document(data):
+    """Host selects which document to use for the quiz."""
+    try:
+        room_code = data.get('room', '').strip().upper()
+        document_id = data.get('document_id')
+        sid = request.sid
+
+        if room_hosts.get(room_code) != sid:
+            emit('error', {'message': 'Only the host can select a document'})
+            return
+
+        host_user_id = room_host_user_ids.get(room_code)
+        if not host_user_id:
+            emit('error', {'message': 'Host authentication error'})
+            return
+
+        doc, cards = get_flashcards_for_document(document_id, host_user_id)
+        if doc is None:
+            emit('error', {'message': 'Document not found'})
+            return
+        if len(cards) < 4:
+            emit('error', {'message': 'Document needs at least 4 flashcards'})
+            return
+
+        if room_code not in room_games:
+            room_games[room_code] = {}
+        room_games[room_code]['document_id'] = document_id
+        room_games[room_code]['phase'] = 'lobby'
+
+        emit('document_selected', {
+            'document_name': doc['original_filename'],
+            'question_count': len(cards)
+        }, to=room_code)
+
+        logger.info(f"Document selected in room {room_code}: {doc['original_filename']}")
+
+    except Exception as e:
+        logger.error(f"Error in handle_select_document: {str(e)}")
+        emit('error', {'message': 'Failed to select document'})
+
+
 @socketio.on('start_game')
 def handle_start_game(data):
-    """Handle game start"""
+    """Host starts the quiz game."""
     try:
         room_code = data.get('room', '').strip().upper()
         sid = request.sid
-        
+
         if room_hosts.get(room_code) != sid:
             emit('error', {'message': 'Only the host can start the game'})
             return
-        
-        if len(room_users.get(room_code, [])) < 1:
+
+        if len(room_users.get(room_code, [])) < 2:
             emit('error', {'message': 'Need at least 2 players to start'})
             return
-        
-        logger.info(f"Game started in room {room_code}")
-        emit('game_started', {'room': room_code}, to=room_code)
-        
+
+        game = room_games.get(room_code, {})
+        if 'document_id' not in game:
+            emit('error', {'message': 'Select a document first'})
+            return
+
+        host_user_id = room_host_user_ids.get(room_code)
+        doc, cards = get_flashcards_for_document(game['document_id'], host_user_id)
+
+        if not doc or len(cards) < 4:
+            emit('error', {'message': 'Not enough flashcards'})
+            return
+
+        # Generate MCQ (same logic as quiz_routes.py)
+        all_answers = [c['answer'] for c in cards]
+        questions = []
+        for i, card in enumerate(cards):
+            correct = card['answer']
+            other_answers = [a for j, a in enumerate(all_answers) if j != i]
+            distractors = random.sample(other_answers, min(3, len(other_answers)))
+            options = [correct] + distractors
+            random.shuffle(options)
+            questions.append({
+                'id': card['id'],
+                'question': card['question'],
+                'options': options,
+                'correct_index': options.index(correct),
+            })
+        random.shuffle(questions)
+
+        # Initialize game state
+        player_scores = {}
+        for u in room_users[room_code]:
+            player_scores[u['username']] = {'total_score': 0, 'correct_count': 0}
+
+        room_games[room_code] = {
+            'document_id': game['document_id'],
+            'questions': questions,
+            'current_question_index': -1,
+            'question_start_time': None,
+            'player_scores': player_scores,
+            'player_answers': {},
+            'phase': 'playing',
+        }
+
+        logger.info(f"Game started in room {room_code} with {len(questions)} questions")
+        emit('game_started', {
+            'room': room_code,
+            'total_questions': len(questions)
+        }, to=room_code)
+
+        socketio.start_background_task(_delayed_first_question, room_code)
+
     except Exception as e:
         logger.error(f"Error in handle_start_game: {str(e)}")
         emit('error', {'message': 'Failed to start game'})
+
+
+def _delayed_first_question(room_code):
+    """Wait 3 seconds then send the first question."""
+    socketio.sleep(3)
+    send_next_question(room_code)
+
+
+def send_next_question(room_code):
+    """Advance to next question and broadcast it."""
+    game = room_games.get(room_code)
+    if not game:
+        return
+
+    game['current_question_index'] += 1
+    idx = game['current_question_index']
+
+    if idx >= len(game['questions']):
+        end_game(room_code)
+        return
+
+    q = game['questions'][idx]
+    game['question_start_time'] = datetime.now()
+    game['player_answers'][idx] = {}
+    game['phase'] = 'question_active'
+
+    # Send question WITHOUT correct_index (anti-cheat)
+    socketio.emit('question_start', {
+        'question_index': idx,
+        'question_text': q['question'],
+        'options': q['options'],
+        'total': len(game['questions']),
+        'time_limit': 15
+    }, to=room_code, namespace='/')
+
+    socketio.start_background_task(_question_timer, room_code, idx)
+
+
+def _question_timer(room_code, question_index):
+    """Background task that ends a question after 15 seconds."""
+    socketio.sleep(15)
+    game = room_games.get(room_code)
+    if not game:
+        return
+    if game['current_question_index'] != question_index:
+        return
+    if game['phase'] != 'question_active':
+        return
+    end_question(room_code)
+
+
+@socketio.on('submit_answer')
+def handle_submit_answer(data):
+    """Player submits their answer for the current question."""
+    try:
+        room_code = data.get('room', '').strip().upper()
+        answer_index = data.get('answer_index')
+        sid = request.sid
+
+        game = room_games.get(room_code)
+        if not game or game['phase'] != 'question_active':
+            return
+
+        user = next((u for u in room_users.get(room_code, []) if u['sid'] == sid), None)
+        if not user:
+            return
+
+        idx = game['current_question_index']
+        answers = game['player_answers'].get(idx, {})
+
+        # Prevent duplicate answers
+        if user['username'] in answers:
+            return
+
+        answers[user['username']] = {
+            'answer_index': answer_index,
+            'timestamp': datetime.now()
+        }
+        game['player_answers'][idx] = answers
+
+        # If all players answered, end question early
+        if len(answers) >= len(room_users.get(room_code, [])):
+            end_question(room_code)
+
+    except Exception as e:
+        logger.error(f"Error in handle_submit_answer: {str(e)}")
+
+
+def end_question(room_code):
+    """Score the current question and broadcast results."""
+    game = room_games.get(room_code)
+    if not game or game['phase'] != 'question_active':
+        return
+
+    game['phase'] = 'question_reveal'
+    idx = game['current_question_index']
+    q = game['questions'][idx]
+    correct_index = q['correct_index']
+    start_time = game['question_start_time']
+    answers = game['player_answers'].get(idx, {})
+
+    player_results = []
+    for u in room_users.get(room_code, []):
+        uname = u['username']
+        ans = answers.get(uname)
+        if ans and ans['answer_index'] == correct_index:
+            elapsed = (ans['timestamp'] - start_time).total_seconds()
+            remaining = max(0, 15 - elapsed)
+            score = round(500 * (remaining / 15))
+            if uname in game['player_scores']:
+                game['player_scores'][uname]['total_score'] += score
+                game['player_scores'][uname]['correct_count'] += 1
+            player_results.append({
+                'username': uname,
+                'correct': True,
+                'score': score,
+                'answer_index': ans['answer_index']
+            })
+        else:
+            player_results.append({
+                'username': uname,
+                'correct': False,
+                'score': 0,
+                'answer_index': ans['answer_index'] if ans else -1
+            })
+
+    player_results.sort(key=lambda x: x['score'], reverse=True)
+
+    leaderboard = sorted(
+        [{'username': k, **v} for k, v in game['player_scores'].items()],
+        key=lambda x: x['total_score'], reverse=True
+    )
+
+    socketio.emit('question_end', {
+        'correct_index': correct_index,
+        'player_results': player_results,
+        'leaderboard': leaderboard
+    }, to=room_code, namespace='/')
+
+    socketio.start_background_task(_advance_after_reveal, room_code)
+
+
+def _advance_after_reveal(room_code):
+    """Wait during reveal phase, then advance to next question."""
+    socketio.sleep(4)
+    game = room_games.get(room_code)
+    if not game or game['phase'] != 'question_reveal':
+        return
+    send_next_question(room_code)
+
+
+def end_game(room_code):
+    """Send final results."""
+    game = room_games.get(room_code)
+    if not game:
+        return
+
+    game['phase'] = 'results'
+
+    leaderboard = sorted(
+        [{'username': k, **v} for k, v in game['player_scores'].items()],
+        key=lambda x: x['total_score'], reverse=True
+    )
+
+    socketio.emit('game_results', {
+        'leaderboard': leaderboard,
+        'total_questions': len(game['questions'])
+    }, to=room_code, namespace='/')
+
+    logger.info(f"Game ended in room {room_code}")
+
+
+@socketio.on('reset_game')
+def handle_reset_game(data):
+    """Host resets game to lobby state for another round."""
+    try:
+        room_code = data.get('room', '').strip().upper()
+        sid = request.sid
+
+        if room_hosts.get(room_code) != sid:
+            emit('error', {'message': 'Only the host can reset the game'})
+            return
+
+        if room_code in room_games:
+            del room_games[room_code]
+
+        emit('game_reset', {'room': room_code}, to=room_code)
+        logger.info(f"Game reset in room {room_code}")
+
+    except Exception as e:
+        logger.error(f"Error in handle_reset_game: {str(e)}")
+        emit('error', {'message': 'Failed to reset game'})
+
 
 # ============================================================================
 # RUN APPLICATION

@@ -310,6 +310,68 @@ input[type="text"]::placeholder {
   transition: color 0.3s ease;
 }
 
+/* Lobby Type Toggle Switch */
+.lobby-type-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #7c77c6;
+}
+
+.toggle-options {
+  position: relative;
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 14px;
+  padding: 4px;
+  border: 2px solid rgba(124, 119, 198, 0.2);
+  overflow: hidden;
+}
+
+.toggle-opt {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95em;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.toggle-opt:hover:not(.active) {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(124, 119, 198, 0.08);
+}
+
+.toggle-opt.active {
+  background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(124, 119, 198, 0.35);
+}
+
+.toggle-opt i {
+  font-size: 0.9em;
+}
+
 /* Buttons */
 .btn-primary {
   width: 100%;
@@ -575,6 +637,11 @@ input[type="text"]::placeholder {
   .btn-secondary {
     width: 100%;
     justify-content: center;
+  }
+
+  .toggle-opt {
+    padding: 10px 14px;
+    font-size: 0.9em;
   }
   
   .notification {

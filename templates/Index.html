@@ -60,12 +60,32 @@
         </div>
         
         <!-- Create Room Section -->
-        <div class="form-group">
+        <div class="form-group" id="createSection">
+          <!-- Lobby Type Toggle (shown only for signed-in users) -->
+          <div class="lobby-type-toggle" id="lobbyTypeToggle" style="display:none;">
+            <label class="toggle-label">
+              <i class="fas fa-globe"></i> Lobby Type:
+            </label>
+            <div class="toggle-options">
+              <button class="toggle-opt active" id="togglePublic" onclick="setLobbyType(true)">
+                <i class="fas fa-unlock"></i> Public
+              </button>
+              <button class="toggle-opt" id="togglePrivate" onclick="setLobbyType(false)">
+                <i class="fas fa-lock"></i> Private
+              </button>
+            </div>
+            <div class="input-hint" id="lobbyTypeHint">Anyone can join with the code</div>
+          </div>
           <button id="createBtn" class="btn-primary" onclick="createRoom()">
             <i class="fas fa-plus-circle"></i>
             <span>Create New Lobby</span>
             <div class="btn-subtitle">Start a new game session</div>
           </button>
+          <!-- Login prompt (shown for guests) -->
+          <div id="loginPrompt" style="display:none;" class="info-item">
+            <i class="fas fa-lock"></i>
+            <span><a href="/home" style="color:#7c77c6;">Sign in</a> to create a lobby. You can still join as a guest.</span>
+          </div>
         </div>
         
         <!-- Divider -->
@@ -111,6 +131,18 @@
   </div>
 
   <script>
+    let isPublicLobby = true;
+    let isAuthenticated = false;
+
+    function setLobbyType(isPublic) {
+      isPublicLobby = isPublic;
+      document.getElementById('togglePublic').classList.toggle('active', isPublic);
+      document.getElementById('togglePrivate').classList.toggle('active', !isPublic);
+      document.getElementById('lobbyTypeHint').textContent = isPublic
+        ? 'Anyone can join with the code'
+        : 'Only signed-in members can join';
+    }
+
     function createRoom() {
       const username = document.getElementById("nameInput").value.trim();
       if (!username) {
@@ -118,58 +150,66 @@
         document.getElementById("nameInput").focus();
         return;
       }
-      
+
       if (username.length < 2) {
         showNotification("Display name must be at least 2 characters long!", "warning");
         document.getElementById("nameInput").focus();
         return;
       }
-      
-      // Show loading state
-      const createBtn = document.getElementById("createBtn");
-      const originalContent = createBtn.innerHTML;
+
+      var createBtn = document.getElementById("createBtn");
       createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating Lobby...</span>';
       createBtn.disabled = true;
-      
-      // Simulate brief loading then redirect
-      setTimeout(() => {
-        window.location.href = `/create_room?username=${encodeURIComponent(username)}`;
+
+      setTimeout(function () {
+        window.location.href = '/create_room?public=' + (isPublicLobby ? 'true' : 'false');
       }, 500);
     }
 
     function joinRoom(event) {
       event.preventDefault();
-      const username = document.getElementById("nameInput").value.trim();
-      const room = document.getElementById("room_code").value.trim().toUpperCase();
-      
+      var username = document.getElementById("nameInput").value.trim();
+      var room = document.getElementById("room_code").value.trim().toUpperCase();
+
       if (!username) {
         showNotification("Please enter your display name before joining a lobby!", "warning");
         document.getElementById("nameInput").focus();
         return;
       }
-      
+
       if (username.length < 2) {
         showNotification("Display name must be at least 2 characters long!", "warning");
         document.getElementById("nameInput").focus();
         return;
       }
-      
+
       if (!room || room.length !== 5) {
         showNotification("Please enter a valid 5-character lobby code!", "warning");
         document.getElementById("room_code").focus();
         return;
       }
-      
-      // Show loading state
-      const joinBtn = document.getElementById("joinBtn");
-      const originalContent = joinBtn.innerHTML;
+
+      var joinBtn = document.getElementById("joinBtn");
       joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Joining...';
       joinBtn.disabled = true;
-      
-      // Simulate brief loading then redirect
-      setTimeout(() => {
-        window.location.href = `/room/${room}?username=${encodeURIComponent(username)}`;
-      }, 500);
+
+      // Validate room exists before redirecting
+      fetch('/api/room/' + room + '/status')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.exists) {
+            window.location.href = '/room/' + room + '?username=' + encodeURIComponent(username);
+          } else {
+            showNotification("Room not found. Check the code and try again.", "warning");
+            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i>Join Lobby';
+            joinBtn.disabled = false;
+          }
+        })
+        .catch(function () {
+          showNotification("Room not found. Check the code and try again.", "warning");
+          joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i>Join Lobby';
+          joinBtn.disabled = false;
+        });
     }
 
     // Auto-format room code input
@@ -233,11 +273,40 @@
       }, 4000);
     }
 
-    // Loading transition
-    window.onload = () => {
-      setTimeout(() => {
+    // Loading transition + auth check
+    window.onload = function () {
+      // Check auth status
+      fetch('/check-auth')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.authenticated) {
+            isAuthenticated = true;
+            var nameInput = document.getElementById('nameInput');
+            nameInput.value = data.username;
+            nameInput.readOnly = true;
+            nameInput.style.opacity = '0.7';
+            document.getElementById('lobbyTypeToggle').style.display = 'flex';
+          } else {
+            document.getElementById('createBtn').style.display = 'none';
+            document.getElementById('loginPrompt').style.display = 'flex';
+          }
+        })
+        .catch(function () {
+          document.getElementById('createBtn').style.display = 'none';
+          document.getElementById('loginPrompt').style.display = 'flex';
+        });
+
+      // Check for error params
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('error') === 'login_required') {
+        setTimeout(function () {
+          showNotification('Please sign in to create a lobby.', 'warning');
+        }, 2600);
+      }
+
+      setTimeout(function () {
         document.getElementById("loadingScreen").style.opacity = "0";
-        setTimeout(() => {
+        setTimeout(function () {
           document.getElementById("loadingScreen").style.display = "none";
           document.getElementById("mainWrapper").style.display = "flex";
           document.getElementById("mainWrapper").style.opacity = "1";

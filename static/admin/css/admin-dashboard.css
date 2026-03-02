@@ -950,3 +950,54 @@ body::before {
   .admin-content { padding: 20px 14px 40px; }
   .actions-cell  { flex-direction: column; align-items: flex-start; }
 }
+
+/* ============================================================================
+   EXTENDED STYLES — Content Moderation, Lobbies, Analytics
+   ============================================================================ */
+
+/* ── Analytics stats grid (8 cards → 4-col) ── */
+.analytics-stats-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1024px) {
+  .analytics-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .analytics-stats-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Content search row ── */
+.content-search-row {
+  margin-bottom: 16px;
+}
+
+.content-search-input {
+  max-width: 360px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-family: 'JetBrains Mono', monospace;
+  transition: border-color 0.2s;
+}
+
+.content-search-input:focus {
+  outline: none;
+  border-color: var(--border-bright);
+}
+
+/* ── Report detail panel ── */
+#reportDetailPanel {
+  margin-top: 20px;
+}
+
+/* ── Actions cell (multiple buttons in a row) ── */
+.actions-cell {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}

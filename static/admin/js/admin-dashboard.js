@@ -34,9 +34,12 @@ function showTab(tabId, clickedBtn) {
   }
 
   // Lazy-load on first visit
-  if (tabId === 'tab-security')                                  loadSecurityStats();
-  if (tabId === 'tab-auditlog')                                  loadAuditLog(true);
-  if (tabId === 'tab-failedlogins')                              loadFailedLogins();
+  if (tabId === 'tab-security')     { loadSecurityStats(); loadBannedUsers(); }
+  if (tabId === 'tab-auditlog')     loadAuditLog(true);
+  if (tabId === 'tab-failedlogins') loadFailedLogins();
+  if (tabId === 'tab-analytics')    loadAnalytics();
+  if (tabId === 'tab-lobbies')      loadLobbies();
+  if (tabId === 'tab-content')      loadContent();
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -87,6 +90,10 @@ function logIcon(action) {
     change_role:         ['t-role',   'fa-crown'],
     view_users:          ['t-view',   'fa-eye'],
     view_security_stats: ['t-view',   'fa-eye'],
+    delete_document:     ['t-delete', 'fa-file-circle-xmark'],
+    close_lobby:         ['t-ban',    'fa-door-closed'],
+    flag_document:       ['t-role',   'fa-flag'],
+    review_report:       ['t-unban',  'fa-flag-checkered'],
   };
   const [cls, ico] = map[action] ?? ['t-default', 'fa-circle-dot'];
   return `<div class="log-icon ${cls}"><i class="fas ${ico}"></i></div>`;
@@ -233,6 +240,72 @@ async function loadSecurityStats() {
   }
 }
 
+// ── Banned Users List ─────────────────────────────────────────────────────────
+async function loadBannedUsers() {
+  const container = document.getElementById('bannedUsersContainer');
+  if (!container) return;
+
+  setLoading(container, 'Loading banned users…');
+
+  try {
+    const res  = await fetch(`/${ADMIN_PATH}/api/banned-users`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    if (!data.banned_users.length) {
+      setEmpty(container, 'fa-ban', 'No banned users at the moment.');
+      return;
+    }
+
+    container.innerHTML = buildBannedUsersTable(data.banned_users);
+
+  } catch (err) {
+    console.error('loadBannedUsers:', err);
+    setEmpty(container, 'fa-exclamation-circle', 'Failed to load banned users.');
+  }
+}
+
+function buildBannedUsersTable(users) {
+  const rows = users.map(u => {
+    const initials = getInitials(u.username);
+    const permanent = u.permanent === 1;
+    const expires = permanent ? '<span class="badge badge-unverified">Permanent</span>' : formatDateTime(u.expires_at);
+    const banCount = u.ban_count > 1 ? ` <span class="badge badge-unverified" title="Banned ${u.ban_count} times">×${u.ban_count}</span>` : '';
+
+    return `
+      <tr>
+        <td><span class="id-badge">#${u.user_id}</span></td>
+        <td>
+          <div class="user-cell">
+            <div class="user-mini-avatar">${initials}</div>
+            <span class="user-cell-name">${escapeHTML(u.username)}</span>
+          </div>
+        </td>
+        <td>${escapeHTML(u.email)}</td>
+        <td>${escapeHTML(u.reason ?? '—')}</td>
+        <td>${formatDateTime(u.banned_at)}</td>
+        <td>${expires}${banCount}</td>
+        <td>
+          <button class="action-btn action-btn-unban"
+                  onclick="confirmUnban(${u.user_id}, '${escapeHTML(u.username)}')">
+            <i class="fas fa-circle-check"></i> Unban
+          </button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>User</th><th>Email</th><th>Reason</th>
+          <th>Banned At</th><th>Expires</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
 // ── Recent Activity (overview snapshot) ───────────────────────────────────────
 async function loadRecentActivity() {
   const container = document.getElementById('recentActivityContainer');
@@ -368,7 +441,10 @@ function openModal({ icon, iconClass, title, message, confirmClass, confirmLabel
   document.getElementById('banOptions').style.display = banOptions ? 'block' : 'none';
   if (banOptions) {
     document.getElementById('banReason').value   = '';
+    document.getElementById('banReason').placeholder = 'e.g. Spamming, abusive behaviour…';
     document.getElementById('banDuration').value = '168';
+    const durationGroup = document.getElementById('banDuration')?.closest('.modal-input-group');
+    if (durationGroup) durationGroup.style.display = '';
   }
 
   document.getElementById('confirmModal').classList.add('open');
@@ -410,6 +486,31 @@ async function executeModalAction() {
       });
     } else if (type === 'delete') {
       res = await fetch(`/${ADMIN_PATH}/api/users/${userId}`, { method: 'DELETE' });
+    } else if (type === 'close_lobby') {
+      const { roomCode } = pendingAction;
+      res = await fetch(`/${ADMIN_PATH}/api/lobbies/${encodeURIComponent(roomCode)}/close`, { method: 'POST' });
+      data = await res.json();
+      if (data?.success) { showNotification(data.message, 'success'); loadLobbies(); }
+      else { showNotification(data?.message || 'Failed to close lobby.', 'error'); }
+      return;
+    } else if (type === 'delete_document') {
+      const { docId } = pendingAction;
+      res = await fetch(`/${ADMIN_PATH}/api/content/${docId}`, { method: 'DELETE' });
+      data = await res.json();
+      if (data?.success) { showNotification(data.message, 'success'); loadContent(); closeReportDetail(); }
+      else { showNotification(data?.message || 'Delete failed.', 'error'); }
+      return;
+    } else if (type === 'flag_document') {
+      const { docId } = pendingAction;
+      const reason = document.getElementById('banReason')?.value.trim() || 'Flagged by admin';
+      res = await fetch(`/${ADMIN_PATH}/api/content/${docId}/flag`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
+      });
+      data = await res.json();
+      if (data?.success) { showNotification(data.message, 'success'); loadContent(); }
+      else { showNotification(data?.message || 'Flag failed.', 'error'); }
+      return;
     }
 
     data = await res.json();
@@ -418,6 +519,7 @@ async function executeModalAction() {
       showNotification(data.message, 'success');
       loadUsers(true);
       loadSecurityStats();
+      loadBannedUsers();
     } else {
       showNotification(data?.message || 'Action failed.', 'error');
     }
@@ -498,4 +600,346 @@ function showNotification(message, type = 'success') {
   document.body.appendChild(n);
   requestAnimationFrame(() => n.classList.add('show'));
   setTimeout(() => { n.classList.remove('show'); setTimeout(() => n.remove(), 400); }, 3500);
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  const grid = document.getElementById('analyticsStatsGrid');
+  const btn  = document.getElementById('refreshAnalyticsBtn');
+
+  if (grid) grid.innerHTML = `<div class="loading-state"><div class="spinner"></div><span>Loading analytics…</span></div>`;
+  if (btn) btn.classList.add('spinning');
+
+  try {
+    const res  = await fetch(`/${ADMIN_PATH}/api/analytics`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    grid.innerHTML = buildAnalyticsCards(data.stats);
+    updateTimestamp();
+
+  } catch (err) {
+    console.error('loadAnalytics:', err);
+    if (grid) grid.innerHTML = `<div class="empty-state"><i class="fas fa-chart-bar"></i><p>Failed to load analytics.</p></div>`;
+  } finally {
+    if (btn) btn.classList.remove('spinning');
+  }
+}
+
+function buildAnalyticsCards(s) {
+  const cards = [
+    { label: 'Total Users',      value: s.total_users,      icon: 'fa-users',           cls: '' },
+    { label: 'Total Documents',   value: s.total_documents,  icon: 'fa-file-alt',        cls: '' },
+    { label: 'Total Flashcards',  value: s.total_flashcards, icon: 'fa-layer-group',     cls: 'stat-success' },
+    { label: 'Quiz Attempts',     value: s.total_quizzes,    icon: 'fa-question-circle', cls: '' },
+    { label: 'Games Played',      value: s.total_games,      icon: 'fa-gamepad',         cls: '' },
+    { label: 'New (7 days)',      value: s.new_users_week,   icon: 'fa-user-plus',       cls: 'stat-success' },
+    { label: 'New (30 days)',     value: s.new_users_month,  icon: 'fa-calendar',        cls: '' },
+    { label: 'Pending Reports',   value: s.pending_reports,  icon: 'fa-flag',            cls: s.pending_reports > 0 ? 'stat-warning' : '' },
+  ];
+
+  return cards.map(c => `
+    <div class="stat-card ${c.cls}">
+      <div class="stat-top">
+        <div class="stat-label">${c.label}</div>
+        <div class="stat-icon"><i class="fas ${c.icon}"></i></div>
+      </div>
+      <div class="stat-value">${c.value ?? '—'}</div>
+    </div>`).join('');
+}
+
+// ── Lobby Monitoring ──────────────────────────────────────────────────────────
+async function loadLobbies() {
+  const container = document.getElementById('lobbiesTableContainer');
+  const btn       = document.getElementById('refreshLobbiesBtn');
+
+  setLoading(container, 'Loading active lobbies…');
+  if (btn) btn.classList.add('spinning');
+
+  try {
+    const res  = await fetch(`/${ADMIN_PATH}/api/lobbies`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    if (!data.lobbies.length) {
+      setEmpty(container, 'fa-door-open', 'No active lobbies right now.');
+      return;
+    }
+
+    container.innerHTML = buildLobbiesTable(data.lobbies);
+    updateTimestamp();
+
+  } catch (err) {
+    console.error('loadLobbies:', err);
+    setEmpty(container, 'fa-exclamation-circle', 'Failed to load lobbies.');
+  } finally {
+    if (btn) btn.classList.remove('spinning');
+  }
+}
+
+function buildLobbiesTable(lobbies) {
+  const rows = lobbies.map(lobby => {
+    const visBadge = lobby.public
+      ? `<span class="badge badge-user"><i class="fas fa-globe"></i> Public</span>`
+      : `<span class="badge badge-unverified"><i class="fas fa-lock"></i> Private</span>`;
+
+    const phaseMap = {
+      lobby:           ['badge-user',       'Lobby'],
+      playing:         ['badge-verified',   'Playing'],
+      question_active: ['badge-verified',   'Question'],
+      question_reveal: ['badge-admin',      'Reveal'],
+      results:         ['badge-unverified', 'Results'],
+    };
+    const [phaseCls, phaseLabel] = phaseMap[lobby.game_phase] ?? ['badge-user', lobby.game_phase];
+
+    const playerList = lobby.players.map(p => escapeHTML(p)).join(', ') || '—';
+    const created = lobby.created_at ? formatDateTime(lobby.created_at) : '—';
+
+    return `
+      <tr>
+        <td><span class="id-badge">${escapeHTML(lobby.room_code)}</span></td>
+        <td>${escapeHTML(lobby.host_username ?? '—')}</td>
+        <td>${lobby.player_count}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${escapeHTML(playerList)}">${escapeHTML(playerList)}</td>
+        <td>${visBadge}</td>
+        <td><span class="badge ${phaseCls}">${phaseLabel}</span></td>
+        <td>${created}</td>
+        <td>
+          <button class="action-btn action-btn-ban"
+                  onclick="confirmCloseLobby('${escapeHTML(lobby.room_code)}')">
+            <i class="fas fa-door-closed"></i> Close
+          </button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Code</th><th>Host</th><th>Players</th><th>Player List</th>
+          <th>Visibility</th><th>Phase</th><th>Created</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function confirmCloseLobby(roomCode) {
+  openModal({
+    icon: 'fa-door-closed', iconClass: 'danger',
+    title: 'Close Lobby',
+    message: `Force-close room <strong>${escapeHTML(roomCode)}</strong>? All players will be disconnected immediately.`,
+    confirmClass: '', confirmLabel: 'Close Room',
+    banOptions: false,
+    action: { type: 'close_lobby', roomCode }
+  });
+}
+
+// ── Content Moderation ────────────────────────────────────────────────────────
+let contentSearchTimer = null;
+
+function debounceContentSearch() {
+  clearTimeout(contentSearchTimer);
+  contentSearchTimer = setTimeout(loadContent, 400);
+}
+
+async function loadContent(silent) {
+  const container = document.getElementById('contentTableContainer');
+  const btn       = document.getElementById('refreshContentBtn');
+  const search    = document.getElementById('contentSearchInput')?.value.trim() || '';
+
+  if (!silent) setLoading(container, 'Loading documents…');
+  if (btn) btn.classList.add('spinning');
+
+  try {
+    const url  = `/${ADMIN_PATH}/api/content` + (search ? `?search=${encodeURIComponent(search)}` : '');
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    if (!data.documents.length) {
+      setEmpty(container, 'fa-file-alt', search ? 'No documents match your search.' : 'No documents uploaded yet.');
+      return;
+    }
+
+    container.innerHTML = buildContentTable(data.documents);
+    updateTimestamp();
+
+  } catch (err) {
+    console.error('loadContent:', err);
+    setEmpty(container, 'fa-exclamation-circle', 'Failed to load documents.');
+  } finally {
+    if (btn) btn.classList.remove('spinning');
+  }
+}
+
+function buildContentTable(docs) {
+  const rows = docs.map(doc => {
+    const reportBadge = doc.report_count > 0
+      ? `<span class="badge badge-unverified"><i class="fas fa-flag"></i> ${doc.report_count}</span>`
+      : `<span style="color:var(--text-muted);font-size:0.75em">—</span>`;
+
+    const viewReportsBtn = doc.report_count > 0
+      ? `<button class="action-btn action-btn-promote"
+               onclick="viewDocumentReports(${doc.id}, '${escapeHTML(doc.original_filename).replace(/'/g, "\\'")}')">
+           <i class="fas fa-flag"></i> Reports
+         </button>`
+      : '';
+
+    const nameEsc = escapeHTML(doc.original_filename).replace(/'/g, "\\'");
+
+    return `
+      <tr ${doc.report_count > 0 ? 'style="background:rgba(251,191,36,0.04)"' : ''}>
+        <td><span class="id-badge">#${doc.id}</span></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${escapeHTML(doc.original_filename)}">${escapeHTML(doc.original_filename)}</td>
+        <td>${escapeHTML(doc.uploader_username)}</td>
+        <td><span class="badge badge-user">${escapeHTML(doc.file_type.toUpperCase())}</span></td>
+        <td>${doc.flashcard_count}</td>
+        <td>${formatDate(doc.upload_date)}</td>
+        <td>${reportBadge}</td>
+        <td>
+          <div class="actions-cell">
+            ${viewReportsBtn}
+            <button class="action-btn action-btn-promote"
+                    onclick="confirmFlagDocument(${doc.id}, '${nameEsc}')">
+              <i class="fas fa-flag"></i> Flag
+            </button>
+            <button class="action-btn action-btn-delete"
+                    onclick="confirmDeleteDocument(${doc.id}, '${nameEsc}')">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Filename</th><th>Uploader</th><th>Type</th>
+          <th>Cards</th><th>Uploaded</th><th>Reports</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function confirmDeleteDocument(docId, filename) {
+  openModal({
+    icon: 'fa-trash', iconClass: 'danger',
+    title: 'Delete Document',
+    message: `Permanently delete <strong>${escapeHTML(filename)}</strong>? This removes the file, all flashcards, and all reports. Cannot be undone.`,
+    confirmClass: '', confirmLabel: 'Delete Document',
+    banOptions: false,
+    action: { type: 'delete_document', docId, filename }
+  });
+}
+
+function confirmFlagDocument(docId, filename) {
+  openModal({
+    icon: 'fa-flag', iconClass: 'warning',
+    title: 'Flag Document',
+    message: `Flag <strong>${escapeHTML(filename)}</strong> for review. Provide a reason below.`,
+    confirmClass: 'warn', confirmLabel: 'Flag Document',
+    banOptions: true,
+    action: { type: 'flag_document', docId, filename }
+  });
+  // Repurpose ban reason field for flag reason
+  const reasonInput = document.getElementById('banReason');
+  if (reasonInput) {
+    reasonInput.placeholder = 'e.g. Inappropriate content, copyright issue…';
+    reasonInput.value = '';
+  }
+  // Hide duration field (not relevant for flagging)
+  const durationGroup = document.getElementById('banDuration')?.closest('.modal-input-group');
+  if (durationGroup) durationGroup.style.display = 'none';
+}
+
+async function viewDocumentReports(docId, filename) {
+  const panel     = document.getElementById('reportDetailPanel');
+  const container = document.getElementById('reportDetailContainer');
+  const title     = document.getElementById('reportDocTitle');
+
+  if (!panel || !container) return;
+
+  title.textContent = filename;
+  panel.style.display = 'block';
+  setLoading(container, 'Loading reports…');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    const res  = await fetch(`/${ADMIN_PATH}/api/content/${docId}/reports`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    if (!data.reports.length) {
+      setEmpty(container, 'fa-flag', 'No reports found for this document.');
+      return;
+    }
+
+    container.innerHTML = data.reports.map(r => {
+      const statusCls = r.status === 'pending'
+        ? 'badge-unverified' : r.status === 'dismissed'
+        ? 'badge-user' : 'badge-verified';
+
+      const actions = r.status === 'pending' ? `
+        <button class="action-btn action-btn-unban"
+                onclick="reviewReport(${r.id}, 'reviewed')">
+          <i class="fas fa-check"></i> Reviewed
+        </button>
+        <button class="action-btn action-btn-demote"
+                onclick="reviewReport(${r.id}, 'dismissed')">
+          <i class="fas fa-times"></i> Dismiss
+        </button>` : '';
+
+      return `
+        <div class="log-entry">
+          <div class="log-icon t-ban"><i class="fas fa-flag"></i></div>
+          <div class="log-body">
+            <div class="log-action">${escapeHTML(r.reason)}</div>
+            <div class="log-detail">Flagged by ${escapeHTML(r.admin_username)}
+              ${r.reviewer_username ? ` · Reviewed by ${escapeHTML(r.reviewer_username)}` : ''}
+            </div>
+          </div>
+          <div class="log-meta" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <div class="log-time">${formatDateTime(r.created_at)}</div>
+            <span class="badge ${statusCls}">${r.status}</span>
+            <div style="display:flex;gap:4px">${actions}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+  } catch (err) {
+    console.error('viewDocumentReports:', err);
+    setEmpty(container, 'fa-exclamation-circle', 'Failed to load reports.');
+  }
+}
+
+async function reviewReport(reportId, status) {
+  try {
+    const res  = await fetch(`/${ADMIN_PATH}/api/reports/${reportId}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showNotification(data.message, 'success');
+      loadContent(true);
+      closeReportDetail();
+    } else {
+      showNotification(data.message || 'Failed.', 'error');
+    }
+  } catch {
+    showNotification('Connection error.', 'error');
+  }
+}
+
+function closeReportDetail() {
+  const panel = document.getElementById('reportDetailPanel');
+  if (panel) panel.style.display = 'none';
 }

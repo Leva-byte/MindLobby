@@ -135,12 +135,48 @@ def init_db():
         )
     ''')
 
+    # Document reports table (admin-only flagging)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS document_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            document_id INTEGER NOT NULL,
+            admin_user_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at TEXT NOT NULL,
+            reviewed_by INTEGER,
+            reviewed_at TEXT,
+            FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE,
+            FOREIGN KEY (admin_user_id) REFERENCES users (id)
+        )
+    ''')
+
     # --- Migrations: add profile columns if missing ---
     existing_cols = [row[1] for row in cursor.execute('PRAGMA table_info(users)').fetchall()]
     if 'profile_picture' not in existing_cols:
         cursor.execute('ALTER TABLE users ADD COLUMN profile_picture TEXT')
     if 'banner' not in existing_cols:
         cursor.execute('ALTER TABLE users ADD COLUMN banner TEXT')
+
+    # --- Migration: create document_reports if missing ---
+    existing_tables = [row[0] for row in cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    ).fetchall()]
+    if 'document_reports' not in existing_tables:
+        cursor.execute('''
+            CREATE TABLE document_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id INTEGER NOT NULL,
+                admin_user_id INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL,
+                reviewed_by INTEGER,
+                reviewed_at TEXT,
+                FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE,
+                FOREIGN KEY (admin_user_id) REFERENCES users (id)
+            )
+        ''')
 
     conn.commit()
     conn.close()
@@ -258,6 +294,7 @@ def delete_user_account(user_id):
                 file_paths.append(user[field])
 
     # Cascade delete all user data
+    conn.execute('DELETE FROM document_reports WHERE admin_user_id = ?', (user_id,))
     conn.execute('DELETE FROM quiz_results WHERE user_id = ?', (user_id,))
     conn.execute('DELETE FROM flashcards WHERE user_id = ?', (user_id,))
     conn.execute('DELETE FROM document_topics WHERE document_id IN (SELECT id FROM documents WHERE user_id = ?)', (user_id,))
@@ -536,12 +573,148 @@ def delete_document_and_flashcards(document_id, user_id):
         conn.close()
         return None
     file_path = os.path.join('uploads', doc['filename'])
+    conn.execute('DELETE FROM document_reports WHERE document_id = ?', (document_id,))
     conn.execute('DELETE FROM quiz_results WHERE document_id = ?', (document_id,))
     conn.execute('DELETE FROM flashcards WHERE document_id = ?', (document_id,))
     conn.execute('DELETE FROM documents WHERE id = ?', (document_id,))
     conn.commit()
     conn.close()
     return file_path
+
+# ============================================================================
+# ADMIN CONTENT MODERATION FUNCTIONS
+# ============================================================================
+
+def get_all_documents_admin(search=None):
+    """Return all documents across all users for admin content moderation.
+    Joins with users for uploader name, counts flashcards and pending reports.
+    Sorts flagged documents first, then by upload date."""
+    conn = get_db_connection()
+    query = '''
+        SELECT
+            d.id, d.original_filename, d.filename, d.file_type, d.upload_date,
+            d.user_id,
+            u.username AS uploader_username,
+            COALESCE(fc.cnt, 0) AS flashcard_count,
+            COALESCE(rp.report_count, 0) AS report_count
+        FROM documents d
+        JOIN users u ON u.id = d.user_id
+        LEFT JOIN (
+            SELECT document_id, COUNT(*) AS cnt FROM flashcards GROUP BY document_id
+        ) fc ON fc.document_id = d.id
+        LEFT JOIN (
+            SELECT document_id, COUNT(*) AS report_count
+            FROM document_reports WHERE status = 'pending'
+            GROUP BY document_id
+        ) rp ON rp.document_id = d.id
+    '''
+    params = []
+    if search:
+        query += " WHERE (u.username LIKE ? OR d.original_filename LIKE ?)"
+        params = [f'%{search}%', f'%{search}%']
+    query += ' ORDER BY rp.report_count DESC, d.upload_date DESC'
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def admin_delete_document_by_id(document_id):
+    """Admin-only: delete any document regardless of owner.
+    Returns the physical file path (for os.remove) or None if not found."""
+    conn = get_db_connection()
+    doc = conn.execute('SELECT * FROM documents WHERE id = ?', (document_id,)).fetchone()
+    if not doc:
+        conn.close()
+        return None
+    file_path = os.path.join('uploads', doc['filename'])
+    conn.execute('DELETE FROM document_reports WHERE document_id = ?', (document_id,))
+    conn.execute('DELETE FROM quiz_results WHERE document_id = ?', (document_id,))
+    conn.execute('DELETE FROM flashcards WHERE document_id = ?', (document_id,))
+    conn.execute('DELETE FROM document_topics WHERE document_id = ?', (document_id,))
+    conn.execute('DELETE FROM documents WHERE id = ?', (document_id,))
+    conn.commit()
+    conn.close()
+    return file_path
+
+def create_document_report(document_id, admin_user_id, reason):
+    """Admin flags a document. Returns (True, report_id) or (False, error_msg)."""
+    conn = get_db_connection()
+    doc = conn.execute('SELECT id FROM documents WHERE id = ?', (document_id,)).fetchone()
+    if not doc:
+        conn.close()
+        return False, 'Document not found'
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO document_reports (document_id, admin_user_id, reason, status, created_at)
+        VALUES (?, ?, ?, 'pending', ?)
+    ''', (document_id, admin_user_id, reason.strip(), datetime.now().isoformat()))
+    conn.commit()
+    report_id = cursor.lastrowid
+    conn.close()
+    return True, report_id
+
+def get_reports_for_document(document_id):
+    """Return all reports for a specific document, newest first."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT r.id, r.reason, r.status, r.created_at, r.reviewed_at,
+               admin.username AS admin_username,
+               reviewer.username AS reviewer_username
+        FROM document_reports r
+        JOIN users admin ON admin.id = r.admin_user_id
+        LEFT JOIN users reviewer ON reviewer.id = r.reviewed_by
+        WHERE r.document_id = ?
+        ORDER BY r.created_at DESC
+    ''', (document_id,)).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def update_report_status(report_id, new_status, reviewed_by_admin_id):
+    """Set report status to 'reviewed' or 'dismissed'. Returns True if updated."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE document_reports
+        SET status = ?, reviewed_by = ?, reviewed_at = ?
+        WHERE id = ?
+    ''', (new_status, reviewed_by_admin_id, datetime.now().isoformat(), report_id))
+    updated = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return updated
+
+def get_platform_analytics():
+    """Return platform-wide aggregate statistics for the admin Analytics tab."""
+    conn = get_db_connection()
+    now = datetime.now()
+    week_ago = (now - timedelta(days=7)).isoformat()
+    month_ago = (now - timedelta(days=30)).isoformat()
+
+    total_users = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+    total_docs = conn.execute('SELECT COUNT(*) FROM documents').fetchone()[0]
+    total_flashcards = conn.execute('SELECT COUNT(*) FROM flashcards').fetchone()[0]
+    total_quizzes = conn.execute('SELECT COUNT(*) FROM quiz_results').fetchone()[0]
+    total_games = conn.execute('SELECT COUNT(*) FROM room_history').fetchone()[0]
+    new_users_week = conn.execute(
+        'SELECT COUNT(*) FROM users WHERE created_at >= ?', (week_ago,)
+    ).fetchone()[0]
+    new_users_month = conn.execute(
+        'SELECT COUNT(*) FROM users WHERE created_at >= ?', (month_ago,)
+    ).fetchone()[0]
+    pending_reports = conn.execute(
+        "SELECT COUNT(*) FROM document_reports WHERE status = 'pending'"
+    ).fetchone()[0]
+
+    conn.close()
+    return {
+        'total_users': total_users,
+        'total_documents': total_docs,
+        'total_flashcards': total_flashcards,
+        'total_quizzes': total_quizzes,
+        'total_games': total_games,
+        'new_users_week': new_users_week,
+        'new_users_month': new_users_month,
+        'pending_reports': pending_reports,
+    }
 
 # ============================================================================
 # QUIZ FUNCTIONS

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MindLobby | Room {{ room_code }}</title>
-    
+
     <!-- Stylesheets -->
     <link rel="stylesheet" href="/static/css/roomstyle.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
-    
+
     <!-- Socket.IO -->
     <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
 </head>
@@ -23,556 +23,216 @@
         <span id="connectionText">Connecting...</span>
     </div>
 
-    <!-- Room Header -->
-    <div class="room-header">
-        <div class="lobby-branding">
-            <i class="fas fa-brain brand-icon"></i>
-            <h1 class="brand-title">MindLobby</h1>
-        </div>
-        <div class="room-code" id="roomCodeDisplay">{{ room_code }}</div>
-        <div class="room-subtitle">Share this code to invite others to your mental arena</div>
-        <button class="copy-code-btn" onclick="copyRoomCode()" id="copyBtn">
-            <i class="fas fa-copy"></i>
-            Copy Lobby Code
-        </button>
-    </div>
-
-    <!-- Players Section -->
-    <div class="players-section">
-        <div class="players-title">
-            <i class="fas fa-users-cog"></i>
-            Connected Minds
-            <span class="players-count" id="playerCount">0</span>
-        </div>
-        
-        <ul id="playerList">
-            <li class="loading-players">
-                <div class="loading-spinner"></div>
-                Synchronizing neural connections...
-            </li>
-        </ul>
-        
-        <div class="status-indicator" id="statusIndicator">
-            <i class="fas fa-brain status-icon"></i>
-            <span class="waiting-animation">Establishing mental link...</span>
-        </div>
-    </div>
-
-    <!-- Game Controls -->
-    <div class="game-controls">
-        <!-- Primary Action (Host Only) -->
-        <div class="primary-action">
-            <button id="startBtn" class="btn btn-primary" style="display:none;" onclick="startGame()">
-                <i class="fas fa-play"></i>
-                <span>Begin Mental Challenge</span>
-                <div class="btn-subtitle">Start the mind games</div>
+    <!-- =====================================================================
+         LOBBY PHASE
+         ===================================================================== -->
+    <div id="lobbyPhase">
+        <!-- Room Header -->
+        <div class="room-header">
+            <div class="lobby-branding">
+                <i class="fas fa-brain brand-icon"></i>
+                <h1 class="brand-title">MindLobby</h1>
+            </div>
+            <div class="room-code" id="roomCodeDisplay">{{ room_code }}</div>
+            <div class="room-subtitle">Share this code to invite others to your mental arena</div>
+            <button class="copy-code-btn" onclick="Room.copyRoomCode()" id="copyBtn">
+                <i class="fas fa-copy"></i>
+                Copy Lobby Code
             </button>
         </div>
-        
-        <!-- Secondary Actions -->
-        <div class="secondary-actions">
-            <button class="btn btn-secondary" onclick="inviteFriends()" id="inviteBtn">
-                <i class="fas fa-user-plus"></i>
-                Invite Minds
-            </button>
-            
-            <button class="btn btn-danger" onclick="leaveRoom()" id="leaveBtn">
-                <i class="fas fa-door-open"></i>
-                Exit Lobby
-            </button>
+
+        <!-- Document Selection (Host Only) -->
+        <div class="document-select-section" id="documentSelectSection" style="display:none;">
+            <div class="players-title">
+                <i class="fas fa-book"></i>
+                Select Quiz Document
+            </div>
+            <div class="selected-doc-info" id="selectedDocInfo" style="display:none;">
+                <i class="fas fa-check-circle"></i>
+                <span id="selectedDocName">No document selected</span>
+                <span id="selectedDocCards"></span>
+            </div>
+            <div class="doc-list" id="hostDocList">
+                <div class="loading-players">
+                    <div class="loading-spinner"></div>
+                    Loading your documents...
+                </div>
+            </div>
+        </div>
+
+        <!-- Players Section -->
+        <div class="players-section">
+            <div class="players-title">
+                <i class="fas fa-users-cog"></i>
+                Connected Minds
+                <span class="players-count" id="playerCount">0</span>
+            </div>
+
+            <ul id="playerList">
+                <li class="loading-players">
+                    <div class="loading-spinner"></div>
+                    Synchronizing neural connections...
+                </li>
+            </ul>
+
+            <div class="status-indicator" id="statusIndicator">
+                <i class="fas fa-brain status-icon"></i>
+                <span class="waiting-animation">Establishing mental link...</span>
+            </div>
+        </div>
+
+        <!-- Game Controls -->
+        <div class="game-controls">
+            <div class="primary-action">
+                <button id="startBtn" class="btn btn-primary" style="display:none;" onclick="Room.startGame()">
+                    <i class="fas fa-play"></i>
+                    <span>Begin Mental Challenge</span>
+                    <div class="btn-subtitle">Start the mind games</div>
+                </button>
+            </div>
+
+            <div class="secondary-actions">
+                <button class="btn btn-secondary" onclick="Room.inviteFriends()" id="inviteBtn">
+                    <i class="fas fa-user-plus"></i>
+                    Invite Minds
+                </button>
+
+                <button class="btn btn-danger" onclick="Room.leaveRoom()" id="leaveBtn">
+                    <i class="fas fa-door-open"></i>
+                    Exit Lobby
+                </button>
+            </div>
+        </div>
+
+        <!-- Lobby Stats -->
+        <div class="lobby-stats" style="display: none;" id="lobbyStats">
+            <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <span>Lobby Duration</span>
+                <div id="lobbyDuration">00:00</div>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Peak Players</span>
+                <div id="peakPlayers">0</div>
+            </div>
         </div>
     </div>
 
-    <!-- Lobby Stats (Optional Enhancement) -->
-    <div class="lobby-stats" style="display: none;" id="lobbyStats">
-        <div class="stat-item">
-            <i class="fas fa-clock"></i>
-            <span>Lobby Duration</span>
-            <div id="lobbyDuration">00:00</div>
+    <!-- =====================================================================
+         GAME PHASE
+         ===================================================================== -->
+    <div id="gamePhase" style="display:none;">
+        <!-- Game Header -->
+        <div class="game-header">
+            <div class="game-header-left">
+                <i class="fas fa-brain brand-icon-sm"></i>
+                <span class="game-room-code">{{ room_code }}</span>
+            </div>
+            <div class="game-header-center">
+                <span class="game-question-counter" id="gameQuestionCounter">Question 1 of 10</span>
+            </div>
+            <div class="game-header-right">
+                <div class="game-score-display">
+                    <i class="fas fa-star"></i>
+                    <span id="gameMyScore">0</span>
+                </div>
+            </div>
         </div>
-        <div class="stat-item">
-            <i class="fas fa-chart-line"></i>
-            <span>Peak Players</span>
-            <div id="peakPlayers">0</div>
+
+        <!-- Timer Bar -->
+        <div class="timer-container">
+            <div class="timer-bar" id="timerBar"></div>
+        </div>
+        <div class="timer-text" id="timerText">15</div>
+
+        <!-- Question Card -->
+        <div class="question-card">
+            <p class="question-text" id="gameQuestionText">Loading question...</p>
+        </div>
+
+        <!-- Options Grid -->
+        <div class="options-grid" id="gameOptionsGrid">
+            <!-- Options injected by JS -->
+        </div>
+
+        <!-- Waiting Indicator (after answering) -->
+        <div class="waiting-for-others" id="waitingIndicator" style="display:none;">
+            <i class="fas fa-hourglass-half fa-spin"></i>
+            <span>Waiting for other players...</span>
         </div>
     </div>
 
+    <!-- =====================================================================
+         REVEAL PHASE
+         ===================================================================== -->
+    <div id="revealPhase" style="display:none;">
+        <div class="reveal-card">
+            <div class="reveal-header">
+                <div class="reveal-result-icon" id="revealResultIcon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 class="reveal-result-text" id="revealResultText">Correct!</h2>
+                <p class="reveal-score-gained" id="revealScoreGained">+500 points</p>
+            </div>
+
+            <div class="reveal-correct-answer">
+                <span class="reveal-label">Correct Answer:</span>
+                <span class="reveal-answer-text" id="revealCorrectAnswer">Answer text</span>
+            </div>
+
+            <!-- Per-player results for this question -->
+            <div class="reveal-scores">
+                <h3><i class="fas fa-users"></i> Round Results</h3>
+                <div class="reveal-scores-list" id="revealScoresList"></div>
+            </div>
+
+            <!-- Mini leaderboard -->
+            <div class="reveal-leaderboard">
+                <h3><i class="fas fa-trophy"></i> Leaderboard</h3>
+                <div class="reveal-leaderboard-list" id="revealLeaderboard"></div>
+            </div>
+
+            <p class="reveal-next-hint">Next question in a moment...</p>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         RESULTS PHASE
+         ===================================================================== -->
+    <div id="resultsPhase" style="display:none;">
+        <div class="results-container">
+            <div class="results-header">
+                <i class="fas fa-trophy results-trophy"></i>
+                <h1 class="results-title">Game Over!</h1>
+                <p class="results-subtitle" id="resultsSubtitle">10 questions completed</p>
+            </div>
+
+            <div class="results-leaderboard" id="resultsLeaderboard">
+                <!-- Built by JS -->
+            </div>
+
+            <div class="results-actions">
+                <button class="btn btn-primary results-btn" id="playAgainBtn" style="display:none;" onclick="Room.playAgain()">
+                    <i class="fas fa-redo"></i>
+                    <span>Play Again</span>
+                    <div class="btn-subtitle">Pick a new document</div>
+                </button>
+                <button class="btn btn-secondary results-btn" onclick="Room.backToLobby()">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Lobby
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pass Jinja variables to JS -->
     <script>
-        // Global variables
-        const socket = io();
-        const room = "{{ room_code }}";
-        let username = "{{ username }}";
-        let isHost = false;
-        let connectionStatus = 'connecting';
-        let lobbyStartTime = Date.now();
-        let peakPlayerCount = 0;
-        
-        // Initialize username if empty
-        if (!username || username.trim() === "") {
-            username = "Mind" + Math.floor(Math.random() * 10000);
-        }
-
-        // DOM elements
-        const elements = {
-            playerList: document.getElementById("playerList"),
-            playerCount: document.getElementById("playerCount"),
-            startBtn: document.getElementById("startBtn"),
-            statusIndicator: document.getElementById("statusIndicator"),
-            connectionStatus: document.getElementById("connectionStatus"),
-            connectionIcon: document.getElementById("connectionIcon"),
-            connectionText: document.getElementById("connectionText"),
-            copyBtn: document.getElementById("copyBtn"),
-            lobbyStats: document.getElementById("lobbyStats"),
-            lobbyDuration: document.getElementById("lobbyDuration"),
-            peakPlayers: document.getElementById("peakPlayers")
-        };
-
-        // Initialize when page loads
-        window.onload = () => {
-            updateStatus("Synchronizing with the collective...");
-            updateConnectionStatus('connecting');
-            socket.emit("join_room", { username: username, room: room });
-            startLobbyTimer();
-        };
-
-        // Socket Event Handlers
-        socket.on("connect", () => {
-            console.log("🧠 Neural network established");
-            updateConnectionStatus('connected');
-            if (socket.recovered) {
-                updateStatus("Reconnected to the mind network!");
-                socket.emit("join_room", { username: username, room: room });
-            }
-        });
-
-        socket.on("disconnect", (reason) => {
-            console.log("🔌 Neural link disconnected:", reason);
-            updateConnectionStatus('disconnected');
-            updateStatus("Mental connection lost. Attempting to reconnect...");
-        });
-
-        socket.on("connect_error", (error) => {
-            console.error("⚠️ Connection error:", error);
-            updateConnectionStatus('disconnected');
-            updateStatus("Failed to establish neural link. Check your connection.");
-        });
-
-        socket.on("room_joined", (data) => {
-            console.log("✅ Successfully joined the mind lobby:", data);
-            isHost = data.is_host;
-            updateStatus(isHost ? 
-                "🧠 You are the Mind Master! Prepare to challenge others." : 
-                "🔗 Neural link established. Awaiting Mind Master's command."
-            );
-            
-            // Show lobby stats for enhanced UX
-            elements.lobbyStats.style.display = 'flex';
-        });
-
-        socket.on("update_player_list", (players) => {
-            console.log("👥 Mind network updated:", players);
-            updatePlayerList(players);
-            updatePlayerCount(players.length);
-            
-            // Update peak player count
-            if (players.length > peakPlayerCount) {
-                peakPlayerCount = players.length;
-                elements.peakPlayers.textContent = peakPlayerCount;
-            }
-            
-            // Update host status
-            isHost = players.length > 0 && players[0] === username;
-            updateHostControls();
-            
-            // Update status message with mind-themed language
-            if (isHost) {
-                updateStatus(players.length > 1 ? 
-                    "🎮 Neural network ready! Begin the mental challenge when prepared." :
-                    "🔍 Scanning for other minds to join the challenge..."
-                );
-            } else {
-                updateStatus("🧠 Synced with the collective. Awaiting Mind Master's signal...");
-            }
-        });
-
-        socket.on("room_closed", (data) => {
-            const reason = data.reason === 'host_left' ? 
-                "The Mind Master has departed the neural network." : 
-                "The mental arena has been dissolved.";
-            
-            showNotification(reason, 'error', 'Neural Network Dissolved');
-            
-            // Redirect after showing notification
-            setTimeout(() => {
-                window.location.href = "/";
-            }, 3000);
-        });
-
-        socket.on("game_started", (data) => {
-            console.log("🎮 Mental challenge initiated:", data);
-            updateStatus("🧠 The mind games begin! Prepare for cognitive warfare...");
-            
-            // Enhanced game start feedback
-            elements.startBtn.disabled = true;
-            elements.startBtn.innerHTML = '<i class="fas fa-brain fa-pulse"></i><span>Initializing Challenge...</span>';
-            
-            // Add dramatic effect
-            document.body.style.background = "linear-gradient(135deg, #1a0033 0%, #330066 50%, #660099 100%)";
-            
-            showNotification("The mental challenge has begun! May the sharpest mind prevail!", 'success', 'Game Started');
-            
-            setTimeout(() => {
-                // Future: Redirect to actual game interface
-                console.log("🎯 Game interface should load here");
-            }, 2000);
-        });
-
-        socket.on("error", (data) => {
-            console.error("❌ Neural network error:", data);
-            showNotification(data.message || 'An unexpected error occurred', 'error', 'System Error');
-        });
-
-        // UI Update Functions
-        function updatePlayerList(players) {
-            elements.playerList.innerHTML = "";
-            
-            if (players.length === 0) {
-                elements.playerList.innerHTML = `
-                    <li class="loading-players">
-                        <div class="loading-spinner"></div>
-                        No minds detected in the network...
-                    </li>
-                `;
-                return;
-            }
-            
-            players.forEach((playerName, index) => {
-                const li = document.createElement("li");
-                li.className = "player-item fade-in";
-                
-                if (index === 0) {
-                    li.classList.add("host");
-                }
-                
-                const playerInitial = playerName.charAt(0).toUpperCase();
-                const isCurrentUser = playerName === username;
-                
-                // Generate a unique brain icon color based on player name
-                const brainColor = generatePlayerColor(playerName);
-                
-                li.innerHTML = `
-                    <div class="player-info">
-                        <div class="player-avatar" style="background: ${brainColor};">
-                            <i class="fas fa-brain"></i>
-                        </div>
-                        <div>
-                            <div class="player-name">${playerName}${isCurrentUser ? ' (You)' : ''}</div>
-                            <div class="player-status">${index === 0 ? 'Mind Master' : 'Neural Node'}</div>
-                        </div>
-                    </div>
-                    ${index === 0 ? '<div class="host-badge"><i class="fas fa-crown"></i> Mind Master</div>' : ''}
-                `;
-                
-                elements.playerList.appendChild(li);
-            });
-        }
-
-        function generatePlayerColor(playerName) {
-            // Generate consistent color based on player name
-            const colors = [
-                'linear-gradient(135deg, #7c77c6, #a8a4e3)',
-                'linear-gradient(135deg, #e74c3c, #f39c12)',
-                'linear-gradient(135deg, #3498db, #2ecc71)',
-                'linear-gradient(135deg, #9b59b6, #e91e63)',
-                'linear-gradient(135deg, #f39c12, #f1c40f)',
-                'linear-gradient(135deg, #1abc9c, #16a085)'
-            ];
-            
-            let hash = 0;
-            for (let i = 0; i < playerName.length; i++) {
-                hash = playerName.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            
-            return colors[Math.abs(hash) % colors.length];
-        }
-
-        function updatePlayerCount(count) {
-            elements.playerCount.textContent = count;
-            
-            // Add pulsing animation for new players
-            elements.playerCount.style.animation = 'pulse 0.5s ease';
-            setTimeout(() => {
-                elements.playerCount.style.animation = '';
-            }, 500);
-        }
-
-        function updateStatus(message, icon = "fas fa-brain") {
-            elements.statusIndicator.innerHTML = `
-                <i class="${icon} status-icon"></i>
-                <span class="waiting-animation">${message}</span>
-            `;
-        }
-
-        function updateConnectionStatus(status) {
-            connectionStatus = status;
-            const statusConfig = {
-                'connected': {
-                    class: 'connected',
-                    icon: 'fas fa-brain',
-                    text: 'Neural Link Active'
-                },
-                'connecting': {
-                    class: 'connecting',
-                    icon: 'fas fa-spinner fa-spin',
-                    text: 'Establishing Link...'
-                },
-                'disconnected': {
-                    class: 'disconnected',
-                    icon: 'fas fa-brain',
-                    text: 'Neural Link Lost'
-                }
-            };
-            
-            const config = statusConfig[status];
-            elements.connectionStatus.className = `connection-status ${config.class}`;
-            elements.connectionIcon.className = config.icon;
-            elements.connectionText.textContent = config.text;
-        }
-
-        function updateHostControls() {
-            elements.startBtn.style.display = isHost ? "flex" : "none";
-        }
-
-        function startLobbyTimer() {
-            setInterval(() => {
-                const elapsed = Date.now() - lobbyStartTime;
-                const minutes = Math.floor(elapsed / 60000);
-                const seconds = Math.floor((elapsed % 60000) / 1000);
-                elements.lobbyDuration.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }, 1000);
-        }
-
-        // Button Click Handlers
-        function copyRoomCode() {
-            const roomCode = room;
-            
-            navigator.clipboard.writeText(roomCode).then(() => {
-                const originalContent = elements.copyBtn.innerHTML;
-                elements.copyBtn.innerHTML = '<i class="fas fa-brain"></i> Neural Code Copied!';
-                elements.copyBtn.classList.add('copied');
-                
-                setTimeout(() => {
-                    elements.copyBtn.innerHTML = originalContent;
-                    elements.copyBtn.classList.remove('copied');
-                }, 2500);
-                
-            }).catch(() => {
-                const textArea = document.createElement('textarea');
-                textArea.value = roomCode;
-                textArea.style.position = 'fixed';
-                textArea.style.opacity = '0';
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                
-                showAlert(`Neural access code ${roomCode} copied to mental buffer!`);
-            });
-        }
-
-        function inviteFriends() {
-            const shareText = `Join my neural network in MindLobby! Access code: ${room}`;
-            const shareUrl = `${window.location.origin}/room/${room}`;
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: 'MindLobby Neural Network',
-                    text: shareText,
-                    url: shareUrl
-                }).catch(console.error);
-            } else {
-                navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).then(() => {
-                    showNotification("Neural network invitation transmitted to your clipboard!", 'success', 'Invitation Copied');
-                }).catch(() => {
-                    showNotification(`Share this neural access: ${shareText}`, 'info', 'Share Invitation');
-                });
-            }
-        }
-
-        function startGame() {
-            if (!isHost) {
-                showNotification("Only the Mind Master can initiate the neural challenge!", 'warning', 'Access Denied');
-                return;
-            }
-            
-            if (connectionStatus !== 'connected') {
-                showNotification("Cannot begin challenge while neural link is unstable!", 'error', 'Connection Error');
-                return;
-            }
-            
-            showConfirmDialog(
-                "🧠 Initiate the mental challenge now? Ensure all minds are connected and ready!",
-                () => {
-                    console.log("🎮 Initializing mental challenge protocols...");
-                    updateStatus("⚡ Charging neural networks...", "fas fa-bolt");
-                    elements.startBtn.disabled = true;
-                    elements.startBtn.innerHTML = '<i class="fas fa-brain fa-pulse"></i><span>Activating Challenge...</span>';
-                    
-                    socket.emit("start_game", { room: room });
-                }
-            );
-        }
-
-        function leaveRoom() {
-            const message = isHost ? 
-                "🧠 Are you certain? Departing will dissolve the neural network for all connected minds!" :
-                "🚪 Ready to disconnect from the neural collective?";
-                
-            showConfirmDialog(
-                message,
-                () => {
-                    updateStatus("Severing neural connections...", "fas fa-power-off");
-                    socket.emit("leave_room", { room: room });
-                    
-                    showNotification("Disconnecting from neural network...", 'info', 'Leaving Lobby');
-                    
-                    setTimeout(() => {
-                        window.location.href = "/";
-                    }, 1000);
-                }
-            );
-        }
-
-        // Utility Functions
-        function showNotification(message, type = 'info', title = '') {
-            // Remove any existing notifications
-            const existingNotifications = document.querySelectorAll('.notification-toast');
-            existingNotifications.forEach(notif => notif.remove());
-            
-            const notification = document.createElement('div');
-            notification.className = `notification-toast toast-${type}`;
-            
-            const icons = {
-                'warning': 'fas fa-exclamation-triangle',
-                'success': 'fas fa-check-circle',
-                'error': 'fas fa-times-circle',
-                'info': 'fas fa-info-circle'
-            };
-            
-            const titles = {
-                'warning': title || 'Warning',
-                'success': title || 'Success',
-                'error': title || 'Error',
-                'info': title || 'Information'
-            };
-            
-            notification.innerHTML = `
-                <i class="${icons[type]}"></i>
-                <div class="notification-content">
-                    <div class="notification-title">${titles[type]}</div>
-                    <div class="notification-message">${message}</div>
-                </div>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            // Trigger slide-in animation
-            setTimeout(() => notification.classList.add('show'), 100);
-            
-            // Auto-remove after 4 seconds
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => notification.remove(), 400);
-            }, 4000);
-        }
-
-        function showConfirmDialog(message, onConfirm, onCancel) {
-            const modal = document.createElement('div');
-            modal.className = 'custom-alert';
-            modal.innerHTML = `
-                <div class="alert-content">
-                    <i class="fas fa-brain"></i>
-                    <p>${message}</p>
-                    <div style="display: flex; gap: 15px; justify-content: center;">
-                        <button class="confirm-btn" style="background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 100%);">
-                            Confirm
-                        </button>
-                        <button class="cancel-btn" style="background: rgba(255, 255, 255, 0.1); color: white;">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            modal.querySelector('.confirm-btn').onclick = () => {
-                modal.remove();
-                if (onConfirm) onConfirm();
-            };
-            
-            modal.querySelector('.cancel-btn').onclick = () => {
-                modal.remove();
-                if (onCancel) onCancel();
-            };
-            
-            // Close on background click
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    modal.remove();
-                    if (onCancel) onCancel();
-                }
-            };
-        }
-
-        // Enhanced keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.target.matches('input, textarea')) {
-                e.preventDefault();
-                copyRoomCode();
-            }
-            
-            if (e.key === 'Enter' && isHost && elements.startBtn.style.display !== 'none') {
-                e.preventDefault();
-                startGame();
-            }
-            
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                leaveRoom();
-            }
-            
-            // Easter egg: Konami code for debug mode
-            // Up, Up, Down, Down, Left, Right, Left, Right, B, A
-            // (Just for fun - adds some personality to your thesis project!)
-        });
-
-        // Handle browser events
-        window.addEventListener('beforeunload', (e) => {
-            if (socket.connected) {
-                socket.emit("leave_room", { room: room });
-                socket.disconnect();
-            }
-        });
-
-        // Debug tools
-        window.mindLobbyDebug = {
-            socket: socket,
-            room: room,
-            username: username,
-            isHost: () => isHost,
-            connectionStatus: () => connectionStatus,
-            peakPlayers: peakPlayerCount,
-            lobbyDuration: () => Date.now() - lobbyStartTime,
-            forceReconnect: () => {
-                socket.disconnect();
-                socket.connect();
-            }
-        };
-
-        console.log('🧠 MindLobby Neural Network initialized successfully!');
-        console.log('🔧 Debug interface: window.mindLobbyDebug');
-        console.log('⌨️  Neural shortcuts: Ctrl+C (copy), Enter (start), Escape (exit)');
+        window.__ROOM_CODE = "{{ room_code }}";
+        window.__USERNAME  = "{{ username }}";
     </script>
+
+    <!-- External JavaScript -->
+    <script src="/static/js/Room.js"></script>
 </body>
 </html>
