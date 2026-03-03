@@ -17,6 +17,7 @@
     <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
 </head>
 <body>
+    <script>if(localStorage.getItem('ml_theme')==='light')document.body.classList.add('light-mode');</script>
     <!-- Connection Status Indicator -->
     <div id="connectionStatus" class="connection-status connecting">
         <i class="fas fa-wifi" id="connectionIcon"></i>
@@ -233,6 +234,8 @@
     </script>
 
     <!-- External JavaScript -->
+    <script src="/static/js/AudioManager.js"></script>
+    <script src="/static/js/Settings.js"></script>
     <script src="/static/js/Room.js"></script>
 </body>
 </html>

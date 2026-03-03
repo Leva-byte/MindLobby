@@ -1,0 +1,90 @@
+<!-- =====================================================================
+     GENERAL SETTINGS
+     ===================================================================== -->
+
+<!-- Section: Appearance -->
+<div class="profile-section">
+  <h3 class="profile-section-title">
+    <i class="fas fa-palette"></i> Appearance
+  </h3>
+
+  <div class="profile-settings-card">
+    <!-- Theme Toggle -->
+    <div class="profile-setting-row">
+      <div class="profile-setting-info">
+        <div class="profile-setting-label">Theme</div>
+        <div class="profile-setting-value" id="settingsThemeValue">Dark Mode</div>
+      </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="settingsThemeToggle">
+        <span class="settings-toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- Section: Audio -->
+<div class="profile-section">
+  <h3 class="profile-section-title">
+    <i class="fas fa-volume-up"></i> Audio
+  </h3>
+
+  <div class="profile-settings-card">
+    <!-- SFX Volume -->
+    <div class="profile-setting-row">
+      <div class="profile-setting-info">
+        <div class="profile-setting-label">Sound Effects</div>
+        <div class="profile-setting-value" id="settingsSfxValue">70%</div>
+      </div>
+      <input type="range" id="settingsSfxSlider" class="settings-slider"
+             min="0" max="100" value="70">
+    </div>
+
+    <!-- Music Volume -->
+    <div class="profile-setting-row">
+      <div class="profile-setting-info">
+        <div class="profile-setting-label">Background Music</div>
+        <div class="profile-setting-value" id="settingsMusicValue">50%</div>
+      </div>
+      <input type="range" id="settingsMusicSlider" class="settings-slider"
+             min="0" max="100" value="50">
+    </div>
+
+    <!-- Music Mute -->
+    <div class="profile-setting-row">
+      <div class="profile-setting-info">
+        <div class="profile-setting-label">Music Enabled</div>
+        <div class="profile-setting-value" id="settingsMusicMuteValue">Enabled</div>
+      </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="settingsMusicMuteToggle" checked>
+        <span class="settings-toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- Section: Gameplay -->
+<div class="profile-section">
+  <h3 class="profile-section-title">
+    <i class="fas fa-gamepad"></i> Gameplay
+  </h3>
+
+  <div class="profile-settings-card">
+    <!-- Default Lobby Type -->
+    <div class="profile-setting-row">
+      <div class="profile-setting-info">
+        <div class="profile-setting-label">Default Lobby Type</div>
+        <div class="profile-setting-value" id="settingsLobbyValue">Public</div>
+      </div>
+      <div class="settings-lobby-toggle">
+        <button class="settings-lobby-btn active" id="settingsLobbyPublic">
+          <i class="fas fa-globe"></i> Public
+        </button>
+        <button class="settings-lobby-btn" id="settingsLobbyPrivate">
+          <i class="fas fa-lock"></i> Private
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

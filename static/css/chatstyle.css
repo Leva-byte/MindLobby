@@ -362,6 +362,38 @@
   cursor: not-allowed;
 }
 
+/* ---- Light Mode ---- */
+body.light-mode .chat-panel {
+  background: rgba(245, 245, 250, 0.98);
+}
+
+body.light-mode .chat-header {
+  background: linear-gradient(135deg, rgba(108, 99, 192, 0.1) 0%, rgba(232, 230, 245, 0.4) 100%);
+}
+
+body.light-mode .chat-bubble-bot {
+  background: rgba(108, 99, 192, 0.08);
+  border-color: rgba(108, 99, 192, 0.15);
+}
+
+body.light-mode .chat-typing {
+  background: rgba(108, 99, 192, 0.06);
+  border-color: rgba(108, 99, 192, 0.1);
+}
+
+body.light-mode .chat-suggestion-chip {
+  background: rgba(108, 99, 192, 0.06);
+  border-color: rgba(108, 99, 192, 0.15);
+}
+
+body.light-mode .chat-suggestion-chip:hover {
+  background: rgba(108, 99, 192, 0.12);
+}
+
+body.light-mode .chat-input {
+  background: rgba(0, 0, 0, 0.04);
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 480px) {
   .chat-panel {

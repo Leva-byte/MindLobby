@@ -1064,7 +1064,6 @@ body {
   transform: translateY(-5px);
   border-color: var(--primary);
   box-shadow: 0 12px 30px rgba(124, 119, 198, 0.25);
-  background: rgba(26, 26, 62, 0.8);
 }
 .fc-loading-overlay {
   display: none;
@@ -2185,4 +2184,189 @@ body {
 .overtime-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(124, 119, 198, 0.4);
+}
+
+/* ============================================================================
+   LIGHT MODE OVERRIDES
+   body.light-mode overrides :root vars — all var(--xxx) references across
+   studiostyle, profilestyle, flashcardstyle, topicstyle, quizzestyle, and
+   chatstyle automatically pick up the light palette.
+   ============================================================================ */
+body.light-mode {
+  --primary: #6c63c0;
+  --primary-light: #8b85d0;
+  --bg-dark: #f5f5fa;
+  --bg-darker: #eaeaf2;
+  --bg-purple: #e0ddf0;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --border-color: rgba(108, 99, 192, 0.15);
+  --text-primary: #1a1a2e;
+  --text-secondary: rgba(26, 26, 46, 0.8);
+  --text-muted: rgba(26, 26, 46, 0.5);
+}
+
+body.light-mode .studio-header {
+  background: rgba(245, 245, 250, 0.95);
+}
+
+/* Banner — always on a dark background image, so text must stay white */
+body.light-mode .welcome-title,
+body.light-mode .welcome-text,
+body.light-mode .stat-value,
+body.light-mode .stat-label {
+  color: #ffffff;
+}
+
+body.light-mode .stat-icon {
+  color: #a8a4e3;
+}
+
+body.light-mode .stat-value {
+  color: #a8a4e3;
+}
+
+/* Quick-action icon containers — keep icons white on the purple gradient bg */
+body.light-mode .action-icon {
+  color: #ffffff;
+}
+
+body.light-mode .sidebar {
+  background: rgba(240, 240, 248, 0.95);
+}
+
+body.light-mode .nav-item:hover,
+body.light-mode .nav-item.active {
+  background: rgba(108, 99, 192, 0.1);
+}
+
+body.light-mode .sidebar-docs-section {
+  background: rgba(240, 240, 248, 0.95);
+}
+
+body.light-mode .notification {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1a2e;
+}
+
+body.light-mode .notification.error {
+  background: rgba(255, 240, 240, 0.95);
+}
+
+body.light-mode .modal-overlay .modal-content {
+  background: #f5f5fa;
+  color: #1a1a2e;
+}
+
+body.light-mode .modal-overlay .modal-content input,
+body.light-mode .modal-overlay .modal-content select {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(108, 99, 192, 0.2);
+  color: #1a1a2e;
+}
+
+/* Upload modal */
+body.light-mode .upload-modal {
+  background: linear-gradient(135deg, rgba(245, 245, 250, 0.98), rgba(232, 230, 245, 0.98));
+}
+
+body.light-mode .upload-modal-header {
+  background: rgba(240, 240, 248, 0.9);
+}
+
+body.light-mode .upload-modal-title {
+  background: linear-gradient(135deg, #6c63c0, #1a1a2e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+body.light-mode .upload-drop-zone {
+  background: rgba(108, 99, 192, 0.04);
+  border-color: rgba(108, 99, 192, 0.25);
+}
+
+body.light-mode .upload-drop-zone .upload-text,
+body.light-mode .upload-drop-zone .upload-hint {
+  color: rgba(26, 26, 46, 0.7);
+}
+
+body.light-mode .upload-file-item {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(108, 99, 192, 0.12);
+}
+
+body.light-mode .upload-file-name {
+  color: #1a1a2e;
+}
+
+body.light-mode .upload-file-size {
+  color: rgba(26, 26, 46, 0.6);
+}
+
+body.light-mode .upload-modal-footer {
+  background: rgba(240, 240, 248, 0.9);
+  border-color: rgba(108, 99, 192, 0.1);
+}
+
+body.light-mode .upload-modal-footer .btn-secondary {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1a1a2e;
+  border-color: rgba(108, 99, 192, 0.2);
+}
+
+/* Rename modal */
+body.light-mode .rename-modal {
+  background: #f5f5fa;
+}
+
+body.light-mode .rename-title {
+  color: #1a1a2e;
+}
+
+body.light-mode .rename-input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(108, 99, 192, 0.2);
+  color: #1a1a2e;
+}
+
+body.light-mode .rename-btn-cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(26, 26, 46, 0.7);
+  border-color: rgba(108, 99, 192, 0.2);
+}
+
+body.light-mode .rename-btn-cancel:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1a1a2e;
+}
+
+/* Confirm (delete) modal */
+body.light-mode .confirm-modal {
+  background: #f5f5fa;
+}
+
+body.light-mode .confirm-btn-cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(26, 26, 46, 0.7);
+  border-color: rgba(108, 99, 192, 0.2);
+}
+
+body.light-mode .confirm-btn-cancel:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1a1a2e;
+}
+
+/* Overtime modal */
+body.light-mode .overtime-modal {
+  background: #f5f5fa;
+}
+
+/* Loading overlay */
+body.light-mode .fc-loading-box {
+  background: linear-gradient(135deg, rgba(245, 245, 250, 0.98), rgba(232, 230, 245, 0.98));
+}
+
+body.light-mode ::selection {
+  background: rgba(108, 99, 192, 0.2);
+  color: #1a1a2e;
 }

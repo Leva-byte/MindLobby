@@ -1,0 +1,146 @@
+/* ============================================================================
+   MINDLOBBY SETTINGS — CUSTOM COMPONENTS
+   Toggle switches, range sliders, lobby type buttons.
+   Inherits --primary, --text-muted etc. from studiostyle.css :root.
+   ============================================================================ */
+
+/* ── Toggle Switch ────────────────────────────────────────────────────────── */
+.settings-toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.settings-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.settings-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 26px;
+  transition: background 0.3s ease;
+}
+
+.settings-toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.settings-toggle input:checked + .settings-toggle-slider {
+  background: var(--primary, #7c77c6);
+}
+
+.settings-toggle input:checked + .settings-toggle-slider::before {
+  transform: translateX(24px);
+}
+
+/* ── Range Slider ─────────────────────────────────────────────────────────── */
+.settings-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 160px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary, #7c77c6);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(124, 119, 198, 0.4);
+}
+
+.settings-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary, #7c77c6);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(124, 119, 198, 0.4);
+}
+
+/* ── Lobby Type Toggle ────────────────────────────────────────────────────── */
+.settings-lobby-toggle {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.settings-lobby-btn {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-lobby-btn:hover {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.8));
+}
+
+.settings-lobby-btn.active {
+  background: var(--primary, #7c77c6);
+  color: white;
+  box-shadow: 0 2px 8px rgba(124, 119, 198, 0.3);
+}
+
+/* ── Light Mode Overrides ─────────────────────────────────────────────────── */
+body.light-mode .settings-toggle-slider {
+  background: #ccc;
+}
+
+body.light-mode .settings-slider {
+  background: #d0d0d8;
+}
+
+body.light-mode .settings-lobby-toggle {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+body.light-mode .settings-lobby-btn {
+  color: #888;
+}
+
+body.light-mode .settings-lobby-btn:hover {
+  color: #555;
+}
+
+body.light-mode .settings-lobby-btn.active {
+  color: white;
+}

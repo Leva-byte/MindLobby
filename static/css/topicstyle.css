@@ -587,3 +587,35 @@
     font-size: 1.5em;
   }
 }
+
+/* ---- Light Mode ---- */
+body.light-mode .topic-modal,
+body.light-mode .add-doc-modal {
+  background: #f5f5fa;
+}
+
+body.light-mode .topic-name-input {
+  background: rgba(0, 0, 0, 0.04);
+  color: #1a1a2e;
+}
+
+body.light-mode .color-swatch.selected {
+  border-color: #1a1a2e;
+}
+
+body.light-mode .btn-topic-cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(26, 26, 46, 0.7);
+}
+
+body.light-mode .btn-topic-cancel:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .add-doc-item {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode .add-doc-item:hover {
+  background: rgba(108, 99, 192, 0.06);
+}

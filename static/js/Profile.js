@@ -245,7 +245,16 @@
   // ===========================================================================
   // PASSWORD RESET
   // ===========================================================================
+  let _resetPending = false;
+
   async function resetPassword() {
+    if (_resetPending) return;
+    _resetPending = true;
+
+    // Disable the button visually
+    const btn = document.querySelector('[onclick*="resetPassword"]');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+
     try {
       const res = await fetch('/api/profile/reset-password', {
         method: 'POST',
@@ -255,11 +264,20 @@
 
       if (data.success) {
         _toast(data.message);
+        // Keep button locked for 60s to prevent duplicate emails
+        setTimeout(() => {
+          _resetPending = false;
+          if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+        }, 60000);
       } else {
         _toast(data.message || 'Failed to send reset email', 'error');
+        _resetPending = false;
+        if (btn) { btn.disabled = false; btn.style.opacity = ''; }
       }
     } catch (err) {
       _toast('Failed to send reset email', 'error');
+      _resetPending = false;
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
     }
   }
 

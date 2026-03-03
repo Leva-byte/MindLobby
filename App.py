@@ -467,6 +467,11 @@ def about():
     """Render the about page"""
     return render_template('About.html')
 
+@app.route('/privacy')
+def privacy():
+    """Render the privacy page"""
+    return render_template('Privacy.html')
+
 @app.route('/studio')
 def studio():
     """Render the studio page - requires authentication"""
@@ -741,6 +746,56 @@ if GATEKEEPER_AVAILABLE:
             return jsonify({'success': True, 'banned_users': [dict(r) for r in rows]})
         except Exception as e:
             logger.error(f"Banned users list error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    # ── Password Reset Token Management ──────────────────────────────────
+    @app.route(f'/{ADMIN_URL_PATH}/api/users/<int:user_id>/reset-tokens', methods=['GET'])
+    @admin_required
+    def admin_get_reset_tokens(user_id):
+        """Return active (unused, unexpired) password reset tokens for a user."""
+        try:
+            from database import get_db_connection
+            conn = get_db_connection()
+            tokens = conn.execute('''
+                SELECT id, created_at, expires_at, used, request_ip, request_user_agent
+                FROM password_reset_tokens
+                WHERE user_id = ? AND used = 0 AND datetime(expires_at) > datetime('now')
+                ORDER BY created_at DESC
+            ''', (user_id,)).fetchall()
+            conn.close()
+            return jsonify({'success': True, 'tokens': [dict(t) for t in tokens]})
+        except Exception as e:
+            logger.error(f"Admin get reset tokens error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route(f'/{ADMIN_URL_PATH}/api/reset-tokens/<int:token_id>/revoke', methods=['POST'])
+    @admin_required
+    def admin_revoke_reset_token(token_id):
+        """Revoke (mark as used) a password reset token."""
+        try:
+            from database import get_db_connection
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                'UPDATE password_reset_tokens SET used = 1 WHERE id = ? AND used = 0',
+                (token_id,)
+            )
+            updated = cursor.rowcount > 0
+            conn.commit()
+            conn.close()
+
+            if not updated:
+                return jsonify({'success': False, 'message': 'Token not found or already used'}), 404
+
+            log_admin_action(
+                session.get('admin_user_id'),
+                'revoke_reset_token',
+                f'Revoked password reset token #{token_id}',
+                request
+            )
+            return jsonify({'success': True, 'message': 'Token revoked'})
+        except Exception as e:
+            logger.error(f"Admin revoke token error: {e}")
             return jsonify({'success': False, 'message': str(e)}), 500
 
     # ── User Management ────────────────────────────────────────────────────

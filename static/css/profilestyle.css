@@ -494,3 +494,28 @@
     padding: 0 16px;
   }
 }
+
+/* ---- Light Mode ---- */
+body.light-mode .profile-modal {
+  background: rgba(245, 245, 250, 0.98);
+  border-color: rgba(231, 76, 60, 0.25);
+}
+
+body.light-mode .profile-modal-input {
+  background: rgba(0, 0, 0, 0.04);
+  color: #1a1a2e;
+}
+
+body.light-mode .profile-modal-cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(26, 26, 46, 0.7);
+}
+
+body.light-mode .profile-modal-cancel:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .profile-toast {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1a2e;
+}

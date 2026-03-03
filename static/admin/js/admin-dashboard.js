@@ -90,6 +90,7 @@ function logIcon(action) {
     change_role:         ['t-role',   'fa-crown'],
     view_users:          ['t-view',   'fa-eye'],
     view_security_stats: ['t-view',   'fa-eye'],
+    revoke_reset_token:  ['t-ban',    'fa-key'],
     delete_document:     ['t-delete', 'fa-file-circle-xmark'],
     close_lobby:         ['t-ban',    'fa-door-closed'],
     flag_document:       ['t-role',   'fa-flag'],
@@ -164,6 +165,8 @@ function buildUsersTable(users) {
       ? `<button class="action-btn action-btn-delete" onclick="confirmDelete(${user.id},'${escapeHTML(user.username)}')"><i class="fas fa-trash"></i></button>`
       : `<span style="color:var(--text-muted);font-size:0.7em;padding:5px 6px;">Protected</span>`;
 
+    const tokensBtn = `<button class="action-btn action-btn-demote" onclick="viewResetTokens(${user.id},'${escapeHTML(user.username)}')" title="View reset tokens"><i class="fas fa-key"></i></button>`;
+
     return `
       <tr>
         <td><span class="id-badge">#${user.id}</span></td>
@@ -178,7 +181,7 @@ function buildUsersTable(users) {
         <td>${verifiedBadge}</td>
         <td>${formatDate(user.created_at)}</td>
         <td>${user.last_login ? formatDate(user.last_login) : '<span style="color:var(--text-muted)">Never</span>'}</td>
-        <td><div class="actions-cell">${banBtn}${unbanBtn}${roleBtn}${delBtn}</div></td>
+        <td><div class="actions-cell">${banBtn}${unbanBtn}${roleBtn}${tokensBtn}${delBtn}</div></td>
       </tr>`;
   }).join('');
 
@@ -942,4 +945,78 @@ async function reviewReport(reportId, status) {
 function closeReportDetail() {
   const panel = document.getElementById('reportDetailPanel');
   if (panel) panel.style.display = 'none';
+}
+
+// ── Password Reset Token Management ───────────────────────────────────────────
+let _tokenViewUserId = null;
+
+async function viewResetTokens(userId, username) {
+  _tokenViewUserId = userId;
+  const panel     = document.getElementById('tokenDetailPanel');
+  const container = document.getElementById('tokenDetailContainer');
+  const title     = document.getElementById('tokenUserTitle');
+
+  if (!panel || !container) return;
+
+  title.textContent = username;
+  panel.style.display = 'block';
+  setLoading(container, 'Loading reset tokens…');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    const res  = await fetch(`/${ADMIN_PATH}/api/users/${userId}/reset-tokens`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    if (!data.tokens.length) {
+      setEmpty(container, 'fa-key', 'No active reset tokens for this user.');
+      return;
+    }
+
+    container.innerHTML = data.tokens.map(t => `
+      <div class="log-entry">
+        <div class="log-icon t-role"><i class="fas fa-key"></i></div>
+        <div class="log-body">
+          <div class="log-action">Token #${t.id}</div>
+          <div class="log-detail">
+            IP: ${escapeHTML(t.request_ip ?? '—')} · Browser: ${escapeHTML((t.request_user_agent ?? '').substring(0, 60))}
+          </div>
+        </div>
+        <div class="log-meta" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div class="log-time">Created: ${formatDateTime(t.created_at)}</div>
+          <div class="log-time">Expires: ${formatDateTime(t.expires_at)}</div>
+          <button class="action-btn action-btn-ban" onclick="revokeResetToken(${t.id})">
+            <i class="fas fa-ban"></i> Revoke
+          </button>
+        </div>
+      </div>`).join('');
+
+  } catch (err) {
+    console.error('viewResetTokens:', err);
+    setEmpty(container, 'fa-exclamation-circle', 'Failed to load tokens.');
+  }
+}
+
+async function revokeResetToken(tokenId) {
+  try {
+    const res  = await fetch(`/${ADMIN_PATH}/api/reset-tokens/${tokenId}/revoke`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showNotification(data.message, 'success');
+      if (_tokenViewUserId) {
+        const username = document.getElementById('tokenUserTitle')?.textContent || '';
+        viewResetTokens(_tokenViewUserId, username);
+      }
+    } else {
+      showNotification(data.message || 'Failed.', 'error');
+    }
+  } catch {
+    showNotification('Connection error.', 'error');
+  }
+}
+
+function closeTokenDetail() {
+  const panel = document.getElementById('tokenDetailPanel');
+  if (panel) panel.style.display = 'none';
+  _tokenViewUserId = null;
 }

@@ -60,6 +60,9 @@
         updateConnectionStatus('connecting');
         socket.emit('join_room', { username: username, room: room });
         startLobbyTimer();
+
+        // Start lobby waiting room music
+        if (window.AudioManager) AudioManager.startMusic('lobby');
     };
 
     // =========================================================================
@@ -176,6 +179,7 @@
         myTotalScore = 0;
         showPhase('game');
         document.getElementById('gameMyScore').textContent = '0';
+        if (window.AudioManager) AudioManager.startMusic('game');
         showNotification('The mental challenge begins!', 'success', 'Game On');
     });
 
@@ -194,6 +198,7 @@
     });
 
     socket.on('game_results', function (data) {
+        if (window.AudioManager) AudioManager.stopMusic();
         renderResults(data);
         showPhase('results');
     });
@@ -204,6 +209,7 @@
         var info = document.getElementById('selectedDocInfo');
         if (info) info.style.display = 'none';
         showPhase('lobby');
+        if (window.AudioManager) AudioManager.startMusic('lobby');
         if (isHost) {
             loadHostDocuments();
             el.startBtn.disabled = true;
@@ -353,6 +359,7 @@
         var myScore   = myResult ? myResult.score : 0;
 
         if (isCorrect) myTotalScore += myScore;
+        if (window.AudioManager) { isCorrect ? AudioManager.playCorrect() : AudioManager.playWrong(); }
         document.getElementById('gameMyScore').textContent = myTotalScore;
 
         var iconEl  = document.getElementById('revealResultIcon');

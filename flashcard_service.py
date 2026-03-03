@@ -80,6 +80,8 @@ Rules:
 - Use headings and sections to identify the most important topics.
 - Answers should be 1-3 sentences maximum.
 - Generate more flashcards for longer or denser content, fewer for shorter content.
+- IMPORTANT: The question must NOT contain or repeat the key words from the answer. These flashcards will be used in multiple-choice quizzes, so if the question includes the answer text, it becomes a giveaway. For example, do NOT write: Q: "What is visual art?" A: "Visual art is a form of..." — instead write: Q: "Which field of art primarily involves creating works that are visual in nature?" A: "Visual art"
+- Prefer questions that test understanding (e.g. "Which of the following describes...", "What term refers to...") rather than simple definition recall with the term already in the question.
 - Return ONLY valid JSON - no explanation, no markdown code fences, no extra text.
 
 Format:

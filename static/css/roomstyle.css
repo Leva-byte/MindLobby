@@ -1708,3 +1708,273 @@ html {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ============================================================================
+   LIGHT MODE OVERRIDES
+   Applied when Settings.js adds body.light-mode class.
+   ============================================================================ */
+body.light-mode {
+    background: linear-gradient(135deg, #f5f5fa 0%, #eaeaf2 30%, #e0ddf0 70%, #eaeaf2 100%);
+    color: #1a1a2e;
+}
+
+body.light-mode::before {
+    background:
+        radial-gradient(circle at 20% 80%, rgba(108, 99, 192, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0, 0, 0, 0.02) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(108, 99, 192, 0.04) 0%, transparent 50%);
+}
+
+/* Room header */
+body.light-mode .room-header {
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(108, 99, 192, 0.15);
+    border-color: rgba(108, 99, 192, 0.12);
+}
+
+body.light-mode .room-header::before {
+    background: linear-gradient(135deg, rgba(108, 99, 192, 0.08) 0%, transparent 50%);
+}
+
+body.light-mode .room-title {
+    color: #1a1a2e;
+}
+
+body.light-mode .room-subtitle,
+body.light-mode .room-code {
+    color: rgba(26, 26, 46, 0.7);
+}
+
+body.light-mode .room-code span {
+    color: #6c63c0;
+}
+
+/* Players section */
+body.light-mode .players-section {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(108, 99, 192, 0.12);
+}
+
+body.light-mode .players-title {
+    color: #1a1a2e;
+}
+
+body.light-mode .player-item {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(108, 99, 192, 0.1);
+}
+
+body.light-mode .player-name {
+    color: #1a1a2e;
+}
+
+body.light-mode .player-status {
+    color: rgba(26, 26, 46, 0.6);
+}
+
+/* Lobby stats */
+body.light-mode .lobby-stats {
+    background: rgba(255, 255, 255, 0.6);
+    border-color: rgba(108, 99, 192, 0.1);
+}
+
+body.light-mode .stat-value {
+    color: #1a1a2e;
+}
+
+body.light-mode .stat-label {
+    color: rgba(26, 26, 46, 0.6);
+}
+
+/* Document select section */
+body.light-mode .document-select-section {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(108, 99, 192, 0.12);
+}
+
+body.light-mode .document-select-title {
+    color: #1a1a2e;
+}
+
+body.light-mode .document-select-item {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(108, 99, 192, 0.1);
+    color: #1a1a2e;
+}
+
+body.light-mode .document-select-item:hover {
+    background: rgba(108, 99, 192, 0.08);
+    border-color: rgba(108, 99, 192, 0.25);
+}
+
+body.light-mode .document-select-item.selected {
+    background: rgba(108, 99, 192, 0.1);
+    border-color: #7c77c6;
+}
+
+/* Game header */
+body.light-mode .game-header {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(108, 99, 192, 0.12);
+}
+
+body.light-mode .game-header .game-label {
+    color: rgba(26, 26, 46, 0.6);
+}
+
+body.light-mode .game-header .game-value {
+    color: #1a1a2e;
+}
+
+/* Question card */
+body.light-mode .question-card {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(108, 99, 192, 0.12);
+}
+
+body.light-mode .question-text {
+    color: #1a1a2e;
+}
+
+/* Option buttons */
+body.light-mode .option-btn {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(108, 99, 192, 0.15);
+    color: #1a1a2e;
+}
+
+body.light-mode .option-btn:hover {
+    background: rgba(108, 99, 192, 0.08);
+    border-color: rgba(108, 99, 192, 0.3);
+}
+
+body.light-mode .option-btn.selected {
+    background: rgba(108, 99, 192, 0.12);
+    border-color: #7c77c6;
+}
+
+/* Timer */
+body.light-mode .timer-bar-fill {
+    background: linear-gradient(90deg, #6c63c0, #a8a4e3);
+}
+
+/* Reveal card */
+body.light-mode .reveal-card {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(108, 99, 192, 0.12);
+}
+
+/* Results / Leaderboard */
+body.light-mode .results-container {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(108, 99, 192, 0.12);
+}
+
+body.light-mode .results-title {
+    color: #1a1a2e;
+}
+
+body.light-mode .leaderboard-item {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(108, 99, 192, 0.1);
+}
+
+body.light-mode .leaderboard-name {
+    color: #1a1a2e;
+}
+
+body.light-mode .leaderboard-score {
+    color: #6c63c0;
+}
+
+/* Buttons — keep primary gradient but adjust secondary/outline buttons */
+body.light-mode .btn-secondary {
+    background: rgba(0, 0, 0, 0.05);
+    color: #1a1a2e;
+    border-color: rgba(108, 99, 192, 0.2);
+}
+
+body.light-mode .btn-secondary:hover {
+    background: rgba(108, 99, 192, 0.1);
+}
+
+/* Notification */
+body.light-mode .notification {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1a1a2e;
+}
+
+body.light-mode .notification.error {
+    background: rgba(255, 240, 240, 0.95);
+}
+
+/* Scrollbar */
+body.light-mode ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode ::-webkit-scrollbar-thumb {
+    background: rgba(108, 99, 192, 0.2);
+}
+
+body.light-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(108, 99, 192, 0.35);
+}
+
+/* Confirmation dialog */
+body.light-mode .alert-content {
+    background: linear-gradient(135deg, #f5f5fa 0%, #eaeaf2 100%);
+    border-color: rgba(108, 99, 192, 0.2);
+}
+
+body.light-mode .alert-content p {
+    color: rgba(26, 26, 46, 0.85);
+}
+
+body.light-mode .alert-content .cancel-btn {
+    background: rgba(0, 0, 0, 0.06) !important;
+    color: #1a1a2e !important;
+    border: 1px solid rgba(108, 99, 192, 0.2);
+}
+
+/* Notification toast */
+body.light-mode .notification-toast {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1a1a2e;
+    border-color: rgba(108, 99, 192, 0.15);
+}
+
+body.light-mode .notification-toast .notification-message {
+    color: rgba(26, 26, 46, 0.75);
+}
+
+/* Document item names */
+body.light-mode .doc-item {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(108, 99, 192, 0.12);
+}
+
+body.light-mode .doc-item:hover {
+    background: rgba(108, 99, 192, 0.08);
+}
+
+body.light-mode .doc-item.active {
+    background: rgba(108, 99, 192, 0.1);
+}
+
+body.light-mode .doc-item-name {
+    color: #1a1a2e;
+}
+
+body.light-mode .doc-item-meta {
+    color: rgba(26, 26, 46, 0.5);
+}
+
+body.light-mode .document-select-title {
+    color: #1a1a2e;
+}
+
+body.light-mode ::selection {
+    background: rgba(108, 99, 192, 0.2);
+    color: #1a1a2e;
+}

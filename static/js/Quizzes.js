@@ -144,6 +144,9 @@
 
       _showView('quiz');
       _renderQuestion();
+
+      // Start quiz background music
+      if (window.AudioManager) AudioManager.startMusic('quiz');
     } catch (err) {
       console.error('Error starting quiz:', err);
       if (typeof showNotification === 'function') {
@@ -167,7 +170,7 @@
     var liveScore = document.getElementById('qzLiveScore');
     var liveTotal = document.getElementById('qzLiveTotal');
     if (liveScore) liveScore.textContent = _score;
-    if (liveTotal) liveTotal.textContent = _currentIndex;
+    if (liveTotal) liveTotal.textContent = _questions.length;
 
     // Question text
     var textEl = document.getElementById('qzQuestionText');
@@ -200,6 +203,9 @@
     var q = _questions[_currentIndex];
     var correct = q.correct_index;
     var isCorrect = selectedIndex === correct;
+
+    // Play answer sound effect
+    if (window.AudioManager) { isCorrect ? AudioManager.playCorrect() : AudioManager.playWrong(); }
 
     if (isCorrect) {
       _score++;
@@ -257,6 +263,9 @@
   // ===========================================================================
 
   async function _showResults() {
+    // Stop quiz background music
+    if (window.AudioManager) AudioManager.stopMusic();
+
     // Submit to server
     try {
       await fetch('/api/quiz/submit', {

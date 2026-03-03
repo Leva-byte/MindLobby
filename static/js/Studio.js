@@ -127,6 +127,9 @@ function showView(viewName) {
     case 'profile':
       if (window.Profile) Profile.loadProfile();
       break;
+    case 'settings':
+      if (window.Settings) Settings.loadSettings();
+      break;
     case 'upload':
       // Show overview panel and open upload modal
       const overview = document.getElementById('panel-overview');

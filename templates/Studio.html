@@ -15,8 +15,10 @@
   <link rel="stylesheet" href="/static/css/chatstyle.css">
   <link rel="stylesheet" href="/static/css/profilestyle.css">
   <link rel="stylesheet" href="/static/css/quizzestyle.css">
+  <link rel="stylesheet" href="/static/css/settingsstyle.css">
 </head>
 <body>
+  <script>if(localStorage.getItem('ml_theme')==='light')document.body.classList.add('light-mode');</script>
 
   <!-- Header -->
   <header class="studio-header">
@@ -246,6 +248,11 @@
       {% include 'partials/Profile.html' %}
     </div>
 
+    <!-- SETTINGS PANEL -->
+    <div class="view-panel" id="panel-settings" style="display:none;">
+      {% include 'partials/Settings.html' %}
+    </div>
+
   </main>
 
   <!-- =====================================================================
@@ -450,6 +457,8 @@
   <script src="/static/js/Chatbot.js"></script>
   <script src="/static/js/Quizzes.js"></script>
   <script src="/static/js/Profile.js"></script>
+  <script src="/static/js/AudioManager.js"></script>
+  <script src="/static/js/Settings.js"></script>
 
   {% include 'partials/Chatbot.html' %}
 
