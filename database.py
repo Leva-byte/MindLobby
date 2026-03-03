@@ -158,10 +158,20 @@ def init_db():
     if 'banner' not in existing_cols:
         cursor.execute('ALTER TABLE users ADD COLUMN banner TEXT')
 
-    # --- Migration: create document_reports if missing ---
+    # --- Migration: create user_settings if missing ---
     existing_tables = [row[0] for row in cursor.execute(
         "SELECT name FROM sqlite_master WHERE type='table'"
     ).fetchall()]
+    if 'user_settings' not in existing_tables:
+        cursor.execute('''
+            CREATE TABLE user_settings (
+                user_id INTEGER PRIMARY KEY,
+                settings_json TEXT DEFAULT '{}',
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        ''')
+
+    # --- Migration: create document_reports if missing ---
     if 'document_reports' not in existing_tables:
         cursor.execute('''
             CREATE TABLE document_reports (
@@ -303,6 +313,10 @@ def delete_user_account(user_id):
     conn.execute('DELETE FROM otp_codes WHERE user_id = ?', (user_id,))
     conn.execute('DELETE FROM password_reset_tokens WHERE user_id = ?', (user_id,))
     try:
+        conn.execute('DELETE FROM user_settings WHERE user_id = ?', (user_id,))
+    except Exception:
+        pass
+    try:
         conn.execute('DELETE FROM room_history WHERE host_id = ?', (user_id,))
     except Exception:
         pass
@@ -311,6 +325,45 @@ def delete_user_account(user_id):
     conn.commit()
     conn.close()
     return file_paths
+
+# ============================================================================
+# USER SETTINGS FUNCTIONS
+# ============================================================================
+
+import json
+
+_SETTINGS_DEFAULTS = {
+    'theme': 'dark',
+    'sfxVolume': 0.7,
+    'musicVolume': 0.5,
+    'musicMuted': False,
+    'defaultLobbyType': 'public'
+}
+
+def get_user_settings(user_id):
+    """Return user settings dict, filling in defaults for missing keys."""
+    conn = get_db_connection()
+    row = conn.execute('SELECT settings_json FROM user_settings WHERE user_id = ?', (user_id,)).fetchone()
+    conn.close()
+    saved = {}
+    if row and row['settings_json']:
+        try:
+            saved = json.loads(row['settings_json'])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    result = dict(_SETTINGS_DEFAULTS)
+    result.update(saved)
+    return result
+
+def save_user_settings(user_id, settings_dict):
+    """Upsert user settings as JSON."""
+    conn = get_db_connection()
+    conn.execute(
+        'INSERT OR REPLACE INTO user_settings (user_id, settings_json) VALUES (?, ?)',
+        (user_id, json.dumps(settings_dict))
+    )
+    conn.commit()
+    conn.close()
 
 # ============================================================================
 # OTP FUNCTIONS

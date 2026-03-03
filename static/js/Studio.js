@@ -157,6 +157,11 @@ async function handleLogout(e) {
     const data = await response.json();
     
     if (data.success) {
+      // Clear user preferences so they don't bleed to other users/guests.
+      // Don't remove the light-mode class — avoids a visual flash before redirect.
+      ['ml_theme','ml_sfxVolume','ml_musicVolume','ml_musicMuted','ml_defaultLobbyType']
+        .forEach(function(k) { localStorage.removeItem(k); });
+
       showNotification('Logging out...', 'success');
       setTimeout(() => {
         window.location.href = '/';
@@ -699,6 +704,10 @@ document.addEventListener('DOMContentLoaded', () => {
   fetch('/check-auth')
     .then(res => res.json())
     .then(data => {
+      // Restore server-saved settings into localStorage
+      if (data.settings && window.Settings) {
+        Settings.loadFromServer(data.settings);
+      }
       if (data.show_welcome) {
         setTimeout(() => {
           showNotification('Welcome to your Studio! 🎉', 'success');

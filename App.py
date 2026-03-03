@@ -32,6 +32,8 @@ from database import (
     get_reports_for_document,
     update_report_status,
     get_platform_analytics,
+    get_user_settings,
+    save_user_settings,
 )
 from validators import validate_password_strength, validate_email_format, validate_username
 from email_service import send_otp_email, send_welcome_email, send_password_reset_email
@@ -282,14 +284,39 @@ def check_auth():
     """Check if user is authenticated"""
     if 'user_email' in session:
         show_welcome = session.pop('show_welcome', False)
+        settings = get_user_settings(session['user_id'])
         return jsonify({
             'authenticated': True,
             'username': session.get('username'),
             'email': session.get('user_email'),
             'role': session.get('role', 'user'),
-            'show_welcome': show_welcome
+            'show_welcome': show_welcome,
+            'settings': settings
         })
     return jsonify({'authenticated': False})
+
+# ============================================================================
+# USER SETTINGS ROUTES
+# ============================================================================
+
+@app.route('/api/settings', methods=['GET'])
+def api_get_settings():
+    """Return the authenticated user's settings."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+    settings = get_user_settings(session['user_id'])
+    return jsonify({'success': True, 'settings': settings})
+
+@app.route('/api/settings', methods=['PUT'])
+def api_save_settings():
+    """Save the authenticated user's settings."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+    data = request.get_json()
+    if not data or 'settings' not in data:
+        return jsonify({'success': False, 'message': 'Missing settings'}), 400
+    save_user_settings(session['user_id'], data['settings'])
+    return jsonify({'success': True})
 
 # ============================================================================
 # OTP VERIFICATION ROUTES
