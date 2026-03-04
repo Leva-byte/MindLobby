@@ -224,3 +224,72 @@ def send_password_reset_email(to_email, username, reset_link, request_ip=None, r
     """
     
     return send_email(to_email, subject, html_content)
+
+def send_contact_email(first_name, last_name, email, subject_type, message):
+    """Send contact form submission to support inbox"""
+    subject_labels = {
+        'general': 'General Inquiry',
+        'bug': 'Bug Report',
+        'feature': 'Feature Request',
+        'account': 'Account Issue',
+        'feedback': 'Feedback',
+        'other': 'Other',
+    }
+    subject_label = subject_labels.get(subject_type, subject_type.title())
+    subject = f"[MindLobby Contact] {subject_label} from {first_name} {last_name}"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; background: #0f0f23; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: #1a1a3e; border-radius: 20px;
+                         padding: 40px; border: 1px solid #7c77c6; }}
+            h1 {{ color: #7c77c6; }}
+            .meta {{ background: rgba(0,0,0,0.2); border-left: 4px solid #7c77c6;
+                    padding: 15px; border-radius: 8px; margin: 20px 0; }}
+            .meta p {{ color: rgba(255,255,255,0.85); font-size: 14px; margin: 4px 0; }}
+            .message-box {{ background: rgba(0,0,0,0.3); border: 1px solid rgba(124,119,198,0.3);
+                           border-radius: 12px; padding: 20px; margin-top: 20px; }}
+            .message-box p {{ color: rgba(255,255,255,0.8); line-height: 1.7; white-space: pre-wrap; }}
+            .footer {{ text-align: center; margin-top: 40px; color: rgba(255,255,255,0.5); font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>New Contact Form Submission</h1>
+            <div class="meta">
+                <p><strong>Name:</strong> {first_name} {last_name}</p>
+                <p><strong>Email:</strong> {email}</p>
+                <p><strong>Subject:</strong> {subject_label}</p>
+                <p><strong>Time:</strong> {datetime.utcnow().strftime("%B %d, %Y at %I:%M %p UTC")}</p>
+            </div>
+            <div class="message-box">
+                <p>{message}</p>
+            </div>
+            <div class="footer">
+                <p>© 2025 MindLobby — Reply directly to this email to respond to the sender.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    # Send to your support inbox; Reply-To goes to the user
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"MindLobby Contact <{SENDER_EMAIL}>"
+        msg['To'] = SENDER_EMAIL
+        msg['Reply-To'] = f"{first_name} {last_name} <{email}>"
+        msg.attach(MIMEText(html_content, 'html'))
+
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.send_message(msg)
+
+        return True, "Message sent successfully"
+    except Exception as e:
+        return False, f"Failed to send message: {str(e)}"

@@ -323,3 +323,25 @@
     padding: 12px 14px;
   }
 }
+
+/* ---- Exit Confirmation Modal ---- */
+#qzExitModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+}
+
+.qz-exit-modal-box {
+  background: #1a1a2e;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 36px 32px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}

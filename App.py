@@ -79,6 +79,7 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-ch
 socketio = SocketIO(
     app,
     cors_allowed_origins="*",
+    async_mode='threading',
     logger=True,
     engineio_logger=True,
     ping_timeout=60,
@@ -494,10 +495,50 @@ def about():
     """Render the about page"""
     return render_template('About.html')
 
+# ============================================
+# @app.route('/features')
+# def features():
+#    """Render the features page"""
+#    return render_template('Features.html') 
+# ============================================
+
 @app.route('/privacy')
 def privacy():
     """Render the privacy page"""
     return render_template('Privacy.html')
+
+# ============================================
+# @app.route('/terms')
+# def terms():
+#    """Render the terms and agreement page"""
+#    return render_template('Terms.html') 
+# ============================================
+
+@app.route('/contact')
+def contact():
+    """Render the contact page"""
+    return render_template('Contacts.html')
+
+@app.route('/api/contact', methods=['POST'])
+def contact_submit():
+    """Handle contact form submission"""
+    from email_service import send_contact_email
+
+    data = request.get_json()
+    first_name  = (data.get('first_name') or '').strip()
+    last_name   = (data.get('last_name') or '').strip()
+    email       = (data.get('email') or '').strip()
+    subject     = (data.get('subject') or '').strip()
+    message     = (data.get('message') or '').strip()
+
+    if not all([first_name, last_name, email, subject, message]):
+        return jsonify({'success': False, 'message': 'All fields are required.'}), 400
+
+    success, msg = send_contact_email(first_name, last_name, email, subject, message)
+    if success:
+        return jsonify({'success': True, 'message': 'Message sent successfully.'})
+    else:
+        return jsonify({'success': False, 'message': 'Failed to send message. Please try again.'}), 500
 
 @app.route('/studio')
 def studio():

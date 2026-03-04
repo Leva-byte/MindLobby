@@ -340,6 +340,19 @@
   }
 
   function exitQuiz() {
+    var modal = document.getElementById('qzExitModal');
+    if (modal) { modal.style.display = 'flex'; }
+  }
+
+  function cancelExit() {
+    var modal = document.getElementById('qzExitModal');
+    if (modal) { modal.style.display = 'none'; }
+  }
+
+  function confirmExit() {
+    var modal = document.getElementById('qzExitModal');
+    if (modal) { modal.style.display = 'none'; }
+    if (window.AudioManager) AudioManager.stopMusic();
     showBrowse();
   }
 
@@ -413,5 +426,7 @@
     nextQuestion: nextQuestion,
     retakeQuiz: retakeQuiz,
     exitQuiz: exitQuiz,
+    cancelExit: cancelExit,
+    confirmExit: confirmExit,
   };
 })();
