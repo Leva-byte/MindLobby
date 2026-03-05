@@ -68,6 +68,13 @@ body {
   animation: bootPulse 1.5s ease-in-out infinite;
 }
 
+.boot-logo-img {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  animation: bootPulse 1.5s ease-in-out infinite;
+}
+
 @keyframes bootPulse {
   0%, 100% { opacity: 0.4; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.05); }
@@ -110,7 +117,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Bruno Ace', sans-serif;
   font-size: 1.5em;
   font-weight: 700;
   background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 100%);
@@ -119,9 +126,10 @@ body {
   background-clip: text;
 }
 
-.nav-brand i {
-  font-size: 1.2em;
-  color: #7c77c6;
+.brand-favicon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .nav-actions {
@@ -717,7 +725,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Bruno Ace', sans-serif;
   font-size: 1.5em;
   font-weight: 700;
   background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 100%);

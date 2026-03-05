@@ -43,7 +43,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Bruno Ace', sans-serif;
   font-size: 1.5em;
   font-weight: 700;
   background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 100%);
@@ -56,6 +56,15 @@ body {
 
 .nav-brand:hover { transform: scale(1.05); }
 .nav-brand i { color: #7c77c6; }
+
+.brand-favicon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  filter: drop-shadow(0 0 6px rgba(124, 119, 198, 0));
+  transition: filter 0.3s ease;
+}
 
 .nav-actions {
   display: flex;
@@ -110,6 +119,7 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(124, 119, 198, 0.4);
 }
+
 /* Hero Section */
 .about-hero {
   padding: 140px 40px 80px;
@@ -132,6 +142,26 @@ body {
   position: relative;
   z-index: 1;
 }
+
+/* ---- Hero Badge ---- */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 18px;
+  border-radius: 100px;
+  background: rgba(124, 119, 198, 0.12);
+  border: 1px solid rgba(124, 119, 198, 0.3);
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a8a4e3;
+  margin-bottom: 24px;
+  animation: fadeInUp 0.8s ease;
+}
+
+.hero-badge i { font-size: 0.9em; color: #7c77c6; }
 
 .page-title {
   font-size: 4em;
@@ -514,7 +544,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Bruno Ace', sans-serif;
   font-size: 1.5em;
   font-weight: 700;
   background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 100%);

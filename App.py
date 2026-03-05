@@ -495,12 +495,10 @@ def about():
     """Render the about page"""
     return render_template('About.html')
 
-# ============================================
-# @app.route('/features')
-# def features():
-#    """Render the features page"""
-#    return render_template('Features.html') 
-# ============================================
+@app.route('/features')
+def features():
+   """Render the features page"""
+   return render_template('Features.html') 
 
 @app.route('/privacy')
 def privacy():

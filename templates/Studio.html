@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Studio | MindLobby</title>
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+  <link rel="apple-touch-icon" href="/static/images/favicon.png">
   
   <!-- External CSS -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -60,11 +62,19 @@
           <i class="fas fa-cloud-upload-alt"></i>
           <span>Upload Document</span>
         </a>
+        <a href="#" class="nav-item" data-view="#">
+          <i class="fa-brands fa-youtube"></i>
+          <span>Import YouTube Link</span>
+        </a>
       </div>
 
       <!-- Study Tools -->
       <div class="nav-section">
         <div class="nav-section-title">Study Tools</div>
+        <a href="#" class="nav-item" data-view="##">
+          <i class="fa-solid fa-note-sticky"></i>
+          <span>Notes</span>
+        </a>
         <a href="#" class="nav-item" data-view="flashcards">
           <i class="fas fa-layer-group"></i>
           <span>Flashcards</span>
@@ -170,8 +180,7 @@
       <div class="section-header">
         <h2 class="section-title">Quick Actions</h2>
       </div>
-      
-      <!-- THIS IS THE FIX: Added quick-actions wrapper div -->
+    
       <div class="quick-actions">
         <div class="action-card" onclick="triggerFileUpload()">
           <div class="action-icon">

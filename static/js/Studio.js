@@ -31,8 +31,10 @@ function toggleSidebar() {
   // For mobile: close sidebar when clicking outside
   if (window.innerWidth <= 1024) {
     if (sidebar.classList.contains('active')) {
+      document.body.classList.add('sidebar-open');
       document.addEventListener('click', closeSidebarOnClickOutside);
     } else {
+      document.body.classList.remove('sidebar-open');
       document.removeEventListener('click', closeSidebarOnClickOutside);
     }
   }
@@ -44,6 +46,7 @@ function closeSidebarOnClickOutside(e) {
   
   if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
     sidebar.classList.remove('active');
+    document.body.classList.remove('sidebar-open');
     document.removeEventListener('click', closeSidebarOnClickOutside);
   }
 }
