@@ -1259,6 +1259,10 @@ body {
     justify-content: center;
   }
 
+  .rotating-text-wrapper {
+    display: block;
+  }
+
   .hero-section {
     padding: 140px 20px 60px;
   }

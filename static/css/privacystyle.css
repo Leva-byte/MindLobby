@@ -121,7 +121,7 @@ body {
   box-shadow: 0 6px 12px rgba(124, 119, 198, 0.4);
 }
 
-/* Hero Section — matches About Us */
+/* Hero Section */
 .privacy-hero {
   padding: 140px 40px 80px;
   text-align: center;
@@ -347,7 +347,7 @@ body {
   font-weight: 700;
 }
 
-/* Privacy Cards — matches About Us mission-card pattern */
+/* Privacy Cards */
 .privacy-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -690,6 +690,10 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .hero-badge {
+    margin: 30px;
+  }
+
   .footer-content {
     flex-direction: column;
     gap: 30px;

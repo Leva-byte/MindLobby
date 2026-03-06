@@ -37,6 +37,7 @@ from database import (
 )
 from validators import validate_password_strength, validate_email_format, validate_username
 from email_service import send_otp_email, send_welcome_email, send_password_reset_email
+from notes_routes import notes_bp
 from flashcard_routes import flashcard_bp
 from topics_routes import topics_bp
 from chat_routes import chat_bp
@@ -87,6 +88,7 @@ socketio = SocketIO(
 )
 
 # Register blueprints
+app.register_blueprint(notes_bp)
 app.register_blueprint(flashcard_bp)
 app.register_blueprint(topics_bp)
 app.register_blueprint(chat_bp)

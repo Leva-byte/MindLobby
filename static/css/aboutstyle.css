@@ -612,6 +612,10 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .hero-badge {
+    margin: 30px;
+  }
+
   .footer-content {
     flex-direction: column;
     gap: 30px;

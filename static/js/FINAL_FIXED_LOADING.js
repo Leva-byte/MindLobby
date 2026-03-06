@@ -7,8 +7,8 @@ let uploadTimer = null;
 let uploadStartTime = null;
 let overtimeNotified = false;
 let uploadAbortController = null;
-const ESTIMATED_UPLOAD_TIME = 60; // 60 seconds
-const MAX_UPLOAD_TIME = 150;      // hard fail at 150 seconds
+const ESTIMATED_UPLOAD_TIME = 120; // 120 seconds — two AI calls now
+const MAX_UPLOAD_TIME = 240;       // hard fail at 240 seconds
 
 function showLoadingOverlay(filename) {
   if (isUploading) {
@@ -31,7 +31,7 @@ function showLoadingOverlay(filename) {
   overlay.classList.add('active');
   
   // Reset all steps
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const step = document.getElementById(`step${i}`);
     if (step) {
       step.classList.remove('active', 'complete');
@@ -110,8 +110,8 @@ function startCountdownTimer() {
     
     timerText.textContent = `${remainingSeconds}s`;
     
-    // Turn orange when less than 15 seconds remain
-    if (remainingSeconds <= 15 && remainingSeconds > 0) {
+    // Turn orange when less than 20 seconds remain
+    if (remainingSeconds <= 20 && remainingSeconds > 0) {
       timerEl.classList.add('warning');
     }
     
@@ -121,13 +121,13 @@ function startCountdownTimer() {
       timerText.textContent = `+${overtime}s`;
       timerEl.classList.add('warning');
 
-      // Show patience modal once at 60s
+      // Show patience modal once at overtime
       if (!overtimeNotified) {
         overtimeNotified = true;
         showOvertimeModal();
       }
 
-      // Hard fail at 150s
+      // Hard fail at 240s
       if (elapsed >= MAX_UPLOAD_TIME) {
         if (uploadAbortController) uploadAbortController.abort();
         hideLoadingOverlay();
@@ -178,7 +178,7 @@ function setLoadingStep(stepNumber, title, message) {
   }
   
   // Remove active from future steps
-  for (let i = stepNumber + 1; i <= 4; i++) {
+  for (let i = stepNumber + 1; i <= 5; i++) {
     const step = document.getElementById(`step${i}`);
     if (step) {
       step.classList.remove('active', 'complete');
@@ -244,12 +244,16 @@ window.uploadFile = async function(file) {
     const data = await response.json();
 
     if (response.ok && data.success) {
-      // Step 3: AI Processing
-      setLoadingStep(3, 'AI Processing...', 'Generating flashcards with AI...');
-      await sleep(1200);
-      
-      // Step 4: Complete
-      setLoadingStep(4, 'Complete!', `${data.flashcards_generated} flashcards created!`);
+      // Step 3: Generating Flashcards
+      setLoadingStep(3, 'Generating Flashcards...', 'AI is creating your study cards...');
+      await sleep(1000);
+
+      // Step 4: Generating Notes
+      setLoadingStep(4, 'Summarizing Notes...', 'AI is writing your lecture notes...');
+      await sleep(1000);
+
+      // Step 5: Complete
+      setLoadingStep(5, 'Complete!', `${data.flashcards_generated} flashcards and notes created!`);
       completeLoadingSpinner();
       await sleep(1200);
       
@@ -257,10 +261,11 @@ window.uploadFile = async function(file) {
       
       showNotification(`✅ ${data.flashcards_generated} flashcards created for "${file.name}"!`, 'success');
       
-      // Refresh documents, dashboard stats, and flashcards grid
+      // Refresh documents, dashboard stats, flashcards grid, and notes grid
       if (typeof loadDocuments === 'function') loadDocuments();
       if (typeof updateDashboardStats === 'function') updateDashboardStats();
       if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
+      if (window.Notes && Notes.loadDocs) Notes.loadDocs();
 
       // Auto-open flashcard panel
       if (data.flashcards && data.flashcards.length > 0 && window.Flashcards) {
@@ -280,7 +285,7 @@ window.uploadFile = async function(file) {
   } catch (err) {
     hideLoadingOverlay();
     closeOvertimeModal();
-    // Don't show a duplicate error if the abort was triggered by the 150s timeout
+    // Don't show a duplicate error if the abort was triggered by the timeout
     if (err.name !== 'AbortError') {
       showNotification(`Network error uploading ${file.name}`, 'error');
     }
@@ -314,4 +319,3 @@ function enableUploadButtons() {
     btn.style.cursor = 'pointer';
   });
 }
-

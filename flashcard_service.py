@@ -173,6 +173,98 @@ Document content (Markdown):
 
 
 # ============================================================================
+# NOTES GENERATION VIA OPENROUTER
+# ============================================================================
+
+def generate_notes(markdown_text):
+    """
+    Send MarkItDown-parsed Markdown to OpenRouter and get back a clean,
+    structured lecture summary in Markdown format.
+
+    Falls back to raw markdown_text if the AI call fails for any reason,
+    so the upload pipeline never breaks due to notes generation.
+
+    Returns a markdown string.
+    """
+    api_key = get_api_key()
+
+    MAX_CHARS = 12000
+    trimmed = markdown_text[:MAX_CHARS]
+
+    prompt = f"""You are an expert academic note-taker. The following content was extracted from a study document using an automated tool — it may contain garbled characters, symbols, broken lines, or formatting artifacts. Your job is to rewrite it as clean, well-structured lecture notes in Markdown format that a student can read and understand easily.
+
+Rules:
+- Use ## headings for major topics and ### for subtopics.
+- Under each heading, write 2-4 sentences of clear prose summarizing that section. Do NOT copy the original text verbatim — rewrite it in your own words.
+- Follow each prose summary with a short bullet list of the most important key points, terms, or facts from that section.
+- Completely ignore garbled text, question marks, broken symbols, page numbers, slide numbers, or any content that is clearly a formatting artifact.
+- Do not include a table of contents.
+- Write in a clear, educational tone as if explaining to a student reading these notes before an exam.
+- Return ONLY the Markdown content — no preamble, no closing remarks, no code fences, no extra commentary.
+
+Document content (raw extracted text):
+\"\"\"
+{trimmed}
+\"\"\"
+"""
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://mindlobby.app",
+        "X-Title": "MindLobby Notes Generator"
+    }
+
+    payload = {
+        "model": OPENROUTER_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.3,
+    }
+
+    try:
+        logger.info(f"📡 Sending notes request to OpenRouter (model: {OPENROUTER_MODEL})...")
+        response = requests.post(
+            OPENROUTER_BASE_URL, headers=headers, json=payload, timeout=60
+        )
+        logger.info(f"📥 OpenRouter notes status: {response.status_code}")
+
+        if not response.ok:
+            logger.error(f"❌ OpenRouter notes error: {response.text}")
+            # Fall back to raw markdown so the upload still succeeds
+            return markdown_text
+
+    except requests.exceptions.Timeout:
+        logger.warning("⚠️ Notes generation timed out — falling back to raw markdown")
+        return markdown_text
+    except requests.exceptions.ConnectionError:
+        logger.warning("⚠️ Notes generation connection error — falling back to raw markdown")
+        return markdown_text
+    except requests.exceptions.RequestException as e:
+        logger.warning(f"⚠️ Notes generation failed: {e} — falling back to raw markdown")
+        return markdown_text
+
+    data = response.json()
+
+    if 'error' in data:
+        logger.warning("⚠️ OpenRouter notes API error — falling back to raw markdown")
+        return markdown_text
+
+    try:
+        notes = data['choices'][0]['message']['content'].strip()
+        # Strip code fences if the model wrapped output in them
+        if notes.startswith("```"):
+            notes = notes.split("```")[1]
+            if notes.startswith("markdown"):
+                notes = notes[8:]
+            notes = notes.strip()
+        logger.info(f"✅ Generated notes ({len(notes)} chars)")
+        return notes
+    except (KeyError, IndexError):
+        logger.warning("⚠️ Unexpected notes response format — falling back to raw markdown")
+        return markdown_text
+
+
+# ============================================================================
 # MAIN ENTRY POINT
 # ============================================================================
 
@@ -180,12 +272,13 @@ def process_file_to_flashcards(file_path, filename):
     """
     Full pipeline:
       1. MarkItDown converts the file to structured Markdown
-      2. Markdown is sent to OpenRouter AI
-      3. AI returns flashcards as JSON
+      2. Markdown is sent to OpenRouter AI for flashcard generation
+      3. Markdown is sent to OpenRouter AI for notes summarization
 
-    Returns (flashcards_list, markdown_text)
+    Returns (flashcards_list, notes_markdown)
     """
     logger.info(f"🔄 Processing '{filename}'")
     markdown_text = extract_text(file_path, filename)
     flashcards = generate_flashcards(markdown_text)
-    return flashcards, markdown_text
+    notes = generate_notes(markdown_text)
+    return flashcards, notes

@@ -1,0 +1,82 @@
+<!-- =====================================================================
+     NOTES PANEL — Browse + Viewer
+     ===================================================================== -->
+
+<!-- ── BROWSE VIEW (document grid) ── -->
+<div id="notesBrowseView">
+  <div class="notes-browse-header">
+    <h2 class="section-title">My Documents</h2>
+    <div class="notes-search-wrapper">
+      <i class="fas fa-search"></i>
+      <input type="text" id="notesSearchInput" placeholder="Search documents..." oninput="Notes.filterDocs(this.value)">
+    </div>
+  </div>
+
+  <!-- Document card grid -->
+  <div class="documents-grid" id="notesDocsGrid"></div>
+
+  <!-- Empty state -->
+  <div class="notes-empty-state" id="notesEmptyState" style="display:none;">
+    <i class="fas fa-sticky-note notes-empty-icon"></i>
+    <h3 class="notes-empty-title">No Documents Yet</h3>
+    <p class="notes-empty-text">Upload a document to view its extracted notes!</p>
+    <button class="btn-primary" onclick="triggerFileUpload()">
+      <i class="fas fa-cloud-upload-alt"></i> Upload Document
+    </button>
+  </div>
+</div>
+
+<!-- ── VIEWER VIEW (markdown notes reader) ── -->
+<div id="notesViewerView" style="display:none;">
+
+  <!-- Panel Header -->
+  <div class="notes-panel-header">
+    <div class="notes-panel-header-left">
+      <button class="notes-back-btn" onclick="Notes.showBrowse()">
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <div>
+        <h1 class="notes-panel-title" id="notesPanelTitle">Notes</h1>
+        <p class="notes-panel-subtitle" id="notesPanelSubtitle"></p>
+      </div>
+    </div>
+    <div class="notes-panel-controls">
+      <button class="notes-control-btn notes-action-btn notes-flashcards-btn" onclick="Notes.openFlashcards()">
+        <i class="fas fa-layer-group"></i> Study Flashcards
+      </button>
+      <button class="notes-control-btn notes-action-btn notes-quiz-btn" onclick="Notes.openQuiz()">
+        <i class="fas fa-question-circle"></i> Start Quiz
+      </button>
+      <button class="notes-control-btn" id="notesCopyBtn" onclick="Notes.copyNotes()">
+        <i class="fas fa-copy"></i> Copy All
+      </button>
+      <button class="notes-control-btn" onclick="Notes.toggleView()">
+        <i class="fas fa-eye" id="notesToggleIcon"></i>
+        <span id="notesToggleLabel">Raw</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="notes-loading" id="notesLoading" style="display:none;">
+    <div class="notes-loading-spinner"></div>
+    <p>Loading notes...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="notes-error" id="notesError" style="display:none;">
+    <i class="fas fa-exclamation-circle"></i>
+    <p id="notesErrorText">Failed to load notes.</p>
+  </div>
+
+  <!-- Notes Content — Rendered (default) -->
+  <div class="notes-rendered-view" id="notesRenderedView">
+    <div class="notes-content" id="notesRenderedContent"></div>
+  </div>
+
+  <!-- Notes Content — Raw Markdown -->
+  <div class="notes-raw-view" id="notesRawView" style="display:none;">
+    <pre class="notes-raw-content" id="notesRawContent"></pre>
+  </div>
+
+</div>

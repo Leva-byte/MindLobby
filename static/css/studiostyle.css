@@ -59,7 +59,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Bruno Ace', sans-serif;
   font-size: 1.5em;
   font-weight: 700;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
@@ -73,6 +73,15 @@ body {
 .brand i {
   color: var(--primary);
   font-size: 1.2em;
+}
+
+.brand-favicon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  filter: drop-shadow(0 0 6px rgba(124, 119, 198, 0));
+  transition: filter 0.3s ease;
 }
 
 .header-actions {

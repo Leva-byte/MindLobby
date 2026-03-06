@@ -67,6 +67,7 @@ def init_db():
             original_filename TEXT NOT NULL,
             file_type TEXT NOT NULL,
             upload_date TEXT NOT NULL,
+            markdown_text TEXT,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
@@ -157,6 +158,13 @@ def init_db():
         cursor.execute('ALTER TABLE users ADD COLUMN profile_picture TEXT')
     if 'banner' not in existing_cols:
         cursor.execute('ALTER TABLE users ADD COLUMN banner TEXT')
+    if 'banner' not in existing_cols:
+        cursor.execute('ALTER TABLE users ADD COLUMN banner TEXT')
+
+    # --- Migration: add markdown_text to documents if missing ---
+    doc_cols = [row[1] for row in cursor.execute('PRAGMA table_info(documents)').fetchall()]
+    if 'markdown_text' not in doc_cols:
+        cursor.execute('ALTER TABLE documents ADD COLUMN markdown_text TEXT')
 
     # --- Migration: create user_settings if missing ---
     existing_tables = [row[0] for row in cursor.execute(
@@ -548,14 +556,14 @@ def get_reset_token_metadata(plain_token):
 # DOCUMENT & FLASHCARD FUNCTIONS
 # ============================================================================
 
-def save_document(user_id, filename, original_filename, file_type, file_path=None):
+def save_document(user_id, filename, original_filename, file_type, file_path=None, markdown_text=None):
     """Save a document record and return its ID."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO documents (user_id, filename, original_filename, file_type, upload_date)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (user_id, filename, original_filename, file_type, datetime.now().isoformat()))
+        INSERT INTO documents (user_id, filename, original_filename, file_type, upload_date, markdown_text)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (user_id, filename, original_filename, file_type, datetime.now().isoformat(), markdown_text))
     conn.commit()
     doc_id = cursor.lastrowid
     conn.close()

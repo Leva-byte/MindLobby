@@ -445,6 +445,10 @@ body {
 }
 
 @media (max-width: 768px) {
+  .hero-badge {
+    margin: 30px;
+  }
+
   .step-arrow {
     display: none;
   }

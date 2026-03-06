@@ -69,7 +69,7 @@ def upload_document():
 
     try:
         # Extract text -> generate flashcards via OpenRouter
-        flashcards, _ = process_file_to_flashcards(file_path, safe_filename)
+        flashcards, markdown_text = process_file_to_flashcards(file_path, safe_filename)
 
         # Save document record to DB
         doc_id = save_document(
@@ -78,6 +78,7 @@ def upload_document():
             original_filename=original_filename,
             file_type=file_ext,
             file_path=file_path,
+            markdown_text=markdown_text,
         )
 
         # Save all flashcards to DB

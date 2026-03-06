@@ -11,8 +11,10 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bruno+Ace&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/studiostyle.css">
   <link rel="stylesheet" href="/static/css/topicstyle.css">
+  <link rel="stylesheet" href="/static/css/notesstyle.css">
   <link rel="stylesheet" href="/static/css/flashcardstyle.css">
   <link rel="stylesheet" href="/static/css/chatstyle.css">
   <link rel="stylesheet" href="/static/css/profilestyle.css">
@@ -26,7 +28,7 @@
   <header class="studio-header">
     <div class="header-container">
       <a href="/" class="brand">
-        <i class="fas fa-brain"></i>
+        <img src="/static/images/favicon.png" alt="MindLobby icon" class="brand-favicon">
         <span>MindLobby</span>
       </a>
       
@@ -71,7 +73,7 @@
       <!-- Study Tools -->
       <div class="nav-section">
         <div class="nav-section-title">Study Tools</div>
-        <a href="#" class="nav-item" data-view="##">
+        <a href="#" class="nav-item" data-view="notes">
           <i class="fa-solid fa-note-sticky"></i>
           <span>Notes</span>
         </a>
@@ -242,6 +244,11 @@
       {% include 'partials/Topics.html' %}
     </div>
 
+    <!-- NOTES PANEL -->
+    <div class="view-panel" id="panel-notes" style="display:none;">
+      {% include 'partials/Notes.html' %}
+    </div>
+    
     <!-- FLASHCARDS PANEL -->
     <div class="view-panel" id="panel-flashcards" style="display:none;">
       {% include 'partials/Flashcards.html' %}
@@ -314,14 +321,23 @@
 
       <div class="fc-step" id="step3">
         <div class="fc-step-icon">
-          <i class="fas fa-brain"></i>
+          <i class="fas fa-layer-group"></i>
         </div>
-        <span class="fc-step-label">AI Processing</span>
+        <span class="fc-step-label">Flashcards</span>
       </div>
 
       <div class="fc-step-connector"></div>
 
       <div class="fc-step" id="step4">
+        <div class="fc-step-icon">
+          <i class="fas fa-sticky-note"></i>
+        </div>
+        <span class="fc-step-label">Notes</span>
+      </div>
+
+      <div class="fc-step-connector"></div>
+
+      <div class="fc-step" id="step5">
         <div class="fc-step-icon">
           <i class="fas fa-check"></i>
         </div>
@@ -461,6 +477,7 @@
   <!-- External JavaScript -->
   <script src="/static/js/studio.js"></script>
   <script src="/static/js/FINAL_FIXED_LOADING.js"></script>
+  <script src="/static/js/Notes.js"></script>
   <script src="/static/js/Flashcards.js"></script>
   <script src="/static/js/Topics.js"></script>
   <script src="/static/js/Chatbot.js"></script>

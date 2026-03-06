@@ -124,6 +124,9 @@ function showView(viewName) {
     case 'flashcards':
       if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
       break;
+    case 'notes':
+      if (window.Notes && Notes.loadDocs) Notes.loadDocs();
+      break;
     case 'quizzes':
       if (window.Quizzes) Quizzes.loadDocs();
       break;
@@ -830,6 +833,7 @@ function deleteDocument(docId, btnEl) {
         showNotification('Document deleted', 'success');
         loadDocuments();
         if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
+        if (window.Notes && Notes.loadDocs) Notes.loadDocs();
         if (window.Topics && window.Topics.refreshDetail) window.Topics.refreshDetail();
       } else {
         showNotification(data.message || 'Delete failed', 'error');
@@ -897,6 +901,7 @@ function openRenameModal(docId, currentName) {
         showNotification('Document renamed', 'success');
         loadDocuments();
         if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
+        if (window.Notes && Notes.loadDocs) Notes.loadDocs();
         if (window.Topics && window.Topics.refreshDetail) window.Topics.refreshDetail();
       } else {
         showNotification(data.message || 'Rename failed', 'error');
