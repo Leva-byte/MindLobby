@@ -74,8 +74,17 @@ body::before {
   animation: pulse 2s infinite;
 }
 
+.loading-favicon {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  margin-bottom: 20px;
+  animation: pulse 2s infinite;
+  filter: drop-shadow(0 0 20px rgba(124, 119, 198, 0.5));
+}
+
 .brand-name {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Bruno Ace', sans-serif;
   font-size: 3.5em;
   font-weight: 700;
   background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 50%, #ffffff 100%);
@@ -142,6 +151,19 @@ body::before {
   animation: pulse-glow 1s ease-in-out;
 }
 
+.logo-icon .brand-favicon {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(124, 119, 198, 0.4));
+  transition: all 0.3s ease;
+}
+
+.logo-icon:hover .brand-favicon {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 30px rgba(194, 190, 252, 0.5));
+}
+
 .main-logo-link {
   text-decoration: none;
   display: inline-block;
@@ -155,7 +177,7 @@ body::before {
 }
 
 .main-logo {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Bruno Ace', sans-serif;
   font-size: 3.5em;
   font-weight: 700;
   margin-bottom: 8px;
