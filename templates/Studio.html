@@ -60,13 +60,9 @@
           <span>My Topics</span>
           <span class="nav-badge">0</span>
         </a>
-        <a href="#" class="nav-item" data-view="upload">
-          <i class="fas fa-cloud-upload-alt"></i>
-          <span>Upload Document</span>
-        </a>
-        <a href="#" class="nav-item" data-view="#">
-          <i class="fa-brands fa-youtube"></i>
-          <span>Import YouTube Link</span>
+        <a href="#" class="nav-item" onclick="openAddMaterialModal(event)">
+          <i class="fas fa-plus-circle"></i>
+          <span>Add Material</span>
         </a>
       </div>
 
@@ -186,10 +182,10 @@
       <div class="quick-actions">
         <div class="action-card" onclick="triggerFileUpload()">
           <div class="action-icon">
-            <i class="fas fa-cloud-upload-alt"></i>
+            <i class="fas fa-plus-circle"></i>
           </div>
-          <h3 class="action-title">Upload Document</h3>
-          <p class="action-desc">Add PDFs, Word docs, or text files</p>
+          <h3 class="action-title">Add Material</h3>
+          <p class="action-desc">Add study materials from files or YouTube</p>
         </div>
         
         <div class="action-card" onclick="showView('topics')">
@@ -353,6 +349,83 @@
   <!-- =====================================================================
        FILE UPLOAD MODAL
        ===================================================================== -->
+  <!-- =====================================================================
+       ADD MATERIAL CHOICE MODAL
+       ===================================================================== -->
+  <div class="am-backdrop" id="amBackdrop" onclick="closeAddMaterialModal()"></div>
+  <div class="am-modal" id="amModal">
+    <div class="am-modal-header">
+      <div>
+        <h2 class="am-modal-title">Add Material</h2>
+        <p class="am-modal-subtitle">Choose how you'd like to add study material</p>
+      </div>
+      <button class="am-close-btn" onclick="closeAddMaterialModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="am-modal-body">
+      <button class="am-choice-btn" onclick="closeAddMaterialModal(); openUploadModal();">
+        <div class="am-choice-icon am-choice-icon-upload">
+          <i class="fas fa-cloud-upload-alt"></i>
+        </div>
+        <div class="am-choice-text">
+          <span class="am-choice-title">Upload Document</span>
+          <span class="am-choice-desc">PDF, Word, PowerPoint, or text files</span>
+        </div>
+        <i class="fa-solid fa-circle-chevron-right"></i>
+      </button>
+      <button class="am-choice-btn" onclick="closeAddMaterialModal(); openYoutubeModal();">
+        <div class="am-choice-icon am-choice-icon-yt">
+          <i class="fa-brands fa-youtube"></i>
+        </div>
+        <div class="am-choice-text">
+          <span class="am-choice-title">Import YouTube Link</span>
+          <span class="am-choice-desc">Extract notes and flashcards from a video</span>
+        </div>
+        <i class="fa-solid fa-circle-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       YOUTUBE IMPORT MODAL (placeholder — wired up by Claude Code)
+       ===================================================================== -->
+  <div class="yt-modal-backdrop" id="ytModalBackdrop" onclick="closeYoutubeModal()"></div>
+  <div class="yt-modal" id="ytModal">
+    <div class="yt-modal-header">
+      <div>
+        <h2 class="yt-modal-title"><i class="fa-brands fa-youtube"></i> Import YouTube Link</h2>
+        <p class="yt-modal-subtitle">Paste a YouTube video URL to generate notes and flashcards</p>
+      </div>
+      <button class="yt-close-btn" onclick="closeYoutubeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="yt-modal-body">
+      <div class="yt-input-group">
+        <label class="yt-label">
+          <i class="fas fa-link"></i> Video URL
+        </label>
+        <input
+          type="text"
+          id="ytUrlInput"
+          class="yt-input"
+          placeholder="https://www.youtube.com/watch?v=..."
+        />
+      </div>
+      <div class="yt-coming-soon">
+        <i class="fas fa-hard-hat"></i>
+        <p>YouTube import is coming soon. This feature is currently being set up!</p>
+      </div>
+    </div>
+    <div class="yt-modal-footer">
+      <button class="yt-btn-secondary" onclick="closeYoutubeModal()">Cancel</button>
+      <button class="yt-btn-primary" disabled>
+        <i class="fa-brands fa-youtube"></i> Import Video
+      </button>
+    </div>
+  </div>
+
   <div class="upload-modal-backdrop" id="uploadModalBackdrop" onclick="closeUploadModal()"></div>
 
   <div class="upload-modal" id="uploadModal">

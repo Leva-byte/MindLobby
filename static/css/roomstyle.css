@@ -81,8 +81,15 @@ body::before {
     filter: drop-shadow(0 0 10px rgba(124, 119, 198, 0.4));
 }
 
+.brand-favicon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 10px rgba(124, 119, 198, 0.4));
+}
+
 .brand-title {
-    font-family: 'Orbitron', monospace;
+    font-family: 'Bruno Ace', sans-serif;
     font-size: 1.8em;
     font-weight: 700;
     background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 100%);
@@ -1156,6 +1163,13 @@ html {
 .brand-icon-sm {
     font-size: 1.3em;
     color: #7c77c6;
+}
+
+.brand-favicon-sm {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 6px rgba(124, 119, 198, 0.4));
 }
 
 .game-room-code {

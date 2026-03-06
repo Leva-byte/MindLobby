@@ -137,10 +137,10 @@ function showView(viewName) {
       if (window.Settings) Settings.loadSettings();
       break;
     case 'upload':
-      // Show overview panel and open upload modal
+      // Show overview panel and open Add Material choice modal
       const overview = document.getElementById('panel-overview');
       if (overview) overview.style.display = 'block';
-      if (typeof openUploadModal === 'function') openUploadModal();
+      if (typeof openAddMaterialModal === 'function') openAddMaterialModal();
       break;
   }
 }
@@ -958,9 +958,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const fileInput = document.getElementById('modalFileInput');
   const browseButton = document.getElementById('browseButton');
   
-  // Override triggerFileUpload to open modal
+  // Override triggerFileUpload to open Add Material choice modal
   window.triggerFileUpload = function() {
-    openUploadModal();
+    openAddMaterialModal();
   };
   
   if (dropZone) {
@@ -1168,3 +1168,51 @@ window.closeUploadModal = closeUploadModal;
 window.removeFileFromUpload = removeFileFromUpload;
 window.clearSelectedFiles = clearSelectedFiles;
 window.startUpload = startUpload;
+
+// ============================================================================
+// ADD MATERIAL MODAL
+// ============================================================================
+
+function openAddMaterialModal(e) {
+  if (e) e.preventDefault();
+  const modal    = document.getElementById('amModal');
+  const backdrop = document.getElementById('amBackdrop');
+  if (modal && backdrop) {
+    backdrop.classList.add('open');
+    modal.classList.add('open');
+  }
+}
+
+function closeAddMaterialModal() {
+  const modal    = document.getElementById('amModal');
+  const backdrop = document.getElementById('amBackdrop');
+  if (backdrop) backdrop.classList.remove('open');
+  if (modal)    modal.classList.remove('open');
+}
+
+// ============================================================================
+// YOUTUBE MODAL (placeholder — implementation handed to Claude Code)
+// ============================================================================
+
+function openYoutubeModal() {
+  const modal    = document.getElementById('ytModal');
+  const backdrop = document.getElementById('ytModalBackdrop');
+  if (modal && backdrop) {
+    backdrop.classList.add('open');
+    modal.classList.add('open');
+    const input = document.getElementById('ytUrlInput');
+    if (input) { input.value = ''; input.focus(); }
+  }
+}
+
+function closeYoutubeModal() {
+  const modal    = document.getElementById('ytModal');
+  const backdrop = document.getElementById('ytModalBackdrop');
+  if (backdrop) backdrop.classList.remove('open');
+  if (modal)    modal.classList.remove('open');
+}
+
+window.openAddMaterialModal  = openAddMaterialModal;
+window.closeAddMaterialModal = closeAddMaterialModal;
+window.openYoutubeModal      = openYoutubeModal;
+window.closeYoutubeModal     = closeYoutubeModal;

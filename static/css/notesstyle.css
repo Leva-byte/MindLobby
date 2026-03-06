@@ -171,6 +171,18 @@
   font-weight: 700;
 }
 
+.notes-download-btn {
+  background: rgba(43, 87, 154, 0.15);
+  border-color: rgba(43, 87, 154, 0.4);
+  color: #5b9bd5;
+}
+
+.notes-download-btn:hover {
+  background: rgba(43, 87, 154, 0.28);
+  border-color: #5b9bd5;
+  transform: translateY(-2px);
+}
+
 .notes-flashcards-btn {
   background: rgba(124, 119, 198, 0.2);
   border-color: rgba(124, 119, 198, 0.5);
@@ -402,6 +414,46 @@
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* ---- Panel Transition Overlay ---- */
+.notes-transition-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-primary, #1a1838);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.notes-transition-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.notes-transition-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.notes-transition-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  animation: notesTransitionPulse 0.6s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 20px rgba(124, 119, 198, 0.6));
+}
+
+@keyframes notesTransitionPulse {
+  from { transform: scale(0.92); opacity: 0.7; }
+  to   { transform: scale(1.08); opacity: 1;   }
 }
 
 /* ---- Responsive ---- */

@@ -14,6 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bruno+Ace&display=swap" rel="stylesheet">
 
     <!-- Socket.IO -->
     <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
@@ -33,7 +34,7 @@
         <!-- Room Header -->
         <div class="room-header">
             <div class="lobby-branding">
-                <i class="fas fa-brain brand-icon"></i>
+                <img src="/static/images/favicon.png" alt="MindLobby" class="brand-favicon">
                 <h1 class="brand-title">MindLobby</h1>
             </div>
             <div class="room-code" id="roomCodeDisplay">{{ room_code }}</div>
@@ -129,7 +130,7 @@
         <!-- Game Header -->
         <div class="game-header">
             <div class="game-header-left">
-                <i class="fas fa-brain brand-icon-sm"></i>
+                <img src="/static/images/favicon.png" alt="MindLobby" class="brand-favicon-sm">
                 <span class="game-room-code">{{ room_code }}</span>
             </div>
             <div class="game-header-center">

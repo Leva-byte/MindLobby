@@ -2337,6 +2337,113 @@ body.light-mode .upload-modal-footer .btn-secondary {
   border-color: rgba(108, 99, 192, 0.2);
 }
 
+/* Add Material modal — light mode */
+body.light-mode .am-modal {
+  background: linear-gradient(135deg, rgba(245, 245, 250, 0.98), rgba(232, 230, 245, 0.98));
+}
+
+body.light-mode .am-modal-header {
+  background: rgba(240, 240, 248, 0.9);
+}
+
+body.light-mode .am-modal-title {
+  background: linear-gradient(135deg, #6c63c0, #1a1a2e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+body.light-mode .am-modal-subtitle {
+  color: rgba(26, 26, 46, 0.6);
+}
+
+body.light-mode .am-choice-btn {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(108, 99, 192, 0.15);
+}
+
+body.light-mode .am-choice-btn:first-child:hover {
+  background: rgba(108, 99, 192, 0.08);
+  border-color: rgba(108, 99, 192, 0.4);
+}
+
+body.light-mode .am-choice-btn:last-child:hover {
+  background: rgba(255, 68, 68, 0.05);
+  border-color: rgba(255, 68, 68, 0.35);
+}
+
+body.light-mode .am-choice-title {
+  color: #1a1a2e;
+}
+
+body.light-mode .am-choice-desc {
+  color: rgba(26, 26, 46, 0.6);
+}
+
+/* YouTube Import modal — light mode */
+body.light-mode .yt-modal {
+  background: linear-gradient(135deg, rgba(245, 245, 250, 0.98), rgba(232, 230, 245, 0.98));
+}
+
+body.light-mode .yt-modal-header {
+  background: rgba(240, 240, 248, 0.9);
+}
+
+body.light-mode .yt-modal-title {
+  background: linear-gradient(135deg, #cc0000, #1a1a2e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+body.light-mode .yt-modal-title i {
+  -webkit-text-fill-color: #cc0000;
+}
+
+body.light-mode .yt-modal-subtitle {
+  color: rgba(26, 26, 46, 0.6);
+}
+
+body.light-mode .yt-input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(108, 99, 192, 0.2);
+  color: #1a1a2e;
+}
+
+body.light-mode .yt-input::placeholder {
+  color: rgba(26, 26, 46, 0.4);
+}
+
+body.light-mode .yt-input:focus {
+  border-color: #cc0000;
+  box-shadow: 0 0 0 3px rgba(204, 0, 0, 0.1);
+}
+
+body.light-mode .yt-label {
+  color: rgba(26, 26, 46, 0.7);
+}
+
+body.light-mode .yt-coming-soon {
+  background: rgba(255, 165, 0, 0.06);
+  border-color: rgba(255, 165, 0, 0.25);
+  color: rgba(180, 100, 0, 0.9);
+}
+
+body.light-mode .yt-modal-footer {
+  background: rgba(240, 240, 248, 0.9);
+  border-color: rgba(108, 99, 192, 0.1);
+}
+
+body.light-mode .yt-btn-secondary {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1a1a2e;
+  border-color: rgba(108, 99, 192, 0.2);
+}
+
+body.light-mode .yt-btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
 /* Rename modal */
 body.light-mode .rename-modal {
   background: #f5f5fa;
@@ -2392,4 +2499,382 @@ body.light-mode .fc-loading-box {
 body.light-mode ::selection {
   background: rgba(108, 99, 192, 0.2);
   color: #1a1a2e;
+}
+
+/* ============================================================================
+   ADD MATERIAL MODAL
+   ============================================================================ */
+
+.am-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 2500;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  pointer-events: none;
+}
+
+.am-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.am-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: 90%;
+  max-width: 700px;
+  background: linear-gradient(135deg, rgba(26, 26, 62, 0.98), rgba(45, 27, 105, 0.98));
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  z-index: 2501;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.am-modal.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.am-modal-header {
+  padding: 28px 32px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: rgba(26, 26, 62, 0.8);
+}
+
+.am-modal-title {
+  font-size: 1.6em;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--primary-light), #fff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.am-modal-subtitle {
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.am-close-btn {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+.am-close-btn:hover {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: #e74c3c;
+  transform: rotate(90deg);
+}
+
+.am-modal-body {
+  padding: 40px 32px;
+  display: flex;
+  gap: 24px;
+}
+
+/* Two equal squares side by side */
+.am-choice-btn {
+  flex: 1;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 32px 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.am-choice-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.am-choice-btn:hover .am-choice-icon {
+  transform: scale(1.1);
+}
+
+/* Upload button hover — purple */
+.am-choice-btn:first-child:hover {
+  background: rgba(124, 119, 198, 0.12);
+  border-color: rgba(124, 119, 198, 0.5);
+}
+
+/* YouTube button hover — red */
+.am-choice-btn:last-child:hover {
+  background: rgba(255, 68, 68, 0.08);
+  border-color: rgba(255, 68, 68, 0.4);
+}
+
+.am-choice-icon {
+  font-size: 4.5em;
+  transition: transform 0.25s ease;
+  line-height: 1;
+}
+
+.am-choice-icon-upload {
+  color: var(--primary-light);
+}
+
+.am-choice-icon-yt {
+  color: #ff4444;
+}
+
+.am-choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.am-choice-title {
+  font-size: 1.15em;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.am-choice-desc {
+  font-size: 0.88em;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ============================================================================
+   YOUTUBE IMPORT MODAL
+   ============================================================================ */
+
+.yt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 2500;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  pointer-events: none;
+}
+
+.yt-modal-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.yt-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: 90%;
+  max-width: 520px;
+  background: linear-gradient(135deg, rgba(26, 26, 62, 0.98), rgba(45, 27, 105, 0.98));
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  z-index: 2501;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.yt-modal.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.yt-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 28px 28px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.yt-modal-title {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.yt-modal-title i {
+  color: #ff4444;
+}
+
+.yt-modal-subtitle {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.yt-close-btn {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+.yt-close-btn:hover {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: #e74c3c;
+  transform: rotate(90deg);
+}
+
+.yt-modal-body {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.yt-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yt-label {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yt-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 0.9em;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  width: 100%;
+}
+
+.yt-input:focus {
+  border-color: #ff4444;
+  box-shadow: 0 0 0 3px rgba(255, 68, 68, 0.12);
+}
+
+.yt-input::placeholder {
+  color: var(--text-muted);
+}
+
+.yt-coming-soon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(255, 165, 0, 0.08);
+  border: 1px solid rgba(255, 165, 0, 0.2);
+  border-radius: 10px;
+  color: rgba(255, 165, 0, 0.85);
+  font-size: 0.85em;
+}
+
+.yt-coming-soon i {
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+.yt-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 28px;
+  border-top: 1px solid var(--border-color);
+}
+
+.yt-btn-secondary {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 0.9em;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.yt-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.yt-btn-primary {
+  padding: 10px 22px;
+  background: linear-gradient(135deg, #cc0000, #ff4444);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 0.9em;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.yt-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 68, 68, 0.3);
+}
+
+.yt-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

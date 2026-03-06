@@ -331,6 +331,45 @@
     }
   }
 
+  async function downloadDocx() {
+    if (!_currentDocId) return;
+
+    const btn = document.getElementById('notesDownloadBtn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+    }
+
+    try {
+      const res = await fetch(`/api/documents/${_currentDocId}/notes/download`);
+      if (!res.ok) {
+        showNotification('Could not generate DOCX. Try again.', 'error');
+        return;
+      }
+
+      // Trigger browser download
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = (_currentDocName || 'notes').replace(/\.[^.]+$/, '') + '_notes.docx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showNotification('DOCX downloaded!', 'success');
+    } catch (err) {
+      console.error('Download error:', err);
+      showNotification('Download failed. Try again.', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-file-word"></i> Download DOCX';
+      }
+    }
+  }
+
   // ============================================================================
   // UI STATE HELPERS
   // ============================================================================
@@ -417,18 +456,51 @@
   // VIEWER ACTIONS — jump to Flashcards or Quiz for current document
   // ============================================================================
 
+  function _transitionTo(viewName, callback) {
+    // Create overlay on the main content area only
+    const content = document.querySelector('.main-content') || document.querySelector('.studio-content') || document.body;
+    const overlay = document.createElement('div');
+    overlay.className = 'notes-transition-overlay';
+    overlay.innerHTML = `
+      <div class="notes-transition-inner">
+        <img src="/static/images/favicon.png" class="notes-transition-logo">
+      </div>`;
+    content.appendChild(overlay);
+
+    // Fade in
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => overlay.classList.add('visible'));
+    });
+
+    // Switch view under the overlay
+    setTimeout(() => {
+      if (typeof showView === 'function') showView(viewName);
+      if (typeof callback === 'function') callback();
+    }, 250);
+
+    // Fade out and remove
+    setTimeout(() => {
+      overlay.classList.remove('visible');
+      setTimeout(() => overlay.remove(), 350);
+    }, 600);
+  }
+
   function openFlashcards() {
     if (!_currentDocId) return;
-    if (window.Flashcards && Flashcards.openForDocument) {
-      Flashcards.openForDocument(_currentDocId, _currentDocName);
-    }
+    _transitionTo('flashcards', () => {
+      if (window.Flashcards && Flashcards.openForDocument) {
+        setTimeout(() => Flashcards.openForDocument(_currentDocId, _currentDocName), 50);
+      }
+    });
   }
 
   function openQuiz() {
     if (!_currentDocId) return;
-    if (window.Quizzes && Quizzes.startQuiz) {
-      Quizzes.startQuiz(_currentDocId, _currentDocName);
-    }
+    _transitionTo('quizzes', () => {
+      if (window.Quizzes && Quizzes.startQuiz) {
+        setTimeout(() => Quizzes.startQuiz(_currentDocId, _currentDocName), 50);
+      }
+    });
   }
 
   // ============================================================================
@@ -441,6 +513,7 @@
     showBrowse,
     toggleView,
     copyNotes,
+    downloadDocx,
     openFlashcards,
     openQuiz,
   };

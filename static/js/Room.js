@@ -701,7 +701,7 @@
         modal.className = 'custom-alert';
         modal.innerHTML =
             '<div class="alert-content">' +
-                '<i class="fas fa-brain"></i>' +
+                '<img src="/static/images/favicon.png" style="width:48px;height:48px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(124,119,198,0.5));margin-bottom:8px;">' +
                 '<p>' + message + '</p>' +
                 '<div style="display: flex; gap: 15px; justify-content: center;">' +
                     '<button class="confirm-btn" style="background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 100%);">Confirm</button>' +
