@@ -497,20 +497,18 @@ def about():
 
 @app.route('/features')
 def features():
-   """Render the features page"""
-   return render_template('Features.html') 
+    """Render the features page"""
+    return render_template('Features.html') 
 
 @app.route('/privacy')
 def privacy():
     """Render the privacy page"""
     return render_template('Privacy.html')
 
-# ============================================
-# @app.route('/terms')
-# def terms():
-#    """Render the terms and agreement page"""
-#    return render_template('Terms.html') 
-# ============================================
+@app.route('/terms')
+def terms():
+    """Render the terms and agreement page"""
+    return render_template('Terms.html') 
 
 @app.route('/contact')
 def contact():
