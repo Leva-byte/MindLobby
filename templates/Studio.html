@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio | MindLobby</title>
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+  <link rel="apple-touch-icon" href="/static/images/favicon.png">
+  
+  <!-- External CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/studiostyle.css">
+  <link rel="stylesheet" href="/static/css/topicstyle.css">
+  <link rel="stylesheet" href="/static/css/flashcardstyle.css">
+  <link rel="stylesheet" href="/static/css/chatstyle.css">
+  <link rel="stylesheet" href="/static/css/profilestyle.css">
+  <link rel="stylesheet" href="/static/css/quizzestyle.css">
+  <link rel="stylesheet" href="/static/css/settingsstyle.css">
+</head>
+<body>
+  <script>if(localStorage.getItem('ml_theme')==='light')document.body.classList.add('light-mode');</script>
+
+  <!-- Header -->
+  <header class="studio-header">
+    <div class="header-container">
+      <a href="/" class="brand">
+        <i class="fas fa-brain"></i>
+        <span>MindLobby</span>
+      </a>
+      
+      <div class="header-actions">
+        <button class="btn-menu-toggle" onclick="toggleSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+        
+        <div class="user-info">
+          <div class="user-avatar">{{ username[0]|upper }}</div>
+          <span class="username">{{ username }}</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <!-- Main Navigation -->
+      <div class="nav-section">
+        <div class="nav-section-title">Main</div>
+        <a href="#" class="nav-item active" data-view="overview">
+          <i class="fas fa-home"></i>
+          <span>Overview</span>
+        </a>
+        <a href="#" class="nav-item" data-view="topics">
+          <i class="fas fa-folder"></i>
+          <span>My Topics</span>
+          <span class="nav-badge">0</span>
+        </a>
+        <a href="#" class="nav-item" data-view="upload">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <span>Upload Document</span>
+        </a>
+        <a href="#" class="nav-item" data-view="#">
+          <i class="fa-brands fa-youtube"></i>
+          <span>Import YouTube Link</span>
+        </a>
+      </div>
+
+      <!-- Study Tools -->
+      <div class="nav-section">
+        <div class="nav-section-title">Study Tools</div>
+        <a href="#" class="nav-item" data-view="##">
+          <i class="fa-solid fa-note-sticky"></i>
+          <span>Notes</span>
+        </a>
+        <a href="#" class="nav-item" data-view="flashcards">
+          <i class="fas fa-layer-group"></i>
+          <span>Flashcards</span>
+        </a>
+        <a href="#" class="nav-item" data-view="quizzes">
+          <i class="fas fa-question-circle"></i>
+          <span>Quizzes</span>
+        </a>
+        <a href="/quickplay" class="nav-item">
+          <i class="fas fa-gamepad"></i>
+          <span>Quick Play</span>
+        </a>
+      </div>
+
+      <!-- Settings -->
+      <div class="nav-section">
+        <div class="nav-section-title">Account</div>
+        <a href="#" class="nav-item" data-view="profile">
+          <i class="fas fa-user"></i>
+          <span>Profile</span>
+        </a>
+        <a href="#" class="nav-item" data-view="settings">
+          <i class="fas fa-cog"></i>
+          <span>Settings</span>
+        </a>
+        <a href="#" class="nav-item" onclick="handleLogout(event)">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- My Documents (sidebar list) -->
+    <div class="sidebar-docs-section">
+      <div class="sidebar-docs-header">
+        <span>My Documents</span>
+        <button class="sidebar-docs-add-btn" onclick="triggerFileUpload()" title="Upload document">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+      <div id="sidebarDocsList"></div>
+      <p class="sidebar-docs-empty" id="sidebarDocsEmpty">No documents yet</p>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content" id="mainContent">
+
+    <!-- OVERVIEW PANEL -->
+    <div class="view-panel" id="panel-overview">
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner" id="welcomeBanner">
+      <img class="welcome-banner-bg" id="welcomeBannerBg" src="/static/img/default-banner.png" alt="">
+      <div class="welcome-banner-gradient"></div>
+
+      <div class="welcome-content">
+        <h1 class="welcome-title">Welcome back, {{ username }}!</h1>
+        <p class="welcome-text">Ready to continue your learning journey?</p>
+      </div>
+
+      <!-- Profile picture at bottom-left -->
+      <div class="welcome-pfp" id="welcomePfp">
+        <img id="welcomePfpImg" src="/static/img/default-pfp.png" alt="Profile">
+      </div>
+
+      <!-- Stats at bottom-right -->
+      <div class="welcome-stats">
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-folder"></i>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="statTopics">0</div>
+            <div class="stat-label">Topics</div>
+          </div>
+        </div>
+
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="statFlashcards">0</div>
+            <div class="stat-label">Flashcards</div>
+          </div>
+        </div>
+
+        <div class="stat-item">
+          <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value" id="statStudyTime">0h</div>
+            <div class="stat-label">Study Time</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Quick Actions</h2>
+      </div>
+    
+      <div class="quick-actions">
+        <div class="action-card" onclick="triggerFileUpload()">
+          <div class="action-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <h3 class="action-title">Upload Document</h3>
+          <p class="action-desc">Add PDFs, Word docs, or text files</p>
+        </div>
+        
+        <div class="action-card" onclick="showView('topics')">
+          <div class="action-icon">
+            <i class="fas fa-folder-plus"></i>
+          </div>
+          <h3 class="action-title">Create Topic</h3>
+          <p class="action-desc">Organize your study materials</p>
+        </div>
+        
+        <div class="action-card" onclick="showView('flashcards')">
+          <div class="action-icon">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <h3 class="action-title">Study Flashcards</h3>
+          <p class="action-desc">Browse and study your flashcards</p>
+        </div>
+
+        <a href="/quickplay" class="action-card">
+          <div class="action-icon">
+            <i class="fas fa-gamepad"></i>
+          </div>
+          <h3 class="action-title">Quick Play</h3>
+          <p class="action-desc">Join a study lobby instantly</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Recent Activity</h2>
+      </div>
+
+      <div class="activity-feed" id="activityFeed">
+        <div class="activity-item">
+          <div class="activity-icon">
+            <i class="fas fa-spinner fa-spin"></i>
+          </div>
+          <div class="activity-content">
+            <p class="activity-text">Loading activity...</p>
+            <p class="activity-time"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div><!-- /panel-overview -->
+
+    <!-- TOPICS PANEL -->
+    <div class="view-panel" id="panel-topics" style="display:none;">
+      {% include 'partials/Topics.html' %}
+    </div>
+
+    <!-- FLASHCARDS PANEL -->
+    <div class="view-panel" id="panel-flashcards" style="display:none;">
+      {% include 'partials/Flashcards.html' %}
+    </div>
+
+    <!-- QUIZZES PANEL -->
+    <div class="view-panel" id="panel-quizzes" style="display:none;">
+      {% include 'partials/Quizzes.html' %}
+    </div>
+
+    <!-- PROFILE PANEL -->
+    <div class="view-panel" id="panel-profile" style="display:none;">
+      {% include 'partials/Profile.html' %}
+    </div>
+
+    <!-- SETTINGS PANEL -->
+    <div class="view-panel" id="panel-settings" style="display:none;">
+      {% include 'partials/Settings.html' %}
+    </div>
+
+  </main>
+
+  <!-- =====================================================================
+       UPLOAD LOADING OVERLAY
+       ===================================================================== -->
+  <div class="fc-loading-overlay" id="fcLoadingOverlay">
+  <div class="fc-loading-box">
+    <!-- Animated Progress Ring -->
+    <div class="fc-progress-ring">
+      <svg class="fc-ring-svg" width="120" height="120">
+        <circle class="fc-ring-bg" cx="60" cy="60" r="54"></circle>
+        <circle class="fc-ring-progress" cx="60" cy="60" r="54"></circle>
+      </svg>
+      <div class="fc-ring-icon">
+        <i class="fas fa-file-upload"></i>
+      </div>
+    </div>
+
+    <!-- Current Step Title -->
+    <p class="fc-loading-title" id="fcLoadingTitle">Uploading File...</p>
+    
+    <!-- Filename -->
+    <p class="fc-loading-file" id="fcLoadingFile"></p>
+
+    <!-- Live Timer -->
+    <div class="fc-timer" id="fcTimer">
+      <i class="fas fa-clock"></i>
+      <span id="fcTimerText">0s</span>
+    </div>
+
+    <!-- Step Progress Indicators -->
+    <div class="fc-steps">
+      <div class="fc-step" id="step1">
+        <div class="fc-step-icon">
+          <i class="fas fa-upload"></i>
+        </div>
+        <span class="fc-step-label">Uploading</span>
+      </div>
+
+      <div class="fc-step-connector"></div>
+
+      <div class="fc-step" id="step2">
+        <div class="fc-step-icon">
+          <i class="fas fa-file-alt"></i>
+        </div>
+        <span class="fc-step-label">Extracting</span>
+      </div>
+
+      <div class="fc-step-connector"></div>
+
+      <div class="fc-step" id="step3">
+        <div class="fc-step-icon">
+          <i class="fas fa-brain"></i>
+        </div>
+        <span class="fc-step-label">AI Processing</span>
+      </div>
+
+      <div class="fc-step-connector"></div>
+
+      <div class="fc-step" id="step4">
+        <div class="fc-step-icon">
+          <i class="fas fa-check"></i>
+        </div>
+        <span class="fc-step-label">Complete</span>
+      </div>
+    </div>
+
+    <!-- Status Message -->
+    <p class="fc-status-msg" id="fcStatusMsg">Preparing upload...</p>
+  </div>
+</div>
+
+  <!-- =====================================================================
+       FILE UPLOAD MODAL
+       ===================================================================== -->
+  <div class="upload-modal-backdrop" id="uploadModalBackdrop" onclick="closeUploadModal()"></div>
+
+  <div class="upload-modal" id="uploadModal">
+    <div class="upload-modal-header">
+      <div>
+        <h2 class="upload-modal-title">Upload Documents</h2>
+        <p class="upload-modal-subtitle">Add your study materials</p>
+      </div>
+      <button class="upload-close-btn" onclick="closeUploadModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="upload-modal-body">
+      <!-- Drop Zone -->
+      <div class="upload-drop-zone" id="uploadDropZone">
+        <div class="upload-drop-content">
+          <div class="upload-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <h3 class="upload-drop-title">Drag & drop files here</h3>
+          <p class="upload-drop-text">or click to browse</p>
+          <button class="btn-browse" id="browseButton">
+            <i class="fas fa-folder-open"></i>
+            Browse Files
+          </button>
+          <p class="upload-formats">
+            <i class="fas fa-info-circle"></i>
+            Supports: PDF, Word (.doc, .docx), PowerPoint (.ppt, .pptx), Text (.txt)
+          </p>
+          <p class="upload-limit">Maximum 10MB per file • Up to 10 files at once</p>
+        </div>
+      </div>
+
+      <!-- Selected Files List -->
+      <div class="upload-files-list" id="uploadFilesList" style="display: none;">
+        <div class="upload-files-header">
+          <h4>Selected Files (<span id="fileCount">0</span>)</h4>
+          <button class="btn-clear-files" onclick="clearSelectedFiles()">
+            <i class="fas fa-trash-alt"></i>
+            Clear All
+          </button>
+        </div>
+        <div class="upload-files-grid" id="uploadFilesGrid"></div>
+      </div>
+    </div>
+
+    <div class="upload-modal-footer">
+      <button class="btn-secondary" onclick="closeUploadModal()">
+        Cancel
+      </button>
+      <button class="btn-primary" id="uploadButton" onclick="startUpload()" disabled>
+        <i class="fas fa-upload"></i>
+        Upload <span id="uploadCount"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       RENAME DOCUMENT MODAL
+       ===================================================================== -->
+  <div class="rename-modal-backdrop" id="renameBackdrop"></div>
+  <div class="rename-modal" id="renameModal">
+    <div class="rename-icon">
+      <i class="fas fa-pen"></i>
+    </div>
+    <h2 class="rename-title">Rename Document</h2>
+    <input type="text" class="rename-input" id="renameInput" placeholder="Enter new name..." maxlength="100" autocomplete="off">
+    <div class="rename-actions">
+      <button class="rename-btn-cancel" id="renameCancel">
+        Cancel
+      </button>
+      <button class="rename-btn-save" id="renameSave">
+        <i class="fas fa-check"></i> Save
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       DELETE CONFIRMATION MODAL
+       ===================================================================== -->
+  <div class="confirm-modal-backdrop" id="confirmBackdrop"></div>
+  <div class="confirm-modal" id="confirmModal">
+    <div class="confirm-icon">
+      <i class="fas fa-trash-alt"></i>
+    </div>
+    <h2 class="confirm-title">Delete Document</h2>
+    <p class="confirm-message">
+      This will permanently delete this document and all its flashcards. This action cannot be undone.
+    </p>
+    <div class="confirm-actions">
+      <button class="confirm-btn-cancel" id="confirmCancel">
+        Cancel
+      </button>
+      <button class="confirm-btn-delete" id="confirmDelete">
+        <i class="fas fa-trash-alt"></i> Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       OVERTIME MODAL (shows when upload exceeds 60s)
+       ===================================================================== -->
+  <div class="overtime-modal-backdrop" id="overtimeBackdrop" onclick="closeOvertimeModal()"></div>
+  <div class="overtime-modal" id="overtimeModal">
+    <div class="overtime-icon">
+      <i class="fas fa-hourglass-half"></i>
+    </div>
+    <h2 class="overtime-title">Hang Tight!</h2>
+    <p class="overtime-message">
+      Your file is a bit large and taking longer than usual to process.
+      Everything is still running — thanks for your patience!
+    </p>
+    <button class="overtime-btn" onclick="closeOvertimeModal()">
+      <i class="fas fa-check"></i> Got it
+    </button>
+  </div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="modalFileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
+
+  <!-- External JavaScript -->
+  <script src="/static/js/studio.js"></script>
+  <script src="/static/js/FINAL_FIXED_LOADING.js"></script>
+  <script src="/static/js/Flashcards.js"></script>
+  <script src="/static/js/Topics.js"></script>
+  <script src="/static/js/Chatbot.js"></script>
+  <script src="/static/js/Quizzes.js"></script>
+  <script src="/static/js/Profile.js"></script>
+  <script src="/static/js/AudioManager.js"></script>
+  <script src="/static/js/Settings.js"></script>
+
+  {% include 'partials/Chatbot.html' %}
+
+</body>

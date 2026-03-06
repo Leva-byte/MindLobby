@@ -1,0 +1,347 @@
+/* ============================================================================
+   MINDLOBBY - QUIZ PANEL STYLES
+   ============================================================================ */
+
+/* ---- Live Score Display ---- */
+.qz-score-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--primary-light);
+}
+
+.qz-score-display i {
+  color: #2ecc71;
+}
+
+/* ---- History Badge on Doc Cards ---- */
+.qz-history-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8em;
+  color: #f1c40f;
+  padding: 4px 10px;
+  background: rgba(241, 196, 15, 0.1);
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+/* ---- Question Card ---- */
+.qz-question-card {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 40px 32px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.qz-question-text {
+  font-size: 1.25em;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+/* ---- Options ---- */
+.qz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.qz-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 1em;
+  color: var(--text-primary);
+  text-align: left;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.qz-option:hover:not(.qz-disabled) {
+  background: rgba(124, 119, 198, 0.1);
+  border-color: var(--primary);
+  transform: translateX(4px);
+}
+
+.qz-option-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(124, 119, 198, 0.2);
+  color: var(--primary-light);
+  font-weight: 700;
+  font-size: 0.9em;
+  flex-shrink: 0;
+}
+
+.qz-option-text {
+  flex: 1;
+}
+
+.qz-option-icon {
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+/* Correct / Wrong states */
+.qz-option.qz-correct {
+  border-color: #2ecc71;
+  background: rgba(46, 204, 113, 0.12);
+}
+
+.qz-option.qz-correct .qz-option-letter {
+  background: #2ecc71;
+  color: #fff;
+}
+
+.qz-option.qz-correct .qz-option-icon {
+  color: #2ecc71;
+}
+
+.qz-option.qz-wrong {
+  border-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.12);
+}
+
+.qz-option.qz-wrong .qz-option-letter {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.qz-option.qz-wrong .qz-option-icon {
+  color: #e74c3c;
+}
+
+.qz-option.qz-disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.qz-option.qz-disabled:not(.qz-correct):not(.qz-wrong) {
+  opacity: 0.4;
+}
+
+/* ---- Next Button ---- */
+.qz-next-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1em;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  float: right;
+}
+
+.qz-next-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 119, 198, 0.4);
+}
+
+/* ---- Results Card ---- */
+.qz-results-card {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 48px 40px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+.qz-results-header {
+  margin-bottom: 32px;
+}
+
+.qz-results-icon {
+  font-size: 3em;
+  color: #f1c40f;
+  margin-bottom: 12px;
+}
+
+.qz-results-title {
+  font-size: 1.8em;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.qz-results-doc {
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* Score ring */
+.qz-results-score-ring {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 24px;
+}
+
+.qz-ring-svg {
+  transform: rotate(-90deg);
+}
+
+.qz-ring-bg {
+  fill: none;
+  stroke: rgba(124, 119, 198, 0.2);
+  stroke-width: 8;
+}
+
+.qz-ring-fill {
+  fill: none;
+  stroke: var(--primary-light);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.qz-ring-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.qz-ring-pct {
+  font-size: 2em;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.qz-results-detail {
+  font-size: 1.1em;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+}
+
+.qz-results-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ---- Wrong Answers Review ---- */
+.qz-review-section {
+  text-align: left;
+  margin-bottom: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.qz-review-title {
+  font-size: 1.1em;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.qz-review-item {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.qz-review-q {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.qz-review-q i {
+  color: var(--primary-light);
+  margin-right: 6px;
+}
+
+.qz-review-wrong {
+  color: #e74c3c;
+  font-size: 0.9em;
+  margin-bottom: 4px;
+}
+
+.qz-review-wrong i {
+  margin-right: 6px;
+}
+
+.qz-review-correct {
+  color: #2ecc71;
+  font-size: 0.9em;
+}
+
+.qz-review-correct i {
+  margin-right: 6px;
+}
+
+/* ---- Start Quiz Button Override ---- */
+.qz-start-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .qz-question-card {
+    padding: 24px 16px;
+  }
+
+  .qz-results-card {
+    padding: 32px 20px;
+    margin: 20px auto;
+  }
+
+  .qz-option {
+    padding: 12px 14px;
+  }
+}
+
+/* ---- Exit Confirmation Modal ---- */
+#qzExitModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+}
+
+.qz-exit-modal-box {
+  background: #1a1a2e;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 36px 32px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}

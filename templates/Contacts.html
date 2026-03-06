@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us - MindLobby</title>
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+  <link rel="apple-touch-icon" href="/static/images/favicon.png">
+  <link rel="stylesheet" href="/static/css/contactstyle.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bruno+Ace&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="main-nav">
+    <div class="nav-container">
+      <a href="/" class="nav-brand">
+        <img src="/static/images/favicon.png" alt="MindLobby icon" class="brand-favicon">
+        <span>MindLobby</span>
+      </a>
+      <div class="nav-actions">
+        <a href="/quickplay" class="nav-link">Quick Play</a>
+        <button class="btn-nav btn-login" onclick="window.location.href='/'">
+          <i class="fas fa-sign-in-alt"></i>
+          Log In
+        </button>
+        <button class="btn-nav btn-signup" onclick="window.location.href='/'">
+          <i class="fas fa-user-plus"></i>
+          Sign Up
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="contact-hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <i class="fas fa-envelope"></i>
+        Contact Us
+      </div>
+      <h1 class="page-title">Get in Touch</h1>
+      <p class="page-subtitle">We'd love to hear from <em>you</em></p>
+    </div>
+  </section>
+
+  <!-- Contact Info Cards -->
+  <section class="contact-info-section">
+    <div class="section-container">
+      <div class="contact-info-grid">
+
+        <div class="contact-info-card">
+          <div class="card-icon"><i class="fas fa-envelope"></i></div>
+          <h3>Email Us</h3>
+          <p>Send us a message and we'll get back to you within 24 hours.</p>
+          <a href="https://mail.google.com/mail/u/0/#inbox?compose=GTvVlcSKjsnxVzNnBQQSMBDGbqcRCMNgnNlldstltbCsXLBdSqkxXLDgSLGGkPLVfNrxtfPVWJNvX" class="contact-info-link">contact.mindlobby@gmail.com</a>
+        </div>
+
+        <div class="contact-info-card">
+          <div class="card-icon"><i class="fas fa-map-marker-alt"></i></div>
+          <h3>Find Us</h3>
+          <p>We're based at Arellano University, building the future of study.</p>
+          <span class="contact-info-link">Pasig City, Philippines</span>
+        </div>
+
+        <div class="contact-info-card">
+          <div class="card-icon"><i class="fas fa-clock"></i></div>
+          <h3>Response Time</h3>
+          <p>Our team reviews every message personally and thoughtfully.</p>
+          <span class="contact-info-link">Within 24 hours</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Contact Form Section -->
+  <section class="contact-form-section">
+    <div class="section-container">
+      <div class="contact-layout">
+
+        <!-- Left: Form -->
+        <div class="form-panel">
+          <div class="form-panel-header">
+            <h2>Send a Message</h2>
+            <p>Fill out the form and we'll respond as soon as possible.</p>
+          </div>
+
+          <!-- Notification Banner -->
+          <div class="form-notification" id="formNotification" style="display:none;">
+            <i class="fas fa-check-circle" id="notifIcon"></i>
+            <span id="notifText"></span>
+          </div>
+
+          <div class="contact-form" id="contactForm">
+
+            <!-- Name Row -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="contactFirstName">
+                  <i class="fas fa-user"></i> First Name
+                </label>
+                <input type="text" id="contactFirstName" class="form-input" placeholder="Juan" required>
+                <span class="form-error" id="errFirstName"></span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="contactLastName">
+                  <i class="fas fa-user"></i> Last Name
+                </label>
+                <input type="text" id="contactLastName" class="form-input" placeholder="dela Cruz" required>
+                <span class="form-error" id="errLastName"></span>
+              </div>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+              <label class="form-label" for="contactEmail">
+                <i class="fas fa-envelope"></i> Email Address
+              </label>
+              <input type="email" id="contactEmail" class="form-input" placeholder="juan@example.com" required>
+              <span class="form-error" id="errEmail"></span>
+            </div>
+
+            <!-- Subject -->
+            <div class="form-group">
+              <label class="form-label" for="contactSubject">
+                <i class="fas fa-tag"></i> Subject
+              </label>
+              <div class="select-wrapper">
+                <select id="contactSubject" class="form-input form-select" required>
+                  <option value="" disabled selected>Select a topic...</option>
+                  <option value="general">General Inquiry</option>
+                  <option value="bug">Bug Report</option>
+                  <option value="feature">Feature Request</option>
+                  <option value="account">Account Issue</option>
+                  <option value="feedback">Feedback</option>
+                  <option value="other">Other</option>
+                </select>
+                <i class="fas fa-chevron-down select-arrow"></i>
+              </div>
+              <span class="form-error" id="errSubject"></span>
+            </div>
+
+            <!-- Message -->
+            <div class="form-group">
+              <label class="form-label" for="contactMessage">
+                <i class="fas fa-comment-alt"></i> Message
+              </label>
+              <textarea id="contactMessage" class="form-input form-textarea"
+                        placeholder="Tell us how we can help..." required></textarea>
+              <div class="char-counter"><span id="charCount">0</span> / 1000</div>
+              <span class="form-error" id="errMessage"></span>
+            </div>
+
+            <!-- Submit -->
+            <button class="form-submit-btn" id="submitBtn" onclick="Contacts.submitForm()">
+              <span id="submitBtnText"><i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send Message</span>
+              <span id="submitBtnLoading" style="display:none;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Sending...</span>
+            </button>
+
+          </div>
+        </div>
+
+        <!-- Right: FAQ -->
+        <div class="faq-panel">
+          <div class="faq-panel-header">
+            <h2>Common Questions</h2>
+            <p>Quick answers before you reach out.</p>
+          </div>
+
+          <div class="faq-list" id="faqList">
+
+            <div class="faq-item">
+              <button class="faq-question" onclick="Contacts.toggleFaq(this)">
+                <span>How do I reset my password?</span>
+                <i class="fas fa-plus faq-icon"></i>
+              </button>
+              <div class="faq-answer">
+                <p>Go to the login page and click "Forgot Password". Enter your registered email and we'll send a secure reset link within a few minutes.</p>
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <button class="faq-question" onclick="Contacts.toggleFaq(this)">
+                <span>Can I delete my account?</span>
+                <i class="fas fa-plus faq-icon"></i>
+              </button>
+              <div class="faq-answer">
+                <p>Yes. Send us a message using the form with the subject "Account Issue" and include your registered email. We'll process your deletion request within 48 hours.</p>
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <button class="faq-question" onclick="Contacts.toggleFaq(this)">
+                <span>Is MindLobby free to use?</span>
+                <i class="fas fa-plus faq-icon"></i>
+              </button>
+              <div class="faq-answer">
+                <p>MindLobby is currently free for all students. We're a thesis project built to help students study smarter together — no paywalls, no premium tiers.</p>
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <button class="faq-question" onclick="Contacts.toggleFaq(this)">
+                <span>How do I report a bug?</span>
+                <i class="fas fa-plus faq-icon"></i>
+              </button>
+              <div class="faq-answer">
+                <p>Use the form on this page and choose "Bug Report" as the subject. Please describe what happened, what you expected, and your browser/device. Screenshots are very helpful!</p>
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <button class="faq-question" onclick="Contacts.toggleFaq(this)">
+                <span>Where is my data stored?</span>
+                <i class="fas fa-plus faq-icon"></i>
+              </button>
+              <div class="faq-answer">
+                <p>Your data is stored securely on our servers. We never sell or share your personal information. Read our <a href="/privacy" class="faq-link">Privacy Policy</a> for full details.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="cta-content">
+      <h2>Ready to Transform Your Study Sessions?</h2>
+      <p>Join students learning smarter, together</p>
+      <div class="cta-buttons">
+        <a href="/" class="btn-cta btn-primary">
+          <i class="fas fa-home"></i> Back to Home
+        </a>
+        <a href="/quickplay" class="btn-cta btn-secondary">
+          <i class="fas fa-play"></i> Try Quick Play
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="main-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <img src="/static/images/favicon.png" alt="MindLobby icon" class="brand-favicon">
+        <span>MindLobby</span>
+      </div>
+      <div class="footer-links">
+        <a href="/about">About</a>
+        <a href="/features">Features</a>
+        <a href="/privacy">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="/contact" class="footer-active">Contact</a>
+      </div>
+      <div class="footer-social">
+        <a href="https://www.facebook.com/mindlobbyai"><i class="fab fa-facebook"></i></a>
+        <a href="https://www.instagram.com/mindlobbyai"><i class="fab fa-instagram"></i></a>
+        <a href="https://mail.google.com/mail/u/0/#inbox?compose=GTvVlcSKjsnxVzNnBQQSMBDGbqcRCMNgnNlldstltbCsXLBdSqkxXLDgSLGGkPLVfNrxtfPVWJNvX"><i class="fa-solid fa-envelope"></i></a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2025 MindLobby. A thesis project by students, for students.</p>
+      <p>Developed by Arellano University students.</p>
+    </div>
+  </footer>
+
+  <!-- ── SUCCESS MODAL ── -->
+  <div id="contactSuccessModal">
+    <div class="contact-modal-box">
+      <div class="contact-modal-icon">
+        <i class="fas fa-paper-plane"></i>
+      </div>
+      <h3 class="contact-modal-title">Message Sent!</h3>
+      <p class="contact-modal-body">
+        Thanks for reaching out. We've received your message and will get back to you
+        at <strong id="modalUserEmail"></strong> within 24 hours.
+      </p>
+      <button class="contact-modal-btn" onclick="Contacts.closeSuccessModal()">
+        <i class="fas fa-check"></i> Got it!
+      </button>
+    </div>
+  </div>
+
+  <script src="/static/js/Contacts.js"></script>
+</body>
+</html>

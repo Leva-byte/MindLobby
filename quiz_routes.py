@@ -1,0 +1,109 @@
+import random
+from flask import Blueprint, request, jsonify, session
+from database import (
+    get_flashcards_for_document,
+    save_quiz_result,
+    get_quiz_results_for_user,
+    get_quiz_history_for_document,
+)
+
+# ============================================================================
+# BLUEPRINT SETUP
+# ============================================================================
+
+quiz_bp = Blueprint('quizzes', __name__)
+
+MIN_CARDS_FOR_QUIZ = 4
+
+
+# ============================================================================
+# ROUTES
+# ============================================================================
+
+@quiz_bp.route('/api/quiz/generate/<int:document_id>', methods=['GET'])
+def generate_quiz(document_id):
+    """Generate a multiple-choice quiz from a document's flashcards."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+
+    doc, cards = get_flashcards_for_document(document_id, session['user_id'])
+    if doc is None:
+        return jsonify({'success': False, 'message': 'Document not found'}), 404
+
+    if len(cards) < MIN_CARDS_FOR_QUIZ:
+        return jsonify({
+            'success': False,
+            'message': f'Need at least {MIN_CARDS_FOR_QUIZ} flashcards to generate a quiz',
+        }), 400
+
+    # Build questions: each flashcard becomes one MCQ
+    all_answers = [c['answer'] for c in cards]
+
+    questions = []
+    for i, card in enumerate(cards):
+        correct = card['answer']
+
+        # Pick 3 distractors from other flashcard answers
+        other_answers = [a for j, a in enumerate(all_answers) if j != i]
+        distractors = random.sample(other_answers, min(3, len(other_answers)))
+
+        options = [correct] + distractors
+        random.shuffle(options)
+
+        questions.append({
+            'id': card['id'],
+            'question': card['question'],
+            'options': options,
+            'correct_index': options.index(correct),
+        })
+
+    random.shuffle(questions)
+
+    return jsonify({
+        'success': True,
+        'document_id': document_id,
+        'filename': doc['original_filename'],
+        'total': len(questions),
+        'questions': questions,
+    })
+
+
+@quiz_bp.route('/api/quiz/submit', methods=['POST'])
+def submit_quiz():
+    """Save a completed quiz result."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+
+    data = request.get_json() or {}
+    document_id = data.get('document_id')
+    score = data.get('score')
+    total = data.get('total')
+
+    if document_id is None or score is None or total is None:
+        return jsonify({'success': False, 'message': 'Missing fields'}), 400
+
+    if not isinstance(score, int) or not isinstance(total, int) or total < 1:
+        return jsonify({'success': False, 'message': 'Invalid score data'}), 400
+
+    result_id = save_quiz_result(document_id, session['user_id'], score, total)
+    return jsonify({'success': True, 'result_id': result_id})
+
+
+@quiz_bp.route('/api/quiz/results', methods=['GET'])
+def get_results():
+    """Return quiz result summaries grouped by document."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+
+    results = get_quiz_results_for_user(session['user_id'])
+    return jsonify({'success': True, 'results': results})
+
+
+@quiz_bp.route('/api/quiz/history/<int:document_id>', methods=['GET'])
+def get_history(document_id):
+    """Return quiz attempt history for a specific document."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+
+    history = get_quiz_history_for_document(document_id, session['user_id'])
+    return jsonify({'success': True, 'history': history})

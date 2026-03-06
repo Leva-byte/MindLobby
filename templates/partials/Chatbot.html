@@ -1,0 +1,55 @@
+<!-- =====================================================================
+     iTERA CHATBOT — Floating Chat Widget
+     ===================================================================== -->
+
+<!-- Floating Action Button -->
+<button class="chat-fab" id="chatFab" onclick="Chatbot.toggle()" title="Chat with iTERA">
+  <i class="fas fa-comment-dots"></i>
+</button>
+
+<!-- Chat Panel -->
+<div class="chat-panel" id="chatPanel">
+
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="chat-header-info">
+      <div class="chat-avatar">
+        <i class="fas fa-eye"></i>
+      </div>
+      <div>
+        <div class="chat-header-name">iTERA</div>
+        <div class="chat-header-status">Your AI Study Buddy</div>
+      </div>
+    </div>
+    <button class="chat-close-btn" onclick="Chatbot.toggle()" title="Close chat">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Messages Area -->
+  <div class="chat-messages" id="chatMessages">
+    <!-- Welcome message -->
+    <div class="chat-bubble chat-bubble-bot">
+      <p>Hi! I'm <strong>iTERA</strong>, your AI study buddy. Ask me anything about MindLobby or your studies!</p>
+    </div>
+  </div>
+
+  <!-- Suggested Prompts -->
+  <div class="chat-suggestions" id="chatSuggestions">
+    <button class="chat-suggestion-chip" onclick="Chatbot.sendSuggestion(this)">How do I upload a document?</button>
+    <button class="chat-suggestion-chip" onclick="Chatbot.sendSuggestion(this)">What are Topics and how do I use them?</button>
+    <button class="chat-suggestion-chip" onclick="Chatbot.sendSuggestion(this)">How do flashcards work?</button>
+    <button class="chat-suggestion-chip" onclick="Chatbot.sendSuggestion(this)">How do I study with my flashcards?</button>
+    <button class="chat-suggestion-chip" onclick="Chatbot.sendSuggestion(this)">What file types are supported?</button>
+  </div>
+
+  <!-- Input Area -->
+  <div class="chat-input-row">
+    <textarea class="chat-input" id="chatInput" placeholder="Ask iTERA anything..." rows="1"
+              onkeydown="Chatbot.handleKey(event)"></textarea>
+    <button class="chat-send-btn" id="chatSendBtn" onclick="Chatbot.send()" title="Send message">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </div>
+
+</div>

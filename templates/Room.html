@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindLobby | Room {{ room_code }}</title>
+
+    <!-- Stylesheets -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    <link rel="apple-touch-icon" href="/static/images/favicon.png">
+    <link rel="stylesheet" href="/static/css/roomstyle.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+</head>
+<body>
+    <script>if(localStorage.getItem('ml_theme')==='light')document.body.classList.add('light-mode');</script>
+    <!-- Connection Status Indicator -->
+    <div id="connectionStatus" class="connection-status connecting">
+        <i class="fas fa-wifi" id="connectionIcon"></i>
+        <span id="connectionText">Connecting...</span>
+    </div>
+
+    <!-- =====================================================================
+         LOBBY PHASE
+         ===================================================================== -->
+    <div id="lobbyPhase">
+        <!-- Room Header -->
+        <div class="room-header">
+            <div class="lobby-branding">
+                <i class="fas fa-brain brand-icon"></i>
+                <h1 class="brand-title">MindLobby</h1>
+            </div>
+            <div class="room-code" id="roomCodeDisplay">{{ room_code }}</div>
+            <div class="room-subtitle">Share this code to invite others to your mental arena</div>
+            <button class="copy-code-btn" onclick="Room.copyRoomCode()" id="copyBtn">
+                <i class="fas fa-copy"></i>
+                Copy Lobby Code
+            </button>
+        </div>
+
+        <!-- Document Selection (Host Only) -->
+        <div class="document-select-section" id="documentSelectSection" style="display:none;">
+            <div class="players-title">
+                <i class="fas fa-book"></i>
+                Select Quiz Document
+            </div>
+            <div class="selected-doc-info" id="selectedDocInfo" style="display:none;">
+                <i class="fas fa-check-circle"></i>
+                <span id="selectedDocName">No document selected</span>
+                <span id="selectedDocCards"></span>
+            </div>
+            <div class="doc-list" id="hostDocList">
+                <div class="loading-players">
+                    <div class="loading-spinner"></div>
+                    Loading your documents...
+                </div>
+            </div>
+        </div>
+
+        <!-- Players Section -->
+        <div class="players-section">
+            <div class="players-title">
+                <i class="fas fa-users-cog"></i>
+                Connected Minds
+                <span class="players-count" id="playerCount">0</span>
+            </div>
+
+            <ul id="playerList">
+                <li class="loading-players">
+                    <div class="loading-spinner"></div>
+                    Synchronizing neural connections...
+                </li>
+            </ul>
+
+            <div class="status-indicator" id="statusIndicator">
+                <i class="fas fa-brain status-icon"></i>
+                <span class="waiting-animation">Establishing mental link...</span>
+            </div>
+        </div>
+
+        <!-- Game Controls -->
+        <div class="game-controls">
+            <div class="primary-action">
+                <button id="startBtn" class="btn btn-primary" style="display:none;" onclick="Room.startGame()">
+                    <i class="fas fa-play"></i>
+                    <span>Begin Mental Challenge</span>
+                    <div class="btn-subtitle">Start the mind games</div>
+                </button>
+            </div>
+
+            <div class="secondary-actions">
+                <button class="btn btn-secondary" onclick="Room.inviteFriends()" id="inviteBtn">
+                    <i class="fas fa-user-plus"></i>
+                    Invite Minds
+                </button>
+
+                <button class="btn btn-danger" onclick="Room.leaveRoom()" id="leaveBtn">
+                    <i class="fas fa-door-open"></i>
+                    Exit Lobby
+                </button>
+            </div>
+        </div>
+
+        <!-- Lobby Stats -->
+        <div class="lobby-stats" style="display: none;" id="lobbyStats">
+            <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <span>Lobby Duration</span>
+                <div id="lobbyDuration">00:00</div>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Peak Players</span>
+                <div id="peakPlayers">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         GAME PHASE
+         ===================================================================== -->
+    <div id="gamePhase" style="display:none;">
+        <!-- Game Header -->
+        <div class="game-header">
+            <div class="game-header-left">
+                <i class="fas fa-brain brand-icon-sm"></i>
+                <span class="game-room-code">{{ room_code }}</span>
+            </div>
+            <div class="game-header-center">
+                <span class="game-question-counter" id="gameQuestionCounter">Question 1 of 10</span>
+            </div>
+            <div class="game-header-right">
+                <div class="game-score-display">
+                    <i class="fas fa-star"></i>
+                    <span id="gameMyScore">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timer Bar -->
+        <div class="timer-container">
+            <div class="timer-bar" id="timerBar"></div>
+        </div>
+        <div class="timer-text" id="timerText">15</div>
+
+        <!-- Question Card -->
+        <div class="question-card">
+            <p class="question-text" id="gameQuestionText">Loading question...</p>
+        </div>
+
+        <!-- Options Grid -->
+        <div class="options-grid" id="gameOptionsGrid">
+            <!-- Options injected by JS -->
+        </div>
+
+        <!-- Waiting Indicator (after answering) -->
+        <div class="waiting-for-others" id="waitingIndicator" style="display:none;">
+            <i class="fas fa-hourglass-half fa-spin"></i>
+            <span>Waiting for other players...</span>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         REVEAL PHASE
+         ===================================================================== -->
+    <div id="revealPhase" style="display:none;">
+        <div class="reveal-card">
+            <div class="reveal-header">
+                <div class="reveal-result-icon" id="revealResultIcon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 class="reveal-result-text" id="revealResultText">Correct!</h2>
+                <p class="reveal-score-gained" id="revealScoreGained">+500 points</p>
+            </div>
+
+            <div class="reveal-correct-answer">
+                <span class="reveal-label">Correct Answer:</span>
+                <span class="reveal-answer-text" id="revealCorrectAnswer">Answer text</span>
+            </div>
+
+            <!-- Per-player results for this question -->
+            <div class="reveal-scores">
+                <h3><i class="fas fa-users"></i> Round Results</h3>
+                <div class="reveal-scores-list" id="revealScoresList"></div>
+            </div>
+
+            <!-- Mini leaderboard -->
+            <div class="reveal-leaderboard">
+                <h3><i class="fas fa-trophy"></i> Leaderboard</h3>
+                <div class="reveal-leaderboard-list" id="revealLeaderboard"></div>
+            </div>
+
+            <p class="reveal-next-hint">Next question in a moment...</p>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         RESULTS PHASE
+         ===================================================================== -->
+    <div id="resultsPhase" style="display:none;">
+        <div class="results-container">
+            <div class="results-header">
+                <i class="fas fa-trophy results-trophy"></i>
+                <h1 class="results-title">Game Over!</h1>
+                <p class="results-subtitle" id="resultsSubtitle">10 questions completed</p>
+            </div>
+
+            <div class="results-leaderboard" id="resultsLeaderboard">
+                <!-- Built by JS -->
+            </div>
+
+            <div class="results-actions">
+                <button class="btn btn-primary results-btn" id="playAgainBtn" style="display:none;" onclick="Room.playAgain()">
+                    <i class="fas fa-redo"></i>
+                    <span>Play Again</span>
+                    <div class="btn-subtitle">Pick a new document</div>
+                </button>
+                <button class="btn btn-secondary results-btn" onclick="Room.backToLobby()">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Lobby
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pass Jinja variables to JS -->
+    <script>
+        window.__ROOM_CODE = "{{ room_code }}";
+        window.__USERNAME  = "{{ username }}";
+    </script>
+
+    <!-- External JavaScript -->
+    <script src="/static/js/AudioManager.js"></script>
+    <script src="/static/js/Settings.js"></script>
+    <script src="/static/js/Room.js"></script>
+</body>
+</html>

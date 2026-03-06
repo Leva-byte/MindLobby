@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindLobby</title>
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+  <link rel="apple-touch-icon" href="/static/images/favicon.png">
+  <link rel="stylesheet" href="/static/css/indexstyle.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- LOADING SCREEN -->
+  <div id="loadingScreen">
+    <div class="loading-content">
+      <div class="loading-logo">
+        <i class="fas fa-brain"></i>
+        <h1 class="brand-name">MindLobby</h1>
+      </div>
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Preparing your mental arena...</p>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT (Initially Hidden) -->
+  <div id="mainWrapper" style="display: none;">
+    <!-- Header with proper centering -->
+    <header class="main-header">
+      <div class="logo-container">
+        <a href="/home" class="logo-icon">
+          <i class="fas fa-brain"></i>
+        </a>
+        <a href="/home" class="main-logo-link">
+          <h1 class="main-logo">MindLobby</h1>
+        </a>
+        <p class="tagline">Where minds meet to compete</p>
+      </div>
+    </header>
+
+    <!-- Main Menu -->
+    <main id="mainMenu">
+      <div class="menu-container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+          <h2>Welcome to the Arena</h2>
+          <p>Enter your name and create or join a lobby to challenge other minds</p>
+        </div>
+
+        <!-- Player Name Input -->
+        <div class="form-group">
+          <label for="nameInput">
+            <i class="fas fa-user"></i>
+            Your Display Name
+          </label>
+          <input type="text" id="nameInput" placeholder="Enter your display name" maxlength="20" />
+          <div class="input-hint">This is how other players will see you</div>
+        </div>
+        
+        <!-- Create Room Section -->
+        <div class="form-group" id="createSection">
+          <!-- Lobby Type Toggle (shown only for signed-in users) -->
+          <div class="lobby-type-toggle" id="lobbyTypeToggle" style="display:none;">
+            <label class="toggle-label">
+              <i class="fas fa-globe"></i> Lobby Type:
+            </label>
+            <div class="toggle-options">
+              <button class="toggle-opt active" id="togglePublic" onclick="setLobbyType(true)">
+                <i class="fas fa-unlock"></i> Public
+              </button>
+              <button class="toggle-opt" id="togglePrivate" onclick="setLobbyType(false)">
+                <i class="fas fa-lock"></i> Private
+              </button>
+            </div>
+            <div class="input-hint" id="lobbyTypeHint">Anyone can join with the code</div>
+          </div>
+          <button id="createBtn" class="btn-primary" onclick="createRoom()">
+            <i class="fas fa-plus-circle"></i>
+            <span>Create New Lobby</span>
+            <div class="btn-subtitle">Start a new game session</div>
+          </button>
+          <!-- Login prompt (shown for guests) -->
+          <div id="loginPrompt" style="display:none;" class="info-item">
+            <i class="fas fa-lock"></i>
+            <span><a href="/home" style="color:#7c77c6;">Sign in</a> to create a lobby. You can still join as a guest.</span>
+          </div>
+        </div>
+        
+        <!-- Divider -->
+        <div class="divider">
+          <div class="divider-line"></div>
+          <span class="divider-text">OR</span>
+          <div class="divider-line"></div>
+        </div>
+        
+        <!-- Join Room Section -->
+        <div class="form-group join-section">
+          <label for="room_code">
+            <i class="fas fa-key"></i>
+            Lobby Access Code
+          </label>
+          <div class="join-input-container">
+            <input type="text" id="room_code" placeholder="Enter 5-digit code" maxlength="5" />
+            <button id="joinBtn" class="btn-secondary" onclick="joinRoom(event)">
+              <i class="fas fa-sign-in-alt"></i>
+              Join Lobby
+            </button>
+          </div>
+          <div class="input-hint">Ask the lobby host for the access code</div>
+        </div>
+        
+        <!-- Info Section -->
+        <div class="info-section">
+          <div class="info-item">
+            <i class="fas fa-lightbulb"></i>
+            <span>Create a lobby to host a game or join an existing one</span>
+          </div>
+          <div class="info-item">
+            <i class="fas fa-users"></i>
+            <span>Supports multiple players in real-time</span>
+          </div>
+          <div class="info-item">
+            <i class="fas fa-mobile-alt"></i>
+            <span>Works on desktop and mobile devices</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let isPublicLobby = true;
+    let isAuthenticated = false;
+
+    function setLobbyType(isPublic) {
+      isPublicLobby = isPublic;
+      document.getElementById('togglePublic').classList.toggle('active', isPublic);
+      document.getElementById('togglePrivate').classList.toggle('active', !isPublic);
+      document.getElementById('lobbyTypeHint').textContent = isPublic
+        ? 'Anyone can join with the code'
+        : 'Only signed-in members can join';
+    }
+
+    function createRoom() {
+      const username = document.getElementById("nameInput").value.trim();
+      if (!username) {
+        showNotification("Please enter your display name before creating a lobby!", "warning");
+        document.getElementById("nameInput").focus();
+        return;
+      }
+
+      if (username.length < 2) {
+        showNotification("Display name must be at least 2 characters long!", "warning");
+        document.getElementById("nameInput").focus();
+        return;
+      }
+
+      var createBtn = document.getElementById("createBtn");
+      createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating Lobby...</span>';
+      createBtn.disabled = true;
+
+      setTimeout(function () {
+        window.location.href = '/create_room?public=' + (isPublicLobby ? 'true' : 'false');
+      }, 500);
+    }
+
+    function joinRoom(event) {
+      event.preventDefault();
+      var username = document.getElementById("nameInput").value.trim();
+      var room = document.getElementById("room_code").value.trim().toUpperCase();
+
+      if (!username) {
+        showNotification("Please enter your display name before joining a lobby!", "warning");
+        document.getElementById("nameInput").focus();
+        return;
+      }
+
+      if (username.length < 2) {
+        showNotification("Display name must be at least 2 characters long!", "warning");
+        document.getElementById("nameInput").focus();
+        return;
+      }
+
+      if (!room || room.length !== 5) {
+        showNotification("Please enter a valid 5-character lobby code!", "warning");
+        document.getElementById("room_code").focus();
+        return;
+      }
+
+      var joinBtn = document.getElementById("joinBtn");
+      joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Joining...';
+      joinBtn.disabled = true;
+
+      // Validate room exists before redirecting
+      fetch('/api/room/' + room + '/status')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.exists) {
+            window.location.href = '/room/' + room + '?username=' + encodeURIComponent(username);
+          } else {
+            showNotification("Room not found. Check the code and try again.", "warning");
+            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i>Join Lobby';
+            joinBtn.disabled = false;
+          }
+        })
+        .catch(function () {
+          showNotification("Room not found. Check the code and try again.", "warning");
+          joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i>Join Lobby';
+          joinBtn.disabled = false;
+        });
+    }
+
+    // Auto-format room code input
+    document.getElementById("room_code").addEventListener("input", function(e) {
+      let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (value.length > 5) value = value.substring(0, 5);
+      e.target.value = value;
+    });
+
+    // Enter key support
+    document.getElementById("nameInput").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        createRoom();
+      }
+    });
+
+    document.getElementById("room_code").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        joinRoom(e);
+      }
+    });
+
+    // Character counter for name input
+    document.getElementById("nameInput").addEventListener("input", function(e) {
+      const value = e.target.value;
+      const hint = e.target.nextElementSibling;
+      const remaining = 20 - value.length;
+      
+      if (remaining <= 5) {
+        hint.textContent = `${remaining} characters remaining`;
+        hint.style.color = remaining <= 2 ? '#e74c3c' : '#f39c12';
+      } else {
+        hint.textContent = "This is how other players will see you";
+        hint.style.color = '';
+      }
+    });
+
+    // Notification system
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `notification notification-${type}`;
+      
+      const icon = type === 'warning' ? 'fas fa-exclamation-triangle' : 
+                   type === 'success' ? 'fas fa-check-circle' : 
+                   'fas fa-info-circle';
+      
+      notification.innerHTML = `
+        <i class="${icon}"></i>
+        <span>${message}</span>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Trigger animation
+      setTimeout(() => notification.classList.add('show'), 100);
+      
+      // Remove after 4 seconds
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+      }, 4000);
+    }
+
+    // Loading transition + auth check
+    window.onload = function () {
+      // Check auth status
+      fetch('/check-auth')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.authenticated) {
+            isAuthenticated = true;
+            var nameInput = document.getElementById('nameInput');
+            nameInput.value = data.username;
+            nameInput.readOnly = true;
+            nameInput.style.opacity = '0.7';
+            document.getElementById('lobbyTypeToggle').style.display = 'flex';
+            // Apply saved default lobby type from Settings
+            var savedLobby = localStorage.getItem('ml_defaultLobbyType');
+            if (savedLobby === 'private') setLobbyType(false);
+          } else {
+            document.getElementById('createBtn').style.display = 'none';
+            document.getElementById('loginPrompt').style.display = 'flex';
+          }
+        })
+        .catch(function () {
+          document.getElementById('createBtn').style.display = 'none';
+          document.getElementById('loginPrompt').style.display = 'flex';
+        });
+
+      // Check for error params
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('error') === 'login_required') {
+        setTimeout(function () {
+          showNotification('Please sign in to create a lobby.', 'warning');
+        }, 2600);
+      }
+
+      setTimeout(function () {
+        document.getElementById("loadingScreen").style.opacity = "0";
+        setTimeout(function () {
+          document.getElementById("loadingScreen").style.display = "none";
+          document.getElementById("mainWrapper").style.display = "flex";
+          document.getElementById("mainWrapper").style.opacity = "1";
+        }, 500);
+      }, 2000);
+    };
+
+    // Add some interactive polish
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add subtle animations to form elements
+      const inputs = document.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          this.parentElement.classList.add('focused');
+        });
+        
+        input.addEventListener('blur', function() {
+          this.parentElement.classList.remove('focused');
+        });
+      });
+
+      // Auto-focus on name input
+      setTimeout(() => {
+        if (document.getElementById("mainWrapper").style.display !== "none") {
+          document.getElementById("nameInput").focus();
+        }
+      }, 2500);
+    });
+
+    console.log('🧠 MindLobby initialized successfully!');
+    console.log('💡 Ready to challenge minds and create connections!');
+  </script>
+
+</body>
+</html> 

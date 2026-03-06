@@ -1,0 +1,122 @@
+<!-- =====================================================================
+     QUIZZES PANEL — Browse + Quiz + Results
+     ===================================================================== -->
+
+<!-- ── BROWSE VIEW (document grid) ── -->
+<div id="qzBrowseView">
+  <div class="fc-browse-header">
+    <h2 class="section-title">Choose a Document to Quiz</h2>
+    <div class="fc-search-wrapper" id="qzSearchWrapper">
+      <i class="fas fa-search"></i>
+      <input type="text" id="qzSearchInput" placeholder="Search documents..."
+             oninput="Quizzes.filterDocs(this.value)">
+    </div>
+  </div>
+
+  <!-- Document card grid -->
+  <div class="documents-grid" id="qzDocsGrid"></div>
+
+  <!-- Empty state -->
+  <div class="fc-empty-state" id="qzEmptyState" style="display:none;">
+    <i class="fas fa-question-circle fc-empty-icon"></i>
+    <h3 class="fc-empty-title">No Quizzable Documents</h3>
+    <p class="fc-empty-text">Upload a document with at least 4 flashcards to start a quiz!</p>
+    <button class="btn-primary" onclick="triggerFileUpload()">
+      <i class="fas fa-cloud-upload-alt"></i> Upload Document
+    </button>
+  </div>
+</div>
+
+<!-- ── QUIZ VIEW (one question at a time) ── -->
+<div id="qzQuizView" style="display:none;">
+
+  <!-- Header -->
+  <div class="fc-panel-header">
+    <div class="fc-panel-header-left">
+      <button class="fc-back-btn" onclick="Quizzes.exitQuiz()">
+        <i class="fas fa-arrow-left"></i> Exit Quiz
+      </button>
+      <div>
+        <h1 class="fc-panel-title" id="qzTitle">Quiz</h1>
+        <p class="fc-panel-subtitle" id="qzSubtitle"></p>
+      </div>
+    </div>
+    <div class="qz-score-display">
+      <i class="fas fa-check-circle"></i>
+      <span id="qzLiveScore">0</span> / <span id="qzLiveTotal">0</span>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="fc-panel-progress-bar">
+    <div class="fc-panel-progress-fill" id="qzProgressFill"></div>
+  </div>
+  <p class="fc-panel-progress-label" id="qzProgressLabel"></p>
+
+  <!-- Question Card -->
+  <div class="qz-question-card" id="qzQuestionCard">
+    <p class="qz-question-text" id="qzQuestionText"></p>
+    <div class="qz-options" id="qzOptions"></div>
+    <button class="qz-next-btn" id="qzNextBtn" onclick="Quizzes.nextQuestion()" style="display:none;">
+      Next <i class="fas fa-arrow-right"></i>
+    </button>
+  </div>
+</div>
+
+<!-- ── RESULTS VIEW ── -->
+<div id="qzResultsView" style="display:none;">
+  <div class="qz-results-card">
+    <div class="qz-results-header">
+      <i class="fas fa-trophy qz-results-icon"></i>
+      <h2 class="qz-results-title">Quiz Complete!</h2>
+      <p class="qz-results-doc" id="qzResultsDoc"></p>
+    </div>
+
+    <div class="qz-results-score-ring">
+      <svg class="qz-ring-svg" width="140" height="140">
+        <circle class="qz-ring-bg" cx="70" cy="70" r="60"></circle>
+        <circle class="qz-ring-fill" id="qzRingFill" cx="70" cy="70" r="60"></circle>
+      </svg>
+      <div class="qz-ring-text">
+        <span class="qz-ring-pct" id="qzResultPct">0%</span>
+      </div>
+    </div>
+
+    <p class="qz-results-detail" id="qzResultsDetail"></p>
+
+    <!-- Wrong answers review -->
+    <div class="qz-review-section" id="qzReviewSection" style="display:none;">
+      <h3 class="qz-review-title">Review Incorrect Answers</h3>
+      <div class="qz-review-list" id="qzReviewList"></div>
+    </div>
+
+    <div class="qz-results-actions">
+      <button class="fc-control-btn" onclick="Quizzes.retakeQuiz()">
+        <i class="fas fa-redo"></i> Retake Quiz
+      </button>
+      <button class="fc-control-btn" onclick="Quizzes.showBrowse()">
+        <i class="fas fa-th-large"></i> All Documents
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EXIT CONFIRMATION MODAL ── -->
+<div id="qzExitModal">
+  <div class="qz-exit-modal-box">
+    <i class="fas fa-exclamation-triangle" style="font-size:2.5em; color:#f39c12; margin-bottom:16px;"></i>
+    <h3 style="font-size:1.3em; font-weight:700; color:var(--text-primary); margin-bottom:10px;">Exit Quiz?</h3>
+    <p style="color:var(--text-muted); margin-bottom:28px; line-height:1.6;">
+      Your current progress will be lost. Are you sure you want to exit?
+    </p>
+    <div style="display:flex; gap:12px; justify-content:center;">
+      <button class="fc-control-btn" onclick="Quizzes.cancelExit()">
+        <i class="fas fa-arrow-left"></i> Keep Going
+      </button>
+      <button class="fc-control-btn" onclick="Quizzes.confirmExit()"
+              style="border-color:#e74c3c; color:#e74c3c;">
+        <i class="fas fa-sign-out-alt"></i> Exit Quiz
+      </button>
+    </div>
+  </div>
+</div>
