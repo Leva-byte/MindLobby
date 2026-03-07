@@ -3,7 +3,7 @@ import string
 import os
 import uuid
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session, abort
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, abort, make_response
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from werkzeug.security import check_password_hash
 import logging
@@ -466,16 +466,23 @@ def dashboard():
 # ============================================================================
 # PAGE ROUTES (UNCHANGED - Your existing routes)
 # ============================================================================
+def _home_response():
+    """Build Home.html response with no-cache headers."""
+    resp = make_response(render_template('Home.html'))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
+
 @app.route('/')
 def index():
     """Render the main platform landing page (redirects to studio if logged in)"""
     # If there's a reset_token, always show Home.html so the JS can open the reset modal
     if request.args.get('reset_token'):
         session.clear()  # Log out so the reset flow works cleanly
-        return render_template('Home.html')
+        return _home_response()
     if 'user_email' in session:
         return redirect('/studio')
-    return render_template('Home.html')
+    return _home_response()
 
 @app.route('/quickplay')
 def quickplay():
@@ -487,10 +494,10 @@ def home():
     """Render the main platform landing page (redirects to studio if logged in)"""
     if request.args.get('reset_token'):
         session.clear()
-        return render_template('Home.html')
+        return _home_response()
     if 'user_email' in session:
         return redirect('/studio')
-    return render_template('Home.html')
+    return _home_response()
 
 @app.route('/about')
 def about():
@@ -543,10 +550,14 @@ def studio():
     """Render the studio page - requires authentication"""
     if 'user_email' not in session:
         return redirect('/')
-    
-    return render_template('Studio.html',
+
+    resp = make_response(render_template('Studio.html',
                           username=session.get('username'),
-                          role=session.get('role', 'user'))
+                          role=session.get('role', 'user')))
+    # Prevent browser from caching authenticated pages (back-button after logout)
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 # ============================================================================
 # ROOM ROUTES (UNCHANGED - Your existing routes)
@@ -862,6 +873,33 @@ if GATEKEEPER_AVAILABLE:
             return jsonify({'success': True, 'message': 'Token revoked'})
         except Exception as e:
             logger.error(f"Admin revoke token error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route(f'/{ADMIN_URL_PATH}/api/users/<int:user_id>/revoke-all-tokens', methods=['POST'])
+    @admin_required
+    def admin_revoke_all_tokens(user_id):
+        """Revoke ALL active reset tokens for a user."""
+        try:
+            from database import get_db_connection
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                'UPDATE password_reset_tokens SET used = 1 WHERE user_id = ? AND used = 0',
+                (user_id,)
+            )
+            count = cursor.rowcount
+            conn.commit()
+            conn.close()
+
+            log_admin_action(
+                session.get('admin_user_id'),
+                'revoke_all_reset_tokens',
+                f'Revoked all ({count}) reset tokens for user #{user_id}',
+                request
+            )
+            return jsonify({'success': True, 'message': f'Revoked {count} token(s)'})
+        except Exception as e:
+            logger.error(f"Admin revoke all tokens error: {e}")
             return jsonify({'success': False, 'message': str(e)}), 500
 
     # ── User Management ────────────────────────────────────────────────────

@@ -973,7 +973,11 @@ async function viewResetTokens(userId, username) {
       return;
     }
 
-    container.innerHTML = data.tokens.map(t => `
+    container.innerHTML = `<div style="margin-bottom:12px;text-align:right">
+      <button class="action-btn action-btn-ban" onclick="revokeAllTokens(${userId})">
+        <i class="fas fa-ban"></i> Revoke All (${data.tokens.length})
+      </button>
+    </div>` + data.tokens.map(t => `
       <div class="log-entry">
         <div class="log-icon t-role"><i class="fas fa-key"></i></div>
         <div class="log-body">
@@ -1000,6 +1004,24 @@ async function viewResetTokens(userId, username) {
 async function revokeResetToken(tokenId) {
   try {
     const res  = await fetch(`/${ADMIN_PATH}/api/reset-tokens/${tokenId}/revoke`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showNotification(data.message, 'success');
+      if (_tokenViewUserId) {
+        const username = document.getElementById('tokenUserTitle')?.textContent || '';
+        viewResetTokens(_tokenViewUserId, username);
+      }
+    } else {
+      showNotification(data.message || 'Failed.', 'error');
+    }
+  } catch {
+    showNotification('Connection error.', 'error');
+  }
+}
+
+async function revokeAllTokens(userId) {
+  try {
+    const res  = await fetch(`/${ADMIN_PATH}/api/users/${userId}/revoke-all-tokens`, { method: 'POST' });
     const data = await res.json();
     if (data.success) {
       showNotification(data.message, 'success');

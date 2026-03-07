@@ -442,19 +442,26 @@ def create_password_reset_token(user_id, request_ip=None, request_user_agent=Non
     Create a password reset token (expires in 1 hour)
     ⭐ SECURITY: Stores HASHED token in database, returns PLAIN token for email
     ⭐ BACKWARD COMPATIBLE: Works with old and new database schemas
+    Invalidates all previous tokens for this user before creating a new one.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
+    # Invalidate all existing tokens for this user
+    cursor.execute(
+        'UPDATE password_reset_tokens SET used = 1 WHERE user_id = ? AND used = 0',
+        (user_id,)
+    )
+
     # Generate secure random token (this goes in the email)
     plain_token = secrets.token_urlsafe(32)
-    
+
     # Hash the token for database storage (CRITICAL SECURITY MEASURE)
     token_hash = hash_token(plain_token)
-    
+
     created_at = datetime.now()
     expires_at = created_at + timedelta(hours=1)
-    
+
     try:
         # Try new schema with metadata columns
         cursor.execute('''

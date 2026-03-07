@@ -151,32 +151,42 @@ function showView(viewName) {
 
 async function handleLogout(e) {
   e.preventDefault();
-  
-  try {
-    const response = await fetch('/api/logout', { 
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      // Clear user preferences so they don't bleed to other users/guests.
-      // Don't remove the light-mode class — avoids a visual flash before redirect.
-      ['ml_theme','ml_sfxVolume','ml_musicVolume','ml_musicMuted','ml_defaultLobbyType']
-        .forEach(function(k) { localStorage.removeItem(k); });
 
-      showNotification('Logging out...', 'success');
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1000);
-    }
+  // Show a loading overlay so the user sees a clean transition
+  _showLogoutOverlay();
+
+  try {
+    await fetch('/api/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     console.error('Logout error:', error);
-    showNotification('Error logging out', 'error');
   }
+
+  // Clear user preferences so they don't bleed to other users/guests.
+  ['ml_theme','ml_sfxVolume','ml_musicVolume','ml_musicMuted','ml_defaultLobbyType']
+    .forEach(function(k) { localStorage.removeItem(k); });
+
+  // Brief pause so the overlay is visible, then redirect
+  setTimeout(() => { window.location.replace('/'); }, 800);
+}
+
+function _showLogoutOverlay() {
+  const overlay = document.createElement('div');
+  overlay.className = 'ml-transition-overlay';
+  overlay.innerHTML = `
+    <div class="ml-transition-inner">
+      <img src="/static/images/favicon.png" alt="MindLobby" class="ml-transition-logo">
+      <div class="ml-transition-message">Logging out...</div>
+      <div class="ml-transition-bar-track">
+        <div class="ml-transition-bar"></div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => { overlay.classList.add('visible'); });
 }
 
 // ============================================================================
@@ -206,16 +216,17 @@ function showNotification(message, type = 'info') {
     <span>${message}</span>
   `;
   
-  // Add styles
+  // Add styles (theme-aware)
+  const isLight = document.body.classList.contains('light-mode');
   notification.style.cssText = `
     position: fixed;
     top: 90px;
     right: 20px;
-    background: rgba(26, 26, 62, 0.95);
-    color: white;
+    background: ${isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(26, 26, 62, 0.95)'};
+    color: ${isLight ? '#1a1a2e' : 'white'};
     padding: 16px 24px;
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 25px ${isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.3)'};
     backdrop-filter: blur(20px);
     z-index: 10000;
     display: flex;

@@ -341,6 +341,19 @@ body::before {
   line-height: 1.75;
 }
 
+.section p a,
+.section li a {
+  color: #a8a4e3;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.section p a:hover,
+.section li a:hover {
+  color: #c4b8f8;
+}
+
 .section p:last-child { margin-bottom: 0; }
 
 .section ul {

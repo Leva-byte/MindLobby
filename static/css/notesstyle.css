@@ -456,6 +456,79 @@
   to   { transform: scale(1.08); opacity: 1;   }
 }
 
+/* ============================================================================
+   LIGHT MODE — NOTES PANEL
+   ============================================================================ */
+
+body.light-mode .notes-content {
+  background: #ffffff;
+  border-color: rgba(108, 99, 192, 0.15);
+}
+
+body.light-mode .notes-content p {
+  color: rgba(26, 26, 46, 0.85);
+}
+
+body.light-mode .notes-content strong {
+  color: #1a1a2e;
+}
+
+body.light-mode .notes-content li {
+  color: rgba(26, 26, 46, 0.82);
+}
+
+body.light-mode .notes-content h4,
+body.light-mode .notes-content h5,
+body.light-mode .notes-content h6 {
+  color: rgba(26, 26, 46, 0.7);
+}
+
+body.light-mode .notes-content blockquote {
+  background: rgba(108, 99, 192, 0.06);
+  color: rgba(26, 26, 46, 0.7);
+}
+
+body.light-mode .notes-content code {
+  background: rgba(108, 99, 192, 0.08);
+  border-color: rgba(108, 99, 192, 0.2);
+  color: #5c57a8;
+}
+
+body.light-mode .notes-content pre {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(108, 99, 192, 0.15);
+}
+
+body.light-mode .notes-content pre code {
+  color: rgba(26, 26, 46, 0.85);
+}
+
+body.light-mode .notes-content td {
+  color: rgba(26, 26, 46, 0.78);
+}
+
+body.light-mode .notes-content tr:nth-child(even) td {
+  background: rgba(108, 99, 192, 0.04);
+}
+
+body.light-mode .notes-content th {
+  background: rgba(108, 99, 192, 0.08);
+}
+
+body.light-mode .notes-content a:hover {
+  color: #5c57a8;
+}
+
+body.light-mode .notes-raw-content {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(108, 99, 192, 0.15);
+  color: rgba(26, 26, 46, 0.8);
+}
+
+body.light-mode .notes-transition-overlay {
+  background: #f0f0f8;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .notes-panel-header {

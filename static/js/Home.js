@@ -255,31 +255,69 @@ function switchToLogin(e) {
 }
 
 // ============================================================================
+// PAGE TRANSITION OVERLAY
+// ============================================================================
+function showTransitionOverlay(message, destination) {
+  const overlay = document.createElement('div');
+  overlay.id = 'pageTransitionOverlay';
+  overlay.className = 'ml-transition-overlay';
+  overlay.innerHTML = `
+    <div class="ml-transition-inner">
+      <img src="/static/images/favicon.png" alt="MindLobby" class="ml-transition-logo">
+      <div class="ml-transition-message">${message}</div>
+      <div class="ml-transition-bar-track">
+        <div class="ml-transition-bar"></div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => { overlay.classList.add('visible'); });
+
+  setTimeout(() => {
+    window.location.replace(destination);
+  }, 600);
+}
+
+// ============================================================================
 // AUTHENTICATION HANDLERS
 // ============================================================================
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
-  
+  const submitBtn = e.target.querySelector('.auth-btn');
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+  }
+
   try {
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    
+
     const data = await response.json();
-    
+
     if (data.success) {
-      showNotification(data.message, 'success');
       closeAuthModal();
-      setTimeout(() => window.location.href = '/studio', 1000);
+      showTransitionOverlay('Entering Studio...', '/studio');
     } else {
       showNotification(data.message, 'error');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Log In';
+      }
     }
   } catch (error) {
     showNotification('Connection error. Please try again.', 'error');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Log In';
+    }
   }
 }
 
@@ -332,12 +370,12 @@ async function handleSignup(e) {
     
     if (data.success) {
       showNotification(data.message, 'success');
-      
+
       if (data.requires_verification) {
         showOTPModal(email);
       } else {
         closeAuthModal();
-        setTimeout(() => window.location.href = '/studio', 1000);
+        showTransitionOverlay('Setting up your Studio...', '/studio');
       }
     } else {
       showNotification(data.message, 'error');
@@ -350,8 +388,7 @@ async function handleSignup(e) {
 async function handleLogout() {
   try {
     await fetch('/api/logout', { method: 'POST' });
-    showNotification('Logged out successfully', 'success');
-    setTimeout(() => location.reload(), 1000);
+    showTransitionOverlay('Logging out...', '/home');
   } catch (error) {
     showNotification('Error logging out', 'error');
   }
@@ -403,7 +440,7 @@ async function checkAuth() {
 function updateUIForLoggedInUser(username) {
   const navActions = document.querySelector('.nav-actions');
   navActions.innerHTML = `
-    <a href="/dashboard" class="nav-link">Dashboard</a>
+    <a href="/studio" class="nav-link">Studio</a>
     <span class="user-welcome">Welcome, ${username}</span>
     <button class="btn-nav btn-logout" onclick="handleLogout()">
       <i class="fas fa-sign-out-alt"></i>
@@ -538,9 +575,8 @@ async function verifyOTP() {
     const data = await response.json();
     
     if (data.success) {
-      showNotification(data.message, 'success');
       closeOTPModal();
-      setTimeout(() => window.location.href = '/studio', 1000);
+      showTransitionOverlay('Entering Studio...', '/studio');
     } else {
       showNotification(data.message, 'error');
       for (let i = 1; i <= 6; i++) {
