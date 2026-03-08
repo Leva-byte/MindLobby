@@ -151,7 +151,7 @@ def send_password_reset_email(to_email, username, reset_link, request_ip=None, r
         if request_time:
             try:
                 dt = datetime.fromisoformat(request_time)
-                time_str = dt.strftime("%B %d, %Y at %I:%M %p UTC")
+                time_str = dt.strftime("%B %d, %Y at %I:%M %p")
             except:
                 time_str = str(request_time)
         

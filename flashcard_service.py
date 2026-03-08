@@ -1,5 +1,6 @@
 import os
 import json
+import random
 import requests
 import logging
 from dotenv import load_dotenv, find_dotenv
@@ -78,10 +79,21 @@ def generate_flashcards(markdown_text):
 Rules:
 - Each flashcard must have a clear, specific QUESTION and a concise ANSWER.
 - Use headings and sections to identify the most important topics.
-- Answers should be 1-3 sentences maximum.
+- CRITICAL: Keep answers SHORT — ideally 1 to 8 words. These will be used as multiple-choice quiz options, so long paragraph answers do not work. If a concept needs explanation, put the explanation in the question and make the answer the key term or short phrase.
 - Generate more flashcards for longer or denser content, fewer for shorter content.
-- IMPORTANT: The question must NOT contain or repeat the key words from the answer. These flashcards will be used in multiple-choice quizzes, so if the question includes the answer text, it becomes a giveaway. For example, do NOT write: Q: "What is visual art?" A: "Visual art is a form of..." — instead write: Q: "Which field of art primarily involves creating works that are visual in nature?" A: "Visual art"
-- Prefer questions that test understanding (e.g. "Which of the following describes...", "What term refers to...") rather than simple definition recall with the term already in the question.
+- IMPORTANT: The question must NOT contain or repeat the key words from the answer. If the question includes the answer text, it becomes a giveaway in a quiz.
+- Do NOT start the question with the answer word or phrase.
+- Prefer questions that test understanding (e.g. "Which of the following describes...", "What term refers to...") rather than simple definition recall.
+
+BAD examples (do NOT do this):
+  Q: "What is visual art?" A: "Visual art is a form of artistic expression that is primarily visual in nature" (answer too long, question contains answer)
+  Q: "Photosynthesis converts what?" A: "Photosynthesis converts sunlight into chemical energy" (answer repeats question, answer too long)
+
+GOOD examples (do this):
+  Q: "Which field of art primarily involves creating works that are visual in nature?" A: "Visual art"
+  Q: "What process do plants use to convert sunlight into chemical energy?" A: "Photosynthesis"
+  Q: "Which data structure uses FIFO (First In, First Out) ordering?" A: "Queue"
+
 - Return ONLY valid JSON - no explanation, no markdown code fences, no extra text.
 
 Format:
@@ -262,6 +274,62 @@ Document content (raw extracted text):
     except (KeyError, IndexError):
         logger.warning("⚠️ Unexpected notes response format — falling back to raw markdown")
         return markdown_text
+
+
+# ============================================================================
+# MCQ GENERATION (shared by solo quizzes and multiplayer)
+# ============================================================================
+
+def _pick_distractors(correct, other_answers, count=3):
+    """Pick distractors that are similar in length/format to the correct answer."""
+    if len(other_answers) <= count:
+        return list(other_answers)
+
+    correct_len = len(correct)
+    correct_words = len(correct.split())
+
+    scored = []
+    for ans in other_answers:
+        # Score by how similar the length and word count are (lower = more similar)
+        length_ratio = len(ans) / max(correct_len, 1)
+        word_ratio = len(ans.split()) / max(correct_words, 1)
+        score = abs(1 - length_ratio) + abs(1 - word_ratio)
+        scored.append((score, ans))
+
+    scored.sort(key=lambda x: x[0])
+
+    # Take the top candidates (2x needed), then randomly pick from those
+    pool_size = min(len(scored), count * 2)
+    candidates = [ans for _, ans in scored[:pool_size]]
+    return random.sample(candidates, min(count, len(candidates)))
+
+
+def generate_mcq_questions(cards):
+    """
+    Generate multiple-choice questions from flashcards.
+    Uses smarter distractor selection (similar length/format).
+    Returns a shuffled list of {id, question, options, correct_index}.
+    """
+    all_answers = [c['answer'] for c in cards]
+
+    questions = []
+    for i, card in enumerate(cards):
+        correct = card['answer']
+        other_answers = [a for j, a in enumerate(all_answers) if j != i]
+        distractors = _pick_distractors(correct, other_answers, count=3)
+
+        options = [correct] + distractors
+        random.shuffle(options)
+
+        questions.append({
+            'id': card['id'],
+            'question': card['question'],
+            'options': options,
+            'correct_index': options.index(correct),
+        })
+
+    random.shuffle(questions)
+    return questions
 
 
 # ============================================================================

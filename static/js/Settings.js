@@ -60,6 +60,22 @@
       _setText('settingsLobbyValue', lobby === 'public' ? 'Public' : 'Private');
     }
 
+    // Audio theme dropdown
+    var themeSelect = document.getElementById('settingsAudioTheme');
+    if (themeSelect && window.AudioManager) {
+      var themes = AudioManager.getThemeList();
+      var currentTheme = AudioManager.getTheme();
+      themeSelect.innerHTML = '';
+      themes.forEach(function (t) {
+        var opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        if (t.id === currentTheme) opt.selected = true;
+        themeSelect.appendChild(opt);
+      });
+      _setText('settingsThemeAudioValue', (themes.find(function (t) { return t.id === currentTheme; }) || {}).name || 'Default');
+    }
+
     if (!_bound) {
       _bindEvents();
       _bound = true;
@@ -139,6 +155,39 @@
         _syncToServer();
       });
     }
+
+    // Audio theme dropdown
+    var themeSelect = document.getElementById('settingsAudioTheme');
+    if (themeSelect) {
+      themeSelect.addEventListener('change', function () {
+        var themeId = this.value;
+        if (window.AudioManager) AudioManager.setTheme(themeId);
+        var themes = window.AudioManager ? AudioManager.getThemeList() : [];
+        var match = themes.find(function (t) { return t.id === themeId; });
+        _setText('settingsThemeAudioValue', match ? match.name : themeId);
+        _syncToServer();
+      });
+    }
+
+    // Preview button — plays a 5-second snippet of the theme's quiz music
+    var previewBtn = document.getElementById('settingsPreviewBtn');
+    if (previewBtn) {
+      var _previewAudio = null;
+      previewBtn.addEventListener('click', function () {
+        // Stop any existing preview
+        if (_previewAudio) { _previewAudio.pause(); _previewAudio = null; }
+
+        if (window.AudioManager) {
+          AudioManager.startMusic('quiz');
+          var icon = previewBtn.querySelector('i');
+          if (icon) { icon.className = 'fas fa-stop'; }
+          setTimeout(function () {
+            AudioManager.stopMusic();
+            if (icon) { icon.className = 'fas fa-play'; }
+          }, 5000);
+        }
+      });
+    }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -159,7 +208,8 @@
       sfxVolume:        _getFloat(KEYS.sfxVolume, 0.7),
       musicVolume:      _getFloat(KEYS.musicVolume, 0.5),
       musicMuted:       localStorage.getItem(KEYS.musicMuted) === 'true',
-      defaultLobbyType: localStorage.getItem(KEYS.lobbyType) || 'public'
+      defaultLobbyType: localStorage.getItem(KEYS.lobbyType) || 'public',
+      audioTheme:       localStorage.getItem('ml_audioTheme') || 'default'
     };
   }
 
@@ -184,15 +234,17 @@
     if (obj.musicVolume != null) localStorage.setItem(KEYS.musicVolume, JSON.stringify(obj.musicVolume));
     if (obj.musicMuted != null) localStorage.setItem(KEYS.musicMuted, JSON.stringify(obj.musicMuted));
     if (obj.defaultLobbyType) localStorage.setItem(KEYS.lobbyType, obj.defaultLobbyType);
+    if (obj.audioTheme) localStorage.setItem('ml_audioTheme', obj.audioTheme);
 
     // Re-apply theme in case it changed
     applyTheme();
 
-    // Sync AudioManager volumes if already loaded
+    // Sync AudioManager volumes and theme if already loaded
     if (window.AudioManager) {
       AudioManager.setSfxVolume(_getFloat(KEYS.sfxVolume, 0.7));
       AudioManager.setMusicVolume(_getFloat(KEYS.musicVolume, 0.5));
       AudioManager.setMusicMuted(localStorage.getItem(KEYS.musicMuted) === 'true');
+      if (obj.audioTheme) AudioManager.setTheme(obj.audioTheme);
     }
   }
 

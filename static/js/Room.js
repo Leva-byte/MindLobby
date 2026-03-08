@@ -118,7 +118,7 @@
             el.peakPlayers.textContent = peakPlayerCount;
         }
 
-        isHost = players.length > 0 && players[0] === username;
+        isHost = players.length > 0 && players[0].username === username;
         updateHostControls();
 
         if (isHost) {
@@ -179,6 +179,9 @@
         myTotalScore = 0;
         showPhase('game');
         document.getElementById('gameMyScore').textContent = '0';
+        // Show end game button for host
+        var endBtn = document.getElementById('endGameBtn');
+        if (endBtn) endBtn.style.display = isHost ? 'flex' : 'none';
         if (window.AudioManager) AudioManager.startMusic('game');
         showNotification('The mental challenge begins!', 'success', 'Game On');
     });
@@ -199,6 +202,8 @@
 
     socket.on('game_results', function (data) {
         if (window.AudioManager) AudioManager.stopMusic();
+        var endBtn = document.getElementById('endGameBtn');
+        if (endBtn) endBtn.style.display = 'none';
         renderResults(data);
         showPhase('results');
     });
@@ -206,6 +211,8 @@
     socket.on('game_reset', function () {
         selectedDocId = null;
         myTotalScore = 0;
+        var endBtn = document.getElementById('endGameBtn');
+        if (endBtn) endBtn.style.display = 'none';
         var info = document.getElementById('selectedDocInfo');
         if (info) info.style.display = 'none';
         showPhase('lobby');
@@ -470,7 +477,10 @@
             return;
         }
 
-        players.forEach(function (playerName, index) {
+        players.forEach(function (player, index) {
+            var playerName = typeof player === 'string' ? player : player.username;
+            var profilePic = typeof player === 'object' ? player.profile_picture : null;
+
             var li = document.createElement('li');
             li.className = 'player-item fade-in';
             if (index === 0) li.classList.add('host');
@@ -483,11 +493,16 @@
                 kickHtml = '<button class="kick-btn" onclick="event.stopPropagation(); Room.kickPlayer(\'' + playerName.replace(/'/g, "\\'") + '\')" title="Kick player"><i class="fas fa-times"></i></button>';
             }
 
+            var avatarHtml;
+            if (profilePic) {
+                avatarHtml = '<img src="' + escHtml(profilePic) + '" class="player-avatar-img" alt="">';
+            } else {
+                avatarHtml = '<div class="player-avatar" style="background: ' + brainColor + ';"><i class="fas fa-brain"></i></div>';
+            }
+
             li.innerHTML =
                 '<div class="player-info">' +
-                    '<div class="player-avatar" style="background: ' + brainColor + ';">' +
-                        '<i class="fas fa-brain"></i>' +
-                    '</div>' +
+                    avatarHtml +
                     '<div>' +
                         '<div class="player-name">' + escHtml(playerName) + (isCurrentUser ? ' (You)' : '') + '</div>' +
                         '<div class="player-status">' + (index === 0 ? 'Mind Master' : 'Neural Node') + '</div>' +
@@ -754,6 +769,28 @@
     });
 
     // =========================================================================
+    // END GAME (HOST) — confirmation modal + emit reset
+    // =========================================================================
+    function confirmEndGame() {
+        var backdrop = document.getElementById('endGameBackdrop');
+        var modal = document.getElementById('endGameModal');
+        if (backdrop) backdrop.classList.add('open');
+        if (modal) modal.classList.add('open');
+    }
+
+    function cancelEndGame() {
+        var backdrop = document.getElementById('endGameBackdrop');
+        var modal = document.getElementById('endGameModal');
+        if (backdrop) backdrop.classList.remove('open');
+        if (modal) modal.classList.remove('open');
+    }
+
+    function endGame() {
+        cancelEndGame();
+        socket.emit('reset_game', { room: room });
+    }
+
+    // =========================================================================
     // PUBLIC API — for onclick handlers in HTML
     // =========================================================================
     window.Room = {
@@ -765,7 +802,10 @@
         startGame:        startGame,
         leaveRoom:        leaveRoom,
         playAgain:        playAgain,
-        backToLobby:      backToLobby
+        backToLobby:      backToLobby,
+        confirmEndGame:   confirmEndGame,
+        cancelEndGame:    cancelEndGame,
+        endGame:          endGame
     };
 
     console.log('MindLobby Neural Network initialized!');

@@ -507,20 +507,26 @@ def verify_reset_token(plain_token):
         ''', (token_hash,))
         
         token_record = cursor.fetchone()
-        
+
         if not token_record:
+            print(f"❌ Token not found in database (hash mismatch or already used)")
             conn.close()
             return None
-        
+
         # Check if expired
         expires_at = datetime.fromisoformat(token_record['expires_at'])
-        if datetime.now() > expires_at:
+        now = datetime.now()
+        print(f"🔍 Token expiry check: now={now.isoformat()} expires_at={expires_at.isoformat()} expired={now > expires_at}")
+
+        if now > expires_at:
+            print(f"❌ Token expired ({now - expires_at} past expiry)")
             conn.close()
             return None
-        
+
+        print(f"✅ Token valid for user_id={token_record['user_id']}, expires in {expires_at - now}")
         conn.close()
         return token_record['user_id']
-        
+
     except Exception as e:
         print(f"❌ Error in verify_reset_token: {e}")
         conn.close()
@@ -1023,7 +1029,8 @@ def cleanup_expired_reset_tokens():
     """Delete expired password reset tokens"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM password_reset_tokens WHERE datetime(expires_at) < datetime("now")')
+    now_local = datetime.now().isoformat()
+    cursor.execute('DELETE FROM password_reset_tokens WHERE expires_at < ?', (now_local,))
     deleted = cursor.rowcount
     conn.commit()
     conn.close()

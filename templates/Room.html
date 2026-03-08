@@ -141,6 +141,9 @@
                     <i class="fas fa-star"></i>
                     <span id="gameMyScore">0</span>
                 </div>
+                <button class="end-game-btn" id="endGameBtn" style="display:none;" onclick="Room.confirmEndGame()" title="End Game">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
         </div>
 
@@ -227,6 +230,24 @@
                     Back to Lobby
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         END GAME CONFIRMATION MODAL (Host only)
+         ===================================================================== -->
+    <div class="end-game-modal-backdrop" id="endGameBackdrop" onclick="Room.cancelEndGame()"></div>
+    <div class="end-game-modal" id="endGameModal">
+        <i class="fas fa-exclamation-triangle" style="font-size:2.5em; color:#f39c12; margin-bottom:16px;"></i>
+        <h3 class="end-game-modal-title">End Game?</h3>
+        <p class="end-game-modal-msg">This will stop the quiz for all players and return everyone to the lobby.</p>
+        <div class="end-game-modal-actions">
+            <button class="btn btn-secondary" onclick="Room.cancelEndGame()">
+                <i class="fas fa-arrow-left"></i> Keep Playing
+            </button>
+            <button class="btn btn-danger" onclick="Room.endGame()">
+                <i class="fas fa-stop-circle"></i> End Game
+            </button>
         </div>
     </div>
 

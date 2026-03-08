@@ -1,4 +1,3 @@
-import random
 from flask import Blueprint, request, jsonify, session
 from database import (
     get_flashcards_for_document,
@@ -6,6 +5,7 @@ from database import (
     get_quiz_results_for_user,
     get_quiz_history_for_document,
 )
+from flashcard_service import generate_mcq_questions
 
 # ============================================================================
 # BLUEPRINT SETUP
@@ -36,28 +36,7 @@ def generate_quiz(document_id):
             'message': f'Need at least {MIN_CARDS_FOR_QUIZ} flashcards to generate a quiz',
         }), 400
 
-    # Build questions: each flashcard becomes one MCQ
-    all_answers = [c['answer'] for c in cards]
-
-    questions = []
-    for i, card in enumerate(cards):
-        correct = card['answer']
-
-        # Pick 3 distractors from other flashcard answers
-        other_answers = [a for j, a in enumerate(all_answers) if j != i]
-        distractors = random.sample(other_answers, min(3, len(other_answers)))
-
-        options = [correct] + distractors
-        random.shuffle(options)
-
-        questions.append({
-            'id': card['id'],
-            'question': card['question'],
-            'options': options,
-            'correct_index': options.index(correct),
-        })
-
-    random.shuffle(questions)
+    questions = generate_mcq_questions(cards)
 
     return jsonify({
         'success': True,

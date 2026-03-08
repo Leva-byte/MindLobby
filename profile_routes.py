@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
@@ -219,6 +220,7 @@ def reset_password():
             reset_link=reset_link,
             request_ip=request.remote_addr,
             request_user_agent=request.headers.get('User-Agent', ''),
+            request_time=datetime.now().isoformat(),
         )
         if not success:
             logger.error(f"Failed to send reset email: {msg}")

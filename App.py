@@ -43,6 +43,8 @@ from topics_routes import topics_bp
 from chat_routes import chat_bp
 from profile_routes import profile_bp
 from quiz_routes import quiz_bp
+from youtube_routes import youtube_bp
+from flashcard_service import generate_mcq_questions
 
 # ============================================================================
 # NEW: GATEKEEPER IMPORTS (ADMIN SECURITY)
@@ -94,6 +96,7 @@ app.register_blueprint(topics_bp)
 app.register_blueprint(chat_bp)
 app.register_blueprint(profile_bp)
 app.register_blueprint(quiz_bp)
+app.register_blueprint(youtube_bp)
 
 # ============================================================================
 # DATABASE INITIALIZATION (ENHANCED)
@@ -121,6 +124,21 @@ room_host_user_ids = {}      # room_code -> host's user_id (for DB access)
 room_creation_time = {}
 room_games = {}              # room_code -> game state dict
 room_settings = {}           # room_code -> {'public': True/False}
+
+
+def _build_player_list(room_code):
+    """Build player list with profile pictures for socket emission."""
+    players = []
+    for u in room_users.get(room_code, []):
+        entry = {'username': u['username'], 'profile_picture': None}
+        uid = u.get('user_id')
+        if uid:
+            db_user = get_user_by_id(uid)
+            if db_user and db_user['profile_picture']:
+                entry['profile_picture'] = '/' + db_user['profile_picture']
+        players.append(entry)
+    return players
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -418,6 +436,7 @@ def api_forgot_password():
             reset_link=reset_link,
             request_ip=request.remote_addr,
             request_user_agent=request.headers.get('User-Agent', ''),
+            request_time=datetime.now().isoformat(),
         )
         if not success:
             logger.error(f"Reset email failed: {msg}")
@@ -1340,8 +1359,7 @@ def handle_disconnect():
             else:
                 # Update remaining players
                 if users:
-                    user_list = [u['username'] for u in users]
-                    emit('update_player_list', user_list, to=room_code)
+                    emit('update_player_list', _build_player_list(room_code), to=room_code)
                 else:
                     cleanup_empty_rooms()
             break
@@ -1383,18 +1401,18 @@ def handle_join_room(data):
             room_users[room_code].append({
                 'sid': sid,
                 'username': username,
+                'user_id': session.get('user_id'),
                 'joined_at': datetime.now().isoformat()
             })
             logger.info(f"User {username} joined room {room_code}")
         
-        user_list = [u['username'] for u in room_users[room_code]]
-        emit('update_player_list', user_list, to=room_code)
-        
+        emit('update_player_list', _build_player_list(room_code), to=room_code)
+
         emit('room_joined', {
             'room': room_code,
             'username': username,
             'is_host': room_hosts.get(room_code) == sid,
-            'player_count': len(user_list)
+            'player_count': len(room_users[room_code])
         })
         
     except Exception as e:
@@ -1423,8 +1441,7 @@ def handle_leave_room(data):
                         d.pop(room_code, None)
                 else:
                     if room_users[room_code]:
-                        user_list = [u['username'] for u in room_users[room_code]]
-                        emit('update_player_list', user_list, to=room_code)
+                        emit('update_player_list', _build_player_list(room_code), to=room_code)
                     else:
                         cleanup_empty_rooms()
 
@@ -1470,8 +1487,7 @@ def handle_kick_player(data):
 
         leave_room(room_code, sid=target_user['sid'])
 
-        user_list = [u['username'] for u in room_users[room_code]]
-        emit('update_player_list', user_list, to=room_code)
+        emit('update_player_list', _build_player_list(room_code), to=room_code)
         logger.info(f"Host kicked {target_username} from room {room_code}")
 
     except Exception as e:
@@ -1548,22 +1564,8 @@ def handle_start_game(data):
             emit('error', {'message': 'Not enough flashcards'})
             return
 
-        # Generate MCQ (same logic as quiz_routes.py)
-        all_answers = [c['answer'] for c in cards]
-        questions = []
-        for i, card in enumerate(cards):
-            correct = card['answer']
-            other_answers = [a for j, a in enumerate(all_answers) if j != i]
-            distractors = random.sample(other_answers, min(3, len(other_answers)))
-            options = [correct] + distractors
-            random.shuffle(options)
-            questions.append({
-                'id': card['id'],
-                'question': card['question'],
-                'options': options,
-                'correct_index': options.index(correct),
-            })
-        random.shuffle(questions)
+        # Generate MCQ using shared function (smarter distractor selection)
+        questions = generate_mcq_questions(cards)
 
         # Initialize game state
         player_scores = {}

@@ -319,3 +319,83 @@ function enableUploadButtons() {
     btn.style.cursor = 'pointer';
   });
 }
+
+// ============================================================================
+// YOUTUBE LOADING OVERLAY — separate sequence for YouTube imports
+// ============================================================================
+
+let _ytLoadInterval = null;
+
+function showYtLoadingOverlay(url) {
+  const overlay = document.getElementById('ytLoadingOverlay');
+  if (!overlay) return;
+  overlay.classList.add('active');
+
+  // Reset steps
+  for (let i = 1; i <= 4; i++) {
+    const s = document.getElementById('ytStep' + i);
+    if (s) { s.classList.remove('active', 'complete'); }
+  }
+  const s1 = document.getElementById('ytStep1');
+  if (s1) s1.classList.add('active');
+
+  const bar = document.getElementById('ytLoadingBarFill');
+  if (bar) bar.style.width = '0%';
+
+  _setYtText('Fetching Transcript...', 'Connecting to YouTube servers');
+
+  // Simulate step progression
+  let elapsed = 0;
+  if (_ytLoadInterval) clearInterval(_ytLoadInterval);
+  _ytLoadInterval = setInterval(function () {
+    elapsed++;
+    var pct = Math.min(elapsed * 1.2, 85);
+    if (bar) bar.style.width = pct + '%';
+
+    if (elapsed === 5) {
+      _setYtStep(2);
+      _setYtText('Generating Flashcards...', 'AI is creating your study cards');
+    } else if (elapsed === 15) {
+      _setYtStep(3);
+      _setYtText('Summarizing Notes...', 'AI is writing your lecture notes');
+    }
+  }, 1000);
+}
+
+function completeYtLoading(data) {
+  if (_ytLoadInterval) { clearInterval(_ytLoadInterval); _ytLoadInterval = null; }
+
+  var bar = document.getElementById('ytLoadingBarFill');
+  if (bar) bar.style.width = '100%';
+
+  _setYtStep(4);
+  var count = data && data.flashcards_generated ? data.flashcards_generated : 0;
+  _setYtText('Complete!', count + ' flashcards and notes created!');
+}
+
+function hideYtLoadingOverlay() {
+  if (_ytLoadInterval) { clearInterval(_ytLoadInterval); _ytLoadInterval = null; }
+  var overlay = document.getElementById('ytLoadingOverlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function _setYtText(title, msg) {
+  var t = document.getElementById('ytLoadingTitle');
+  var m = document.getElementById('ytLoadingMsg');
+  if (t) t.textContent = title;
+  if (m) m.textContent = msg;
+}
+
+function _setYtStep(num) {
+  for (var i = 1; i <= 4; i++) {
+    var s = document.getElementById('ytStep' + i);
+    if (!s) continue;
+    if (i < num) { s.classList.remove('active'); s.classList.add('complete'); }
+    else if (i === num) { s.classList.remove('complete'); s.classList.add('active'); }
+    else { s.classList.remove('active', 'complete'); }
+  }
+}
+
+window.showYtLoadingOverlay = showYtLoadingOverlay;
+window.completeYtLoading    = completeYtLoading;
+window.hideYtLoadingOverlay = hideYtLoadingOverlay;

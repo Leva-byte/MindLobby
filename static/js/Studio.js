@@ -931,7 +931,7 @@ function openRenameModal(docId, currentName) {
 window.openRenameModal = openRenameModal;
 
 // ============================================================================
-// FILE UPLOAD MODAL - Works with FINAL_FIXED_LOADING.js
+// FILE UPLOAD MODAL - Works with UploadLoading.js
 // ============================================================================
 
 let selectedFilesForUpload = [];
@@ -1213,6 +1213,36 @@ function openYoutubeModal() {
     modal.classList.add('open');
     const input = document.getElementById('ytUrlInput');
     if (input) { input.value = ''; input.focus(); }
+    var errEl = document.getElementById('ytErrorMsg');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    // Reset thumbnail preview
+    var thumb = document.getElementById('ytThumbnail');
+    var title = document.getElementById('ytPreviewTitle');
+    if (thumb) thumb.src = '/static/img/no-output.gif';
+    if (title) title.textContent = 'Paste a link to preview';
+    // Reset slider
+    var slider = document.getElementById('ytMaxCards');
+    var sliderVal = document.getElementById('ytMaxCardsVal');
+    if (slider) slider.value = 30;
+    if (sliderVal) sliderVal.textContent = '30';
+  }
+}
+
+function updateYtPreview(url) {
+  var thumb = document.getElementById('ytThumbnail');
+  var title = document.getElementById('ytPreviewTitle');
+  if (!thumb || !title) return;
+
+  // Try to extract video ID
+  var match = url.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/);
+  if (match && match[1]) {
+    var videoId = match[1];
+    thumb.src = 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg';
+    thumb.onerror = function() { this.src = '/static/img/no-output.gif'; };
+    title.textContent = 'Video ID: ' + videoId;
+  } else {
+    thumb.src = '/static/img/no-output.gif';
+    title.textContent = url ? 'Invalid YouTube URL' : 'Paste a link to preview';
   }
 }
 
@@ -1223,7 +1253,94 @@ function closeYoutubeModal() {
   if (modal)    modal.classList.remove('open');
 }
 
+async function submitYoutubeUrl() {
+  var urlInput = document.getElementById('ytUrlInput');
+  var btn = document.getElementById('ytImportBtn');
+  var errEl = document.getElementById('ytErrorMsg');
+  var url = (urlInput ? urlInput.value : '').trim();
+  var maxCards = parseInt(document.getElementById('ytMaxCards')?.value || '30', 10);
+
+  // Hide previous error
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+  // Basic client-side validation
+  if (!url) {
+    if (errEl) { errEl.textContent = 'Please enter a YouTube URL.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (!/youtube\.com|youtu\.be/i.test(url)) {
+    if (errEl) { errEl.textContent = 'Please enter a valid YouTube URL.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  // Disable button and show loading
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+
+  // Close modal and show YouTube-specific loading overlay
+  closeYoutubeModal();
+
+  if (typeof window.showYtLoadingOverlay === 'function') {
+    window.showYtLoadingOverlay(url);
+  }
+
+  try {
+    var response = await fetch('/api/youtube/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url, max_flashcards: maxCards })
+    });
+
+    var data = await response.json();
+
+    if (data.success) {
+      if (typeof window.completeYtLoading === 'function') {
+        window.completeYtLoading(data);
+      }
+
+      // Small delay so completion animation plays
+      await new Promise(function(r) { setTimeout(r, 1800); });
+
+      if (typeof window.hideYtLoadingOverlay === 'function') {
+        window.hideYtLoadingOverlay();
+      }
+
+      // Reload sidebar documents
+      if (typeof loadDocuments === 'function') loadDocuments();
+      if (typeof updateDashboardStats === 'function') updateDashboardStats();
+      if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
+      if (window.Notes && Notes.loadDocs) Notes.loadDocs();
+
+      showNotification(data.message || 'YouTube import successful!', 'success');
+    } else {
+      if (typeof window.hideYtLoadingOverlay === 'function') {
+        window.hideYtLoadingOverlay();
+      }
+
+      // Reopen modal and show error
+      openYoutubeModal();
+      if (urlInput) urlInput.value = url; // Restore URL
+      updateYtPreview(url);
+      if (errEl) { errEl.textContent = data.message || 'Import failed.'; errEl.style.display = 'block'; }
+    }
+  } catch (error) {
+    if (typeof window.hideYtLoadingOverlay === 'function') {
+      window.hideYtLoadingOverlay();
+    }
+
+    openYoutubeModal();
+    if (urlInput) urlInput.value = url;
+    updateYtPreview(url);
+    if (errEl) { errEl.textContent = 'Network error. Please check your connection.'; errEl.style.display = 'block'; }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-brands fa-youtube"></i> Import Video';
+  }
+}
+
 window.openAddMaterialModal  = openAddMaterialModal;
 window.closeAddMaterialModal = closeAddMaterialModal;
 window.openYoutubeModal      = openYoutubeModal;
 window.closeYoutubeModal     = closeYoutubeModal;
+window.submitYoutubeUrl      = submitYoutubeUrl;
+window.updateYtPreview       = updateYtPreview;

@@ -15,7 +15,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Bruno+Ace&display=swap" rel="stylesheet">
 </head>
 <body>
-  <script>if(localStorage.getItem('ml_theme')==='light')document.body.classList.add('light-mode');</script>
+  <script>
+    // Index page: default to dark mode. Only apply light mode after auth check
+    // confirms a logged-in user who chose light mode. This prevents guests from
+    // seeing a stale light-mode preference left in localStorage.
+  </script>
 
   <!-- LOADING SCREEN -->
   <div id="loadingScreen">
@@ -293,7 +297,13 @@
             // Apply saved default lobby type from Settings
             var savedLobby = localStorage.getItem('ml_defaultLobbyType');
             if (savedLobby === 'private') setLobbyType(false);
+            // Apply theme only for authenticated users
+            if (localStorage.getItem('ml_theme') === 'light') {
+              document.body.classList.add('light-mode');
+            }
           } else {
+            // Guest — ensure dark mode (clear any stale localStorage theme)
+            document.body.classList.remove('light-mode');
             document.getElementById('createBtn').style.display = 'none';
             document.getElementById('loginPrompt').style.display = 'flex';
           }

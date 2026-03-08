@@ -345,3 +345,14 @@
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
+
+/* ── Light Mode ──────────────────────────────────────────────────────── */
+body.light-mode #qzExitModal {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+body.light-mode .qz-exit-modal-box {
+  background: #fff;
+  border-color: rgba(108, 99, 192, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
