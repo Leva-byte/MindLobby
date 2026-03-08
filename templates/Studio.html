@@ -557,6 +557,34 @@
     </div>
   </div>
 
+  <!-- =====================================================================
+       POST-UPLOAD TOPIC PICKER MODAL
+       ===================================================================== -->
+  <div class="tp-backdrop" id="tpBackdrop" onclick="window._tpSkip()"></div>
+  <div class="tp-modal" id="tpModal">
+    <div class="tp-header">
+      <div class="tp-icon"><i class="fas fa-check-circle"></i></div>
+      <h2 class="tp-title">Upload Complete!</h2>
+      <p class="tp-subtitle">Assign this document to a topic?</p>
+    </div>
+    <div class="tp-body">
+      <div class="tp-topic-list" id="tpTopicList"></div>
+      <div class="tp-empty" id="tpEmpty" style="display:none;">
+        <div class="tp-empty-icon"><i class="fas fa-folder-open"></i></div>
+        <p class="tp-empty-text">You don't have any topics yet.</p>
+        <button class="tp-btn-go-topics" onclick="window._tpGoToTopics()">
+          <i class="fas fa-folder-plus"></i> Create a Topic
+        </button>
+      </div>
+    </div>
+    <div class="tp-footer">
+      <button class="tp-btn-skip" onclick="window._tpSkip()">Skip</button>
+      <button class="tp-btn-assign" id="tpAssignBtn" onclick="window._tpAssign()">
+        <i class="fas fa-folder-plus"></i> Add to Topic
+      </button>
+    </div>
+  </div>
+
   <!-- Hidden file input -->
   <input type="file" id="modalFileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
 

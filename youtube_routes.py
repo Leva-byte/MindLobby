@@ -157,7 +157,7 @@ def import_youtube():
 
     try:
         logger.info("Generating notes from YouTube transcript")
-        notes = generate_notes(transcript_text)
+        notes = generate_notes(transcript_text, source_type='youtube')
     except Exception:
         notes = transcript_text  # Fallback to raw transcript
 

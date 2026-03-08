@@ -253,7 +253,7 @@
 .fc-browse-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 28px;
   flex-wrap: wrap;
   gap: 16px;

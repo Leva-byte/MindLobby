@@ -35,6 +35,7 @@
       ppt: 'fa-file-powerpoint',
       pptx: 'fa-file-powerpoint',
       txt: 'fa-file-alt',
+      youtube: 'fa-brands fa-youtube',
     };
     return map[ext] || 'fa-file';
   }
@@ -174,11 +175,14 @@
     const date = new Date(doc.upload_date).toLocaleDateString();
     const escapedName = _esc(doc.original_filename || '');
     const escapedNameAttr = escapedName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const badgeLabel = ext === 'youtube' ? 'YOUTUBE' : ext.toUpperCase();
+    const iconPrefix = ext === 'youtube' ? '' : 'fas ';
 
     return `
       <div class="document-card">
         <div class="doc-header">
-          <div class="doc-icon"><i class="fas ${icon}"></i></div>
+          <div class="doc-icon doc-icon-${ext}"><i class="${iconPrefix}${icon}"></i></div>
+          <span class="doc-type-badge doc-type-${ext}">${badgeLabel}</span>
           <div class="doc-actions">
             <button class="doc-rename-btn" onclick="openRenameModal('${doc.id}', '${escapedNameAttr}')" title="Rename">
               <i class="fas fa-pen"></i>
@@ -188,7 +192,6 @@
             </button>
           </div>
         </div>
-        <span class="doc-type-badge doc-type-${ext}">${ext.toUpperCase()}</span>
         <h3 class="doc-title">${escapedName}</h3>
         <div class="doc-meta">
           <span class="doc-meta-item"><i class="fas fa-layer-group"></i> ${doc.flashcard_count} cards</span>

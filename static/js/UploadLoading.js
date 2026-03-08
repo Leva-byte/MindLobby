@@ -430,19 +430,32 @@ window.uploadFile = async function (file) {
       hideLoadingOverlay();
       _lastDocId = null; // Clear — upload succeeded, no cleanup needed
 
-      showNotification(data.flashcards_generated + ' flashcards created for "' + file.name + '"!', 'success');
-
       // Refresh everything
       if (typeof loadDocuments === 'function') loadDocuments();
       if (typeof updateDashboardStats === 'function') updateDashboardStats();
       if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
       if (window.Notes && Notes.loadDocs) Notes.loadDocs();
 
-      // Auto-open notes panel (show summarization first, per Dean's advice)
-      if (data.document_id && window.Notes && Notes.openForDocument) {
+      // Show topic picker, then auto-open notes after user picks or skips
+      var _docId = data.document_id;
+      var _fileName = file.name;
+      var _cardCount = data.flashcards_generated;
+
+      if (_docId && typeof window.showTopicPicker === 'function') {
+        window.showTopicPicker(_docId, _fileName, function () {
+          // After topic picker closes, open notes
+          if (window.Notes && Notes.openForDocument) {
+            setTimeout(function () {
+              if (typeof showView === 'function') showView('notes');
+              Notes.openForDocument(_docId, _fileName);
+            }, 300);
+          }
+        });
+      } else if (_docId && window.Notes && Notes.openForDocument) {
+        // Fallback if topic picker not available
         setTimeout(function () {
           if (typeof showView === 'function') showView('notes');
-          Notes.openForDocument(data.document_id, file.name);
+          Notes.openForDocument(_docId, _fileName);
         }, 300);
       }
       return true;
@@ -491,6 +504,123 @@ function enableUploadButtons() {
 // ============================================================================
 // EXPORTS
 // ============================================================================
+
+// ============================================================================
+// POST-UPLOAD TOPIC PICKER
+// ============================================================================
+
+var _tpDocId = null;
+var _tpDocName = null;
+var _tpSelectedTopicId = null;
+var _tpCallback = null; // called after modal closes (skip or assign)
+
+function showTopicPicker(docId, docName, onDone) {
+  _tpDocId = docId;
+  _tpDocName = docName;
+  _tpSelectedTopicId = null;
+  _tpCallback = onDone || null;
+
+  var backdrop = document.getElementById('tpBackdrop');
+  var modal = document.getElementById('tpModal');
+  var list = document.getElementById('tpTopicList');
+  var empty = document.getElementById('tpEmpty');
+  var assignBtn = document.getElementById('tpAssignBtn');
+  if (!modal) { if (_tpCallback) _tpCallback(); return; }
+
+  // Reset state
+  if (list) list.innerHTML = '';
+  if (empty) empty.style.display = 'none';
+  if (assignBtn) { assignBtn.classList.remove('active'); }
+
+  // Fetch topics
+  fetch('/api/topics')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success || !data.topics || data.topics.length === 0) {
+        if (empty) empty.style.display = 'block';
+        if (list) list.style.display = 'none';
+      } else {
+        if (empty) empty.style.display = 'none';
+        if (list) {
+          list.style.display = 'flex';
+          list.innerHTML = data.topics.map(function (t) {
+            return '<div class="tp-topic-item" data-topic-id="' + t.id + '" onclick="window._tpSelect(' + t.id + ', this)">' +
+              '<div class="tp-topic-dot" style="background:' + (t.color || '#7c77c6') + '"></div>' +
+              '<span class="tp-topic-name">' + _escHtml(t.name) + '</span>' +
+              '<span class="tp-topic-count">' + (t.document_count || 0) + ' docs</span>' +
+              '</div>';
+          }).join('');
+        }
+      }
+
+      // Show modal
+      if (backdrop) backdrop.classList.add('open');
+      if (modal) modal.classList.add('open');
+    })
+    .catch(function () {
+      // On error, just skip the picker
+      if (_tpCallback) _tpCallback();
+    });
+}
+
+function _escHtml(str) {
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+window._tpSelect = function (topicId, el) {
+  _tpSelectedTopicId = topicId;
+  // Update selection UI
+  var items = document.querySelectorAll('.tp-topic-item');
+  items.forEach(function (item) { item.classList.remove('selected'); });
+  if (el) el.classList.add('selected');
+  // Enable assign button
+  var btn = document.getElementById('tpAssignBtn');
+  if (btn) btn.classList.add('active');
+};
+
+window._tpSkip = function () {
+  _closeTopicPicker();
+  if (_tpCallback) _tpCallback();
+};
+
+window._tpGoToTopics = function () {
+  _closeTopicPicker();
+  if (typeof showView === 'function') showView('topics');
+  if (window.Topics && Topics.openCreateModal) Topics.openCreateModal();
+};
+
+window._tpAssign = function () {
+  if (!_tpSelectedTopicId || !_tpDocId) return;
+
+  fetch('/api/topics/' + _tpSelectedTopicId + '/documents/' + _tpDocId, {
+    method: 'POST'
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success) {
+        showNotification('Document added to topic!', 'success');
+        if (typeof loadDocuments === 'function') loadDocuments();
+      }
+    })
+    .catch(function () {});
+
+  _closeTopicPicker();
+  if (_tpCallback) _tpCallback();
+};
+
+function _closeTopicPicker() {
+  var backdrop = document.getElementById('tpBackdrop');
+  var modal = document.getElementById('tpModal');
+  if (backdrop) backdrop.classList.remove('open');
+  if (modal) modal.classList.remove('open');
+  _tpDocId = null;
+  _tpDocName = null;
+  _tpSelectedTopicId = null;
+}
+
+window.showTopicPicker = showTopicPicker;
 
 window.showYtLoadingOverlay = showYtLoadingOverlay;
 window.completeYtLoading = completeYtLoading;

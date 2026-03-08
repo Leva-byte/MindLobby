@@ -6,7 +6,7 @@
 .notes-browse-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 28px;
   flex-wrap: wrap;
   gap: 16px;
@@ -451,6 +451,13 @@
   filter: drop-shadow(0 0 20px rgba(124, 119, 198, 0.6));
 }
 
+.notes-transition-icon {
+  font-size: 3em;
+  color: #a8a4e3;
+  filter: drop-shadow(0 0 20px rgba(124, 119, 198, 0.6));
+  animation: notesTransitionPulse 0.6s ease-in-out infinite alternate;
+}
+
 @keyframes notesTransitionPulse {
   from { transform: scale(0.92); opacity: 0.7; }
   to   { transform: scale(1.08); opacity: 1;   }
@@ -523,6 +530,10 @@ body.light-mode .notes-raw-content {
   background: rgba(0, 0, 0, 0.03);
   border-color: rgba(108, 99, 192, 0.15);
   color: rgba(26, 26, 46, 0.8);
+}
+
+body.light-mode .notes-search-wrapper {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 body.light-mode .notes-transition-overlay {

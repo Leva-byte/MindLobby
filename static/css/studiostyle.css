@@ -25,9 +25,9 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 30%, var(--bg-purple) 70%, var(--bg-darker) 100%);
-  min-height: 100vh;
+  height: 100vh;
   color: var(--text-primary);
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* ============================================================================
@@ -466,6 +466,26 @@ body {
   color: var(--text-primary);
 }
 
+/* ── Browse panel header (Flashcards, Notes, Quizzes) ── */
+.browse-header-left {
+  min-width: 0;
+}
+
+.browse-title {
+  font-size: 2em;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.browse-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95em;
+}
+
 .section-action {
   color: var(--primary);
   text-decoration: none;
@@ -625,33 +645,57 @@ body {
   padding: 20px;
   transition: all 0.3s ease;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .document-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--primary);
-  box-shadow: 0 10px 30px rgba(124, 119, 198, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(124, 119, 198, 0.2);
+}
+
+/* ── Per-file-type icon colors (matches badge) ── */
+.doc-icon-pdf {
+  background: rgba(231, 76, 60, 0.15) !important;
+  color: #e74c3c !important;
+}
+.doc-icon-doc, .doc-icon-docx {
+  background: rgba(52, 120, 198, 0.15) !important;
+  color: #5b9bd5 !important;
+}
+.doc-icon-ppt, .doc-icon-pptx {
+  background: rgba(230, 126, 34, 0.15) !important;
+  color: #e67e22 !important;
+}
+.doc-icon-txt {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-muted) !important;
+}
+.doc-icon-youtube {
+  background: rgba(231, 76, 60, 0.15) !important;
+  color: #e74c3c !important;
 }
 
 .doc-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 15px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .doc-icon {
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   background: rgba(124, 119, 198, 0.2);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5em;
+  font-size: 1.3em;
   color: var(--primary-light);
+  flex-shrink: 0;
 }
 
 .doc-menu {
@@ -663,8 +707,54 @@ body {
   font-size: 1.2em;
 }
 
+/* ── File type badge ── */
+.doc-type-badge {
+  font-size: 0.65em;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.doc-type-pdf {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+.doc-type-doc, .doc-type-docx {
+  background: rgba(52, 120, 198, 0.15);
+  color: #5b9bd5;
+}
+.doc-type-ppt, .doc-type-pptx {
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+}
+.doc-type-txt {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+.doc-type-youtube {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+/* ── Topic assigned dot ── */
+.doc-topic-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--dot-color, #7c77c6);
+  animation: topicPulse 2s ease-in-out infinite;
+}
+@keyframes topicPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--dot-color, #7c77c6); }
+  50% { box-shadow: 0 0 0 5px transparent; }
+}
+
 .doc-title {
-  font-size: 1.1em;
+  font-size: 1.05em;
   font-weight: 600;
   margin-bottom: 8px;
   color: var(--text-primary);
@@ -676,14 +766,107 @@ body {
 .doc-meta {
   display: flex;
   gap: 15px;
-  font-size: 0.85em;
+  font-size: 0.82em;
   color: var(--text-muted);
+  margin-bottom: 4px;
 }
 
 .doc-meta-item {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+/* ── Quiz history badge (top-right corner) ── */
+.qz-history-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 2;
+}
+
+.qz-tier-gold { border-color: rgba(241, 196, 15, 0.3); background: rgba(241, 196, 15, 0.1); }
+.qz-tier-silver { border-color: rgba(189, 195, 199, 0.3); background: rgba(189, 195, 199, 0.08); }
+.qz-tier-bronze { border-color: rgba(230, 126, 34, 0.3); background: rgba(230, 126, 34, 0.08); }
+.qz-tier-none { border-color: rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.03); }
+
+.qz-score-ring {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qz-tier-gold .qz-score-ring { background: rgba(241, 196, 15, 0.2); }
+.qz-tier-silver .qz-score-ring { background: rgba(189, 195, 199, 0.2); }
+.qz-tier-bronze .qz-score-ring { background: rgba(230, 126, 34, 0.2); }
+.qz-tier-none .qz-score-ring { background: rgba(255, 255, 255, 0.06); }
+
+.qz-score-pct {
+  font-size: 0.7em;
+  font-weight: 800;
+}
+
+.qz-tier-gold .qz-score-pct { color: #f1c40f; }
+.qz-tier-silver .qz-score-pct { color: #bdc3c7; }
+.qz-tier-bronze .qz-score-pct { color: #e67e22; }
+.qz-tier-none .qz-score-pct { color: var(--text-muted); }
+
+.qz-score-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.qz-score-label {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.qz-score-attempts {
+  font-size: 0.68em;
+  color: var(--text-muted);
+}
+
+/* Notes & Quiz buttons share same purple as Flashcards — no color-coding */
+
+/* ── Quiz card button split (80/20) ── */
+.qz-card-buttons {
+  display: flex;
+  gap: 6px;
+}
+.qz-card-buttons .qz-btn-main {
+  flex: 4;
+}
+.qz-btn-heatmap {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(124, 119, 198, 0.15);
+  border: 1px solid rgba(124, 119, 198, 0.3);
+  border-radius: 8px;
+  color: var(--primary-light, #a8a4e3);
+  cursor: pointer;
+  font-size: 1em;
+  transition: all 0.25s ease;
+}
+.qz-btn-heatmap:hover {
+  background: rgba(124, 119, 198, 0.3);
+  border-color: var(--primary-light, #a8a4e3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 119, 198, 0.3);
 }
 
 .doc-header-left {
@@ -870,7 +1053,11 @@ body {
   .page-title {
     font-size: 2em;
   }
-  
+
+  .browse-title {
+    font-size: 1.5em;
+  }
+
   .welcome-banner {
     min-height: 200px;
     margin-top: 20px;
@@ -986,6 +1173,7 @@ body {
 .doc-actions {
   display: flex;
   gap: 6px;
+  margin-left: auto;
 }
 
 .doc-rename-btn {
@@ -1024,13 +1212,13 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 8px;
+  padding: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.95em;
   transition: all 0.25s ease;
-  margin-left: auto;
 }
 
 .doc-delete-btn:hover {
@@ -1053,41 +1241,6 @@ body {
   transform: rotate(15deg);
 }
 
-.document-card {
-  background: var(--card-bg);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 20px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.document-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
-}
-
-.document-card:hover::before {
-  transform: scaleX(1);
-}
-
-.document-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--primary);
-  box-shadow: 0 12px 30px rgba(124, 119, 198, 0.25);
-}
 /* ── Document Upload Loading Overlay (card style) ────────────────────── */
 .fc-loading-overlay {
   position: fixed;
@@ -3287,4 +3440,270 @@ body.light-mode .ml-transition-message {
 
 body.light-mode .ml-transition-bar-track {
   background: rgba(26, 26, 46, 0.1);
+}
+
+/* ── Light mode: document card styles ── */
+body.light-mode .doc-type-pdf { background: rgba(231, 76, 60, 0.1); }
+body.light-mode .doc-type-doc,
+body.light-mode .doc-type-docx { background: rgba(52, 120, 198, 0.1); }
+body.light-mode .doc-type-ppt,
+body.light-mode .doc-type-pptx { background: rgba(230, 126, 34, 0.1); }
+body.light-mode .doc-type-txt { background: rgba(0, 0, 0, 0.05); color: #666; }
+body.light-mode .doc-type-youtube { background: rgba(231, 76, 60, 0.1); }
+
+body.light-mode .doc-icon-pdf { background: rgba(231, 76, 60, 0.1) !important; color: #c0392b !important; }
+body.light-mode .doc-icon-doc,
+body.light-mode .doc-icon-docx { background: rgba(52, 120, 198, 0.1) !important; color: #2a6496 !important; }
+body.light-mode .doc-icon-ppt,
+body.light-mode .doc-icon-pptx { background: rgba(230, 126, 34, 0.1) !important; color: #c0691e !important; }
+body.light-mode .doc-icon-txt { background: rgba(0, 0, 0, 0.04) !important; color: #666 !important; }
+body.light-mode .doc-icon-youtube { background: rgba(231, 76, 60, 0.1) !important; color: #c0392b !important; }
+
+body.light-mode .qz-score-label { color: var(--text-primary); }
+body.light-mode .qz-history-badge { background: rgba(0, 0, 0, 0.03); border-color: rgba(0, 0, 0, 0.08); }
+body.light-mode .qz-tier-none .qz-score-ring { background: rgba(0, 0, 0, 0.05); }
+
+body.light-mode .doc-study-btn {
+  background: linear-gradient(135deg, #6c63c6 0%, #8b86d1 100%);
+  box-shadow: 0 4px 12px rgba(108, 99, 198, 0.25);
+}
+body.light-mode .doc-study-btn:hover {
+  background: linear-gradient(135deg, #5c54b8 0%, #7c77c6 100%);
+  box-shadow: 0 8px 20px rgba(108, 99, 198, 0.4);
+}
+
+/* Notes & Quiz light mode — same purple as Flashcards, no color-coding */
+
+/* ============================================================================
+   POST-UPLOAD TOPIC PICKER MODAL
+   ============================================================================ */
+
+.tp-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.tp-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tp-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: linear-gradient(135deg, rgba(26, 26, 62, 0.98), rgba(45, 27, 105, 0.98));
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 0;
+  z-index: 10001;
+  max-width: 460px;
+  width: 90%;
+  max-height: 80vh;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.tp-modal.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.tp-header {
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.tp-icon {
+  font-size: 2.4em;
+  color: #2ecc71;
+  margin-bottom: 10px;
+}
+
+.tp-title {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.tp-subtitle {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.tp-body {
+  padding: 20px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.tp-topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tp-topic-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.tp-topic-item:hover {
+  background: rgba(124, 119, 198, 0.1);
+  border-color: var(--primary);
+  transform: translateX(4px);
+}
+
+.tp-topic-item.selected {
+  background: rgba(124, 119, 198, 0.2);
+  border-color: var(--primary-light);
+}
+
+.tp-topic-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tp-topic-name {
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.tp-topic-count {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.tp-empty {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.tp-empty-icon {
+  font-size: 2em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.tp-empty-text {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  margin-bottom: 16px;
+}
+
+.tp-btn-go-topics {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.tp-btn-go-topics:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(124, 119, 198, 0.4);
+}
+
+.tp-footer {
+  padding: 16px 28px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.tp-btn-skip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.tp-btn-skip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.tp-btn-assign {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.tp-btn-assign.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tp-btn-assign.active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(124, 119, 198, 0.4);
+}
+
+/* Light mode overrides */
+body.light-mode .tp-modal {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 243, 255, 0.98));
+}
+
+body.light-mode .tp-topic-item {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .tp-topic-item:hover {
+  background: rgba(124, 119, 198, 0.08);
+}
+
+body.light-mode .tp-topic-item.selected {
+  background: rgba(124, 119, 198, 0.12);
 }

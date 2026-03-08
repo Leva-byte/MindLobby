@@ -136,6 +136,18 @@ def init_db():
         )
     ''')
 
+    # Quiz wrong answers table (per-attempt detail)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS quiz_wrong_answers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            quiz_result_id INTEGER NOT NULL,
+            question TEXT NOT NULL,
+            selected_answer TEXT NOT NULL,
+            correct_answer TEXT NOT NULL,
+            FOREIGN KEY (quiz_result_id) REFERENCES quiz_results (id) ON DELETE CASCADE
+        )
+    ''')
+
     # Document reports table (admin-only flagging)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS document_reports (
@@ -794,16 +806,21 @@ def get_platform_analytics():
 # QUIZ FUNCTIONS
 # ============================================================================
 
-def save_quiz_result(document_id, user_id, score, total):
-    """Save a completed quiz result. Returns the new row id."""
+def save_quiz_result(document_id, user_id, score, total, wrong_answers=None):
+    """Save a completed quiz result and optional wrong answers. Returns the new row id."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO quiz_results (document_id, user_id, score, total, completed_at)
         VALUES (?, ?, ?, ?, ?)
     ''', (document_id, user_id, score, total, datetime.now().isoformat()))
-    conn.commit()
     result_id = cursor.lastrowid
+    if wrong_answers:
+        cursor.executemany('''
+            INSERT INTO quiz_wrong_answers (quiz_result_id, question, selected_answer, correct_answer)
+            VALUES (?, ?, ?, ?)
+        ''', [(result_id, wa['question'], wa['selected'], wa['correct']) for wa in wrong_answers])
+    conn.commit()
     conn.close()
     return result_id
 
@@ -837,6 +854,24 @@ def get_quiz_history_for_document(document_id, user_id):
     ''', (document_id, user_id)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+def get_latest_wrong_answers(document_id, user_id):
+    """Return the most recent quiz result and its wrong answers for a document."""
+    conn = get_db_connection()
+    row = conn.execute('''
+        SELECT id, score, total FROM quiz_results
+        WHERE document_id = ? AND user_id = ?
+        ORDER BY completed_at DESC LIMIT 1
+    ''', (document_id, user_id)).fetchone()
+    if not row:
+        conn.close()
+        return None, []
+    wrong = conn.execute('''
+        SELECT question, selected_answer, correct_answer
+        FROM quiz_wrong_answers WHERE quiz_result_id = ?
+    ''', (row['id'],)).fetchall()
+    conn.close()
+    return dict(row), [dict(w) for w in wrong]
 
 # ============================================================================
 # TOPICS FUNCTIONS

@@ -5,7 +5,10 @@
 <!-- ── BROWSE VIEW (document grid) ── -->
 <div id="qzBrowseView">
   <div class="fc-browse-header">
-    <h2 class="section-title">Choose a Document to Quiz</h2>
+    <div class="browse-header-left">
+      <h1 class="browse-title">Quizzes</h1>
+      <p class="browse-subtitle">Test your knowledge with AI-generated questions</p>
+    </div>
     <div class="fc-search-wrapper" id="qzSearchWrapper">
       <i class="fas fa-search"></i>
       <input type="text" id="qzSearchInput" placeholder="Search documents..."
@@ -117,6 +120,74 @@
               style="border-color:#e74c3c; color:#e74c3c;">
         <i class="fas fa-sign-out-alt"></i> Exit Quiz
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── STUDY HEATMAP MODAL ── -->
+<div id="qzHeatmapModal">
+  <div class="qz-heatmap-box">
+    <div class="qz-heatmap-header">
+      <div>
+        <h3 class="qz-heatmap-title">Study Heatmap</h3>
+        <span class="qz-heatmap-docname" id="qzHeatmapDocName"></span>
+      </div>
+      <button class="qz-heatmap-close" onclick="Quizzes.closeHeatmap()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Placeholder: no quiz attempts yet -->
+    <div id="qzHeatmapPlaceholder" class="qz-heatmap-placeholder" style="display:none;">
+      <i class="fas fa-face-dizzy qz-placeholder-icon"></i>
+      <p class="qz-placeholder-text">Take a quiz first to see your heatmap!</p>
+      <button class="doc-study-btn qz-placeholder-btn" id="qzHeatmapStartBtn">
+        <i class="fas fa-play"></i> Start Quiz
+      </button>
+    </div>
+
+    <!-- Main content: shown when results exist -->
+    <div id="qzHeatmapContent">
+      <!-- Mastery Slider -->
+      <div class="qz-heatmap-mastery" id="qzMasterySlider">
+        <div class="qz-mastery-track">
+          <div class="qz-mastery-fill" id="qzMasteryFill"></div>
+          <div class="qz-mastery-marker" data-level="0"><i class="fas fa-face-meh"></i></div>
+          <div class="qz-mastery-marker" data-level="1"><i class="fas fa-face-smile"></i></div>
+          <div class="qz-mastery-marker" data-level="2"><i class="fas fa-face-laugh"></i></div>
+          <div class="qz-mastery-marker" data-level="3"><i class="fas fa-face-laugh-beam"></i></div>
+          <div class="qz-mastery-marker" data-level="4"><i class="fas fa-face-grin-stars"></i></div>
+        </div>
+        <p class="qz-mastery-comment" id="qzMasteryComment"></p>
+      </div>
+
+      <div class="qz-heatmap-body">
+        <!-- Left ~80%: Wrong answers -->
+        <div class="qz-heatmap-left">
+          <div class="qz-heatmap-wrong-header">
+            <i class="fas fa-times-circle"></i>
+            <span>Incorrect Answers</span>
+            <span class="qz-wrong-count" id="qzWrongCount"></span>
+          </div>
+          <div class="qz-heatmap-wrong-list" id="qzWrongList"></div>
+          <div class="qz-heatmap-perfect" id="qzPerfectState" style="display:none;">
+            <i class="fas fa-trophy"></i>
+            <p>Perfect score! No wrong answers.</p>
+          </div>
+        </div>
+        <!-- Right ~20%: Pie chart -->
+        <div class="qz-heatmap-right">
+          <div class="qz-heatmap-pie" id="qzHeatmapPie">
+            <div class="qz-pie-inner">
+              <span class="qz-pie-label" id="qzPieLabel">0%</span>
+            </div>
+          </div>
+          <div class="qz-pie-legend">
+            <span class="qz-legend-correct"><i class="fas fa-circle"></i> Correct</span>
+            <span class="qz-legend-wrong"><i class="fas fa-circle"></i> Wrong</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

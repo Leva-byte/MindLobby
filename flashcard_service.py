@@ -124,7 +124,7 @@ Document content (Markdown):
     try:
         logger.info(f"📡 Sending request to OpenRouter (model: {OPENROUTER_MODEL})...")
         response = requests.post(
-            OPENROUTER_BASE_URL, headers=headers, json=payload, timeout=60
+            OPENROUTER_BASE_URL, headers=headers, json=payload, timeout=120
         )
         logger.info(f"📥 OpenRouter status: {response.status_code}")
 
@@ -134,7 +134,7 @@ Document content (Markdown):
             raise ValueError(f"OpenRouter returned {response.status_code}: {error_body[:300]}")
 
     except requests.exceptions.Timeout:
-        raise ValueError("OpenRouter API timed out after 60 seconds. Please try again.")
+        raise ValueError("OpenRouter API timed out after 120 seconds. Please try again.")
     except requests.exceptions.ConnectionError:
         raise ValueError("Could not connect to OpenRouter. Check your internet connection.")
     except ValueError:
@@ -188,7 +188,7 @@ Document content (Markdown):
 # NOTES GENERATION VIA OPENROUTER
 # ============================================================================
 
-def generate_notes(markdown_text):
+def generate_notes(markdown_text, source_type='document'):
     """
     Send MarkItDown-parsed Markdown to OpenRouter and get back a clean,
     structured lecture summary in Markdown format.
@@ -196,14 +196,36 @@ def generate_notes(markdown_text):
     Falls back to raw markdown_text if the AI call fails for any reason,
     so the upload pipeline never breaks due to notes generation.
 
+    source_type: 'document' (default) or 'youtube' — YouTube transcripts
+    get a tighter summarization prompt and a lower character cap to avoid
+    timeouts on the free-tier model.
+
     Returns a markdown string.
     """
     api_key = get_api_key()
 
-    MAX_CHARS = 12000
+    MAX_CHARS = 8000 if source_type == 'youtube' else 12000
     trimmed = markdown_text[:MAX_CHARS]
 
-    prompt = f"""You are an expert academic note-taker. The following content was extracted from a study document using an automated tool — it may contain garbled characters, symbols, broken lines, or formatting artifacts. Your job is to rewrite it as clean, well-structured lecture notes in Markdown format that a student can read and understand easily.
+    if source_type == 'youtube':
+        prompt = f"""You are an expert academic note-taker. The following is a YouTube video transcript — it is raw, unformatted spoken text with no structure. Your job is to transform it into thorough, well-structured study notes in Markdown format.
+
+Rules:
+- COMPLETENESS IS THE TOP PRIORITY. Capture every distinct concept, example, term, and item mentioned in the transcript. Do NOT skip or omit any substantive content — if the speaker lists 8 items, all 8 must appear in the notes.
+- Use ## headings for major topics and ### for subtopics discussed in the video.
+- Under each heading, write a clear summary in your own words, followed by bullet points covering ALL key details from that section.
+- Include every name, term, example, statistic, and list item the speaker mentions — missing even one is unacceptable.
+- Skip ONLY filler words, repetitions, off-topic tangents, sponsor mentions, and greetings.
+- Write in a clear, educational tone as if explaining to a student reading these notes before an exam.
+- Return ONLY the Markdown content — no preamble, no closing remarks, no code fences, no extra commentary.
+
+YouTube transcript:
+\"\"\"
+{trimmed}
+\"\"\"
+"""
+    else:
+        prompt = f"""You are an expert academic note-taker. The following content was extracted from a study document using an automated tool — it may contain garbled characters, symbols, broken lines, or formatting artifacts. Your job is to rewrite it as clean, well-structured lecture notes in Markdown format that a student can read and understand easily.
 
 Rules:
 - Use ## headings for major topics and ### for subtopics.
@@ -236,7 +258,7 @@ Document content (raw extracted text):
     try:
         logger.info(f"📡 Sending notes request to OpenRouter (model: {OPENROUTER_MODEL})...")
         response = requests.post(
-            OPENROUTER_BASE_URL, headers=headers, json=payload, timeout=60
+            OPENROUTER_BASE_URL, headers=headers, json=payload, timeout=120
         )
         logger.info(f"📥 OpenRouter notes status: {response.status_code}")
 

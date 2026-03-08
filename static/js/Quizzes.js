@@ -76,40 +76,67 @@
     grid.innerHTML = docs.map(_renderDocCard).join('');
   }
 
+  function _timeAgo(dateStr) {
+    var diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+    return new Date(dateStr).toLocaleDateString();
+  }
+
   function _renderDocCard(doc) {
     var ext = doc.file_type || 'txt';
     var icon = _fileIcon(ext);
     var name = _esc(doc.original_filename || doc.filename || '');
     var nameAttr = (doc.original_filename || doc.filename || '')
       .replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    var date = new Date(doc.upload_date).toLocaleDateString();
+    var ago = _timeAgo(doc.upload_date);
+    var count = doc.flashcard_count || 0;
+    var topicDots = (doc.topics || []).map(function(t) {
+      return '<span class="doc-topic-dot" style="--dot-color:' + t.color + '" title="' + _esc(t.name) + '"></span>';
+    }).join('');
+    var badgeLabel = ext === 'youtube' ? 'YOUTUBE' : ext.toUpperCase();
+    var iconPrefix = ext === 'youtube' ? '' : 'fas ';
 
-    // Quiz history badge
+    // Quiz history badge — always shown (0% if no attempts)
     var result = _quizResultsMap[doc.id];
-    var historyBadge = '';
-    if (result) {
-      historyBadge =
-        '<span class="qz-history-badge">' +
-          '<i class="fas fa-trophy"></i> Best: ' + result.best_pct + '% ' +
-          '(' + result.attempts + ' attempt' + (result.attempts !== 1 ? 's' : '') + ')' +
-        '</span>';
-    }
+    var pct = result ? result.best_pct : 0;
+    var attempts = result ? result.attempts : 0;
+    var tierClass = !result ? 'qz-tier-none' : (pct >= 80 ? 'qz-tier-gold' : pct >= 50 ? 'qz-tier-silver' : 'qz-tier-bronze');
+
+    var historyBadge =
+      '<div class="qz-history-badge ' + tierClass + '">' +
+        '<div class="qz-score-ring">' +
+          '<span class="qz-score-pct">' + pct + '%</span>' +
+        '</div>' +
+        '<div class="qz-score-detail">' +
+          '<span class="qz-score-label">Best Score</span>' +
+          '<span class="qz-score-attempts">' + attempts + ' attempt' + (attempts !== 1 ? 's' : '') + '</span>' +
+        '</div>' +
+      '</div>';
 
     return (
       '<div class="document-card" onclick="Quizzes.startQuiz(\'' + doc.id + '\', \'' + nameAttr + '\')">' +
+        historyBadge +
         '<div class="doc-header">' +
-          '<div class="doc-icon"><i class="fas ' + icon + '"></i></div>' +
+          '<div class="doc-icon doc-icon-' + ext + '"><i class="' + iconPrefix + icon + '"></i></div>' +
+          '<span class="doc-type-badge doc-type-' + ext + '">' + badgeLabel + '</span>' +
+          topicDots +
         '</div>' +
-        '<span class="doc-type-badge doc-type-' + ext + '">' + ext.toUpperCase() + '</span>' +
         '<h3 class="doc-title">' + name + '</h3>' +
         '<div class="doc-meta">' +
-          '<span class="doc-meta-item"><i class="fas fa-layer-group"></i> ' + (doc.flashcard_count || 0) + ' cards</span>' +
-          '<span class="doc-meta-item"><i class="fas fa-calendar"></i> ' + date + '</span>' +
+          '<span class="doc-meta-item"><i class="fas fa-layer-group"></i> ' + count + ' card' + (count !== 1 ? 's' : '') + '</span>' +
+          '<span class="doc-meta-item"><i class="fas fa-clock"></i> ' + ago + '</span>' +
         '</div>' +
-        historyBadge +
-        '<button class="doc-study-btn qz-start-btn" onclick="event.stopPropagation(); Quizzes.startQuiz(\'' + doc.id + '\', \'' + nameAttr + '\')">' +
-          '<i class="fas fa-play"></i> Start Quiz' +
-        '</button>' +
+        '<div class="qz-card-buttons">' +
+          '<button class="doc-study-btn doc-study-btn-quiz qz-btn-main" onclick="event.stopPropagation(); Quizzes.startQuiz(\'' + doc.id + '\', \'' + nameAttr + '\')">' +
+            '<i class="fas fa-play"></i> Start Quiz' +
+          '</button>' +
+          '<button class="qz-btn-heatmap" onclick="event.stopPropagation(); Quizzes.openHeatmap(\'' + doc.id + '\', \'' + nameAttr + '\')" title="Study Heatmap">' +
+            '<i class="fas fa-chart-pie"></i>' +
+          '</button>' +
+        '</div>' +
       '</div>'
     );
   }
@@ -275,6 +302,7 @@
           document_id: parseInt(_docId),
           score: _score,
           total: _questions.length,
+          wrong_answers: _wrongAnswers,
         }),
       });
     } catch (e) {
@@ -390,8 +418,149 @@
       case 'pdf': return 'fa-file-pdf';
       case 'doc': case 'docx': return 'fa-file-word';
       case 'ppt': case 'pptx': return 'fa-file-powerpoint';
+      case 'youtube': return 'fa-brands fa-youtube';
       default: return 'fa-file-alt';
     }
+  }
+
+  // ===========================================================================
+  // STUDY HEATMAP MODAL
+  // ===========================================================================
+
+  var _masteryLevels = [
+    { min: 0,  max: 19, icon: 'fa-face-meh',        comment: 'Keep studying, you\'ll get there!' },
+    { min: 20, max: 39, icon: 'fa-face-smile',       comment: 'Good effort, room to improve!' },
+    { min: 40, max: 59, icon: 'fa-face-laugh',       comment: 'Not bad! Keep pushing!' },
+    { min: 60, max: 99, icon: 'fa-face-laugh-beam',  comment: 'Great job, almost there!' },
+    { min: 100, max: 100, icon: 'fa-face-grin-stars', comment: 'Outstanding mastery!' },
+  ];
+
+  async function openHeatmap(docId, docName) {
+    try {
+      var res = await fetch('/api/quiz/heatmap/' + docId);
+      var data = await res.json();
+
+      if (!res.ok || !data.success) {
+        // Show placeholder modal for no attempts
+        _showHeatmapPlaceholder(docId, docName);
+        return;
+      }
+
+      var score = data.score;
+      var total = data.total;
+      var wrong = data.wrong_answers || [];
+      var pct = Math.round((score / total) * 100);
+
+      // Populate doc name
+      var docNameEl = document.getElementById('qzHeatmapDocName');
+      if (docNameEl) docNameEl.textContent = docName;
+
+      // Populate pie chart (animated via CSS transition)
+      var pieEl = document.getElementById('qzHeatmapPie');
+      var pieLabel = document.getElementById('qzPieLabel');
+      if (pieEl) {
+        pieEl.style.background = 'conic-gradient(rgba(124, 119, 198, 0.2) 0% 100%)';
+        setTimeout(function () {
+          var correctDeg = (pct / 100) * 360;
+          pieEl.style.background =
+            'conic-gradient(#7c77c6 0deg ' + correctDeg + 'deg, #e74c3c ' + correctDeg + 'deg 360deg)';
+        }, 50);
+      }
+      if (pieLabel) pieLabel.textContent = pct + '%';
+
+      // Populate mastery slider
+      var level = pct >= 100 ? 4 : pct >= 60 ? 3 : pct >= 40 ? 2 : pct >= 20 ? 1 : 0;
+      var fillEl = document.getElementById('qzMasteryFill');
+      var commentEl = document.getElementById('qzMasteryComment');
+      if (fillEl) {
+        fillEl.style.width = '0%';
+        setTimeout(function () { fillEl.style.width = pct + '%'; }, 50);
+      }
+      if (commentEl) commentEl.textContent = _masteryLevels[level].comment;
+
+      // Highlight markers: reached / next-target / inactive
+      var markers = document.querySelectorAll('.qz-mastery-marker');
+      markers.forEach(function (m) {
+        var lvl = parseInt(m.getAttribute('data-level'));
+        m.classList.remove('reached', 'next-target');
+        if (lvl <= level) {
+          m.classList.add('reached');
+        } else if (lvl === level + 1) {
+          m.classList.add('next-target');
+        }
+      });
+
+      // Populate wrong answers list
+      var wrongList = document.getElementById('qzWrongList');
+      var wrongCount = document.getElementById('qzWrongCount');
+      var perfectState = document.getElementById('qzPerfectState');
+
+      if (wrongCount) wrongCount.textContent = wrong.length + ' of ' + total;
+
+      if (wrong.length > 0) {
+        if (perfectState) perfectState.style.display = 'none';
+        if (wrongList) {
+          wrongList.style.display = 'block';
+          var html = '';
+          for (var i = 0; i < wrong.length; i++) {
+            var w = wrong[i];
+            html +=
+              '<div class="qz-heatmap-wrong-item">' +
+                '<p class="qz-hw-question"><i class="fas fa-question-circle"></i> ' + _esc(w.question) + '</p>' +
+                '<p class="qz-hw-selected"><i class="fas fa-times"></i> ' + _esc(w.selected_answer) + '</p>' +
+                '<p class="qz-hw-correct"><i class="fas fa-check"></i> ' + _esc(w.correct_answer) + '</p>' +
+              '</div>';
+          }
+          wrongList.innerHTML = html;
+        }
+      } else {
+        if (wrongList) wrongList.style.display = 'none';
+        if (perfectState) perfectState.style.display = 'flex';
+      }
+
+      // Show modal with content, hide placeholder
+      var placeholder = document.getElementById('qzHeatmapPlaceholder');
+      var content = document.getElementById('qzHeatmapContent');
+      if (placeholder) placeholder.style.display = 'none';
+      if (content) content.style.display = 'block';
+
+      var modal = document.getElementById('qzHeatmapModal');
+      if (modal) modal.style.display = 'flex';
+
+    } catch (err) {
+      console.error('Error loading heatmap:', err);
+      if (typeof showNotification === 'function') {
+        showNotification('Failed to load study heatmap', 'error');
+      }
+    }
+  }
+
+  function _showHeatmapPlaceholder(docId, docName) {
+    var placeholder = document.getElementById('qzHeatmapPlaceholder');
+    var content = document.getElementById('qzHeatmapContent');
+    var docNameEl = document.getElementById('qzHeatmapDocName');
+
+    if (docNameEl) docNameEl.textContent = docName;
+    if (content) content.style.display = 'none';
+    if (placeholder) {
+      placeholder.style.display = 'flex';
+      // Wire up the "Start Quiz" button inside the placeholder
+      var btn = document.getElementById('qzHeatmapStartBtn');
+      if (btn) {
+        btn.onclick = function () {
+          closeHeatmap();
+          startQuiz(docId, docName);
+        };
+      }
+    }
+
+    var modal = document.getElementById('qzHeatmapModal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeHeatmap() {
+    var modal = document.getElementById('qzHeatmapModal');
+    if (modal) modal.style.display = 'none';
   }
 
   // ===========================================================================
@@ -428,5 +597,7 @@
     exitQuiz: exitQuiz,
     cancelExit: cancelExit,
     confirmExit: confirmExit,
+    openHeatmap: openHeatmap,
+    closeHeatmap: closeHeatmap,
   };
 })();

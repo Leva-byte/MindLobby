@@ -51,22 +51,63 @@ function closeSidebarOnClickOutside(e) {
   }
 }
 
+// Panel icon map for sidebar transitions (only these panels get the icon transition)
+const _sidebarPanelIcons = {
+  flashcards:  'fas fa-layer-group',
+  notes:       'fas fa-sticky-note',
+  quizzes:     'fas fa-question-circle'
+};
+
+function _sidebarTransition(viewName) {
+  const content = document.querySelector('.main-content') || document.querySelector('.studio-content') || document.body;
+  const iconClass = _sidebarPanelIcons[viewName] || 'fas fa-circle';
+  const overlay = document.createElement('div');
+  overlay.className = 'notes-transition-overlay';
+  overlay.innerHTML = `
+    <div class="notes-transition-inner">
+      <i class="${iconClass} notes-transition-icon"></i>
+    </div>`;
+  content.appendChild(overlay);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => overlay.classList.add('visible'));
+  });
+
+  setTimeout(() => {
+    showView(viewName);
+  }, 250);
+
+  setTimeout(() => {
+    overlay.classList.remove('visible');
+    setTimeout(() => overlay.remove(), 350);
+  }, 600);
+}
+
 // Handle navigation item clicks
 document.addEventListener('DOMContentLoaded', () => {
   const navItems = document.querySelectorAll('.nav-item[data-view]');
-  
+
   navItems.forEach(item => {
     item.addEventListener('click', (e) => {
       e.preventDefault();
-      
+
+      const view = item.getAttribute('data-view');
+
+      // Skip transition if already on this view
+      const currentActive = document.querySelector('.nav-item[data-view].active');
+      if (currentActive && currentActive.getAttribute('data-view') === view) return;
+
       // Update active state
       navItems.forEach(nav => nav.classList.remove('active'));
       item.classList.add('active');
-      
-      // Get view name
-      const view = item.getAttribute('data-view');
-      showView(view);
-      
+
+      // Only Flashcards, Notes, Quizzes get the icon transition; others switch instantly
+      if (_sidebarPanelIcons[view]) {
+        _sidebarTransition(view);
+      } else {
+        showView(view);
+      }
+
       // Close sidebar on mobile
       if (window.innerWidth <= 1024) {
         document.getElementById('sidebar').classList.remove('active');
@@ -1318,7 +1359,25 @@ async function submitYoutubeUrl() {
       if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
       if (window.Notes && Notes.loadDocs) Notes.loadDocs();
 
-      showNotification(data.message || 'YouTube import successful!', 'success');
+      // Show topic picker, then auto-open notes
+      var _ytDocId = data.document_id;
+      var _ytDocName = data.filename || 'YouTube Video';
+
+      if (_ytDocId && typeof window.showTopicPicker === 'function') {
+        window.showTopicPicker(_ytDocId, _ytDocName, function () {
+          if (window.Notes && Notes.openForDocument) {
+            setTimeout(function () {
+              if (typeof showView === 'function') showView('notes');
+              Notes.openForDocument(_ytDocId, _ytDocName);
+            }, 300);
+          }
+        });
+      } else if (_ytDocId && window.Notes && Notes.openForDocument) {
+        setTimeout(function () {
+          if (typeof showView === 'function') showView('notes');
+          Notes.openForDocument(_ytDocId, _ytDocName);
+        }, 300);
+      }
     } else {
       if (typeof window.hideYtLoadingOverlay === 'function') {
         window.hideYtLoadingOverlay();

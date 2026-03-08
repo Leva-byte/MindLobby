@@ -4,6 +4,7 @@ from database import (
     save_quiz_result,
     get_quiz_results_for_user,
     get_quiz_history_for_document,
+    get_latest_wrong_answers,
 )
 from flashcard_service import generate_mcq_questions
 
@@ -64,7 +65,8 @@ def submit_quiz():
     if not isinstance(score, int) or not isinstance(total, int) or total < 1:
         return jsonify({'success': False, 'message': 'Invalid score data'}), 400
 
-    result_id = save_quiz_result(document_id, session['user_id'], score, total)
+    wrong_answers = data.get('wrong_answers', [])
+    result_id = save_quiz_result(document_id, session['user_id'], score, total, wrong_answers)
     return jsonify({'success': True, 'result_id': result_id})
 
 
@@ -86,3 +88,21 @@ def get_history(document_id):
 
     history = get_quiz_history_for_document(document_id, session['user_id'])
     return jsonify({'success': True, 'history': history})
+
+
+@quiz_bp.route('/api/quiz/heatmap/<int:document_id>', methods=['GET'])
+def get_heatmap(document_id):
+    """Return the most recent quiz attempt's score and wrong answers for a document."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+
+    result, wrong_answers = get_latest_wrong_answers(document_id, session['user_id'])
+    if not result:
+        return jsonify({'success': False, 'message': 'No quiz attempts found'}), 404
+
+    return jsonify({
+        'success': True,
+        'score': result['score'],
+        'total': result['total'],
+        'wrong_answers': wrong_answers,
+    })

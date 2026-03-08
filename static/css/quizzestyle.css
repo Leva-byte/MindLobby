@@ -16,18 +16,7 @@
   color: #2ecc71;
 }
 
-/* ---- History Badge on Doc Cards ---- */
-.qz-history-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8em;
-  color: #f1c40f;
-  padding: 4px 10px;
-  background: rgba(241, 196, 15, 0.1);
-  border-radius: 6px;
-  margin-top: 8px;
-}
+/* ---- History Badge on Doc Cards (moved to studiostyle.css) ---- */
 
 /* ---- Question Card ---- */
 .qz-question-card {
@@ -304,9 +293,7 @@
 }
 
 /* ---- Start Quiz Button Override ---- */
-.qz-start-btn {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
-}
+/* ---- Quiz start button (moved to studiostyle.css as .doc-study-btn-quiz) ---- */
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
@@ -346,7 +333,386 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Light Mode ──────────────────────────────────────────────────────── */
+/* ============================================================================
+   STUDY HEATMAP MODAL
+   ============================================================================ */
+
+#qzHeatmapModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+}
+
+.qz-heatmap-box {
+  background: #1a1a2e;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 720px;
+  width: 92%;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  animation: heatmapSlideIn 0.3s ease;
+}
+
+@keyframes heatmapSlideIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Header ── */
+.qz-heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.qz-heatmap-title {
+  font-size: 1.5em;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 4px;
+}
+
+.qz-heatmap-docname {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.qz-heatmap-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text-muted);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.qz-heatmap-close:hover {
+  background: rgba(231, 76, 60, 0.15);
+  border-color: rgba(231, 76, 60, 0.4);
+  color: #e74c3c;
+}
+
+/* ── Mastery Slider ── */
+.qz-heatmap-mastery {
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+}
+
+.qz-mastery-track {
+  position: relative;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  margin: 28px 16px 16px;
+}
+
+.qz-mastery-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71, #7c77c6);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.qz-mastery-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.4em;
+  transition: all 0.4s ease;
+  opacity: 0.2;
+  filter: grayscale(0.8);
+  z-index: 1;
+}
+
+/* Circle backdrop behind each emoji to hide the track behind eye holes */
+.qz-mastery-marker::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 50%;
+  background: #1a1a2e;
+  z-index: -1;
+}
+
+.qz-mastery-marker[data-level="0"] { left: 0%; }
+.qz-mastery-marker[data-level="1"] { left: 25%; }
+.qz-mastery-marker[data-level="2"] { left: 50%; }
+.qz-mastery-marker[data-level="3"] { left: 75%; }
+.qz-mastery-marker[data-level="4"] { left: 100%; }
+
+/* Reached: emojis the slider has passed through — solid, no bounce */
+.qz-mastery-marker.reached {
+  opacity: 1;
+  filter: grayscale(0);
+  font-size: 1.6em;
+}
+
+/* Next target: the very next emoji after the last reached — pulsating */
+.qz-mastery-marker.next-target {
+  opacity: 0.35;
+  filter: grayscale(0.5);
+  animation: masteryPulseNext 1.8s ease-in-out infinite;
+}
+
+@keyframes masteryPulseNext {
+  0%, 100% { opacity: 0.25; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.5; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.qz-mastery-comment {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ── Body Layout (left 80% / right 20%) ── */
+.qz-heatmap-body {
+  display: flex;
+  gap: 20px;
+}
+
+.qz-heatmap-left {
+  flex: 4;
+  min-width: 0;
+}
+
+.qz-heatmap-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Wrong Answers List ── */
+.qz-heatmap-wrong-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  font-size: 0.95em;
+  color: var(--text-primary);
+}
+
+.qz-heatmap-wrong-header i {
+  color: #e74c3c;
+}
+
+.qz-wrong-count {
+  margin-left: auto;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(231, 76, 60, 0.1);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.qz-heatmap-wrong-list {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+/* Custom scrollbar for wrong answers */
+.qz-heatmap-wrong-list::-webkit-scrollbar {
+  width: 5px;
+}
+.qz-heatmap-wrong-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.qz-heatmap-wrong-list::-webkit-scrollbar-thumb {
+  background: rgba(124, 119, 198, 0.3);
+  border-radius: 3px;
+}
+
+.qz-heatmap-wrong-item {
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  transition: border-color 0.2s;
+}
+
+.qz-heatmap-wrong-item:hover {
+  border-color: rgba(124, 119, 198, 0.3);
+}
+
+.qz-hw-question {
+  font-weight: 600;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.qz-hw-question i {
+  color: var(--primary-light);
+  margin-right: 6px;
+}
+
+.qz-hw-selected {
+  color: #e74c3c;
+  font-size: 0.85em;
+  margin-bottom: 4px;
+}
+
+.qz-hw-selected i {
+  margin-right: 6px;
+}
+
+.qz-hw-correct {
+  color: #2ecc71;
+  font-size: 0.85em;
+}
+
+.qz-hw-correct i {
+  margin-right: 6px;
+}
+
+/* ── Perfect State ── */
+.qz-heatmap-perfect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  gap: 12px;
+}
+
+.qz-heatmap-perfect i {
+  font-size: 2.5em;
+  color: #f1c40f;
+}
+
+.qz-heatmap-perfect p {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ── Placeholder (no attempts yet) ── */
+.qz-heatmap-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+  gap: 16px;
+}
+
+.qz-placeholder-icon {
+  font-size: 3.5em;
+  color: var(--text-muted);
+  animation: placeholderPulse 2s ease-in-out infinite;
+}
+
+@keyframes placeholderPulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%      { opacity: 0.7; transform: scale(1.08); }
+}
+
+.qz-placeholder-text {
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--text-muted);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+.qz-placeholder-btn {
+  margin-top: 4px;
+  max-width: 200px;
+}
+
+/* ── Pie Chart ── */
+.qz-heatmap-pie {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(rgba(124, 119, 198, 0.2) 0% 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.qz-pie-inner {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #1a1a2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qz-pie-label {
+  font-size: 1.3em;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.qz-pie-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.75em;
+  color: var(--text-muted);
+}
+
+.qz-legend-correct i {
+  color: #7c77c6;
+  font-size: 0.7em;
+  margin-right: 4px;
+}
+
+.qz-legend-wrong i {
+  color: #e74c3c;
+  font-size: 0.7em;
+  margin-right: 4px;
+}
+
+/* ============================================================================
+   LIGHT MODE — QUIZ PANEL
+   ============================================================================ */
+
+/* ── Light Mode — Exit Modal ── */
 body.light-mode #qzExitModal {
   background: rgba(0, 0, 0, 0.35);
 }
@@ -355,4 +721,113 @@ body.light-mode .qz-exit-modal-box {
   background: #fff;
   border-color: rgba(108, 99, 192, 0.15);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Light Mode — Heatmap Modal ── */
+body.light-mode #qzHeatmapModal {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+body.light-mode .qz-heatmap-box {
+  background: #fff;
+  border-color: rgba(108, 99, 192, 0.12);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .qz-heatmap-close {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #666;
+}
+
+body.light-mode .qz-heatmap-mastery {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(108, 99, 192, 0.1);
+}
+
+body.light-mode .qz-mastery-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+body.light-mode .qz-mastery-marker::before {
+  background: #fff;
+}
+
+body.light-mode .qz-heatmap-wrong-item {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .qz-heatmap-wrong-item:hover {
+  border-color: rgba(108, 99, 192, 0.25);
+}
+
+body.light-mode .qz-pie-inner {
+  background: #fff;
+}
+
+body.light-mode .qz-wrong-count {
+  background: rgba(231, 76, 60, 0.08);
+}
+
+body.light-mode .qz-btn-heatmap {
+  background: rgba(108, 99, 192, 0.08);
+  border-color: rgba(108, 99, 192, 0.2);
+  color: #6c63c6;
+}
+
+body.light-mode .qz-btn-heatmap:hover {
+  background: rgba(108, 99, 192, 0.15);
+  border-color: rgba(108, 99, 192, 0.4);
+}
+
+/* ── Responsive — Heatmap Modal ── */
+@media (max-width: 640px) {
+  .qz-heatmap-box {
+    padding: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+    width: 95%;
+  }
+
+  .qz-heatmap-body {
+    flex-direction: column-reverse;
+  }
+
+  .qz-heatmap-right {
+    flex: unset;
+    flex-direction: row;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .qz-heatmap-left {
+    flex: unset;
+  }
+
+  .qz-heatmap-pie {
+    width: 100px;
+    height: 100px;
+  }
+
+  .qz-pie-inner {
+    width: 60px;
+    height: 60px;
+  }
+
+  .qz-pie-label {
+    font-size: 1.1em;
+  }
+
+  .qz-heatmap-wrong-list {
+    max-height: 240px;
+  }
+
+  .qz-mastery-marker {
+    font-size: 1.1em;
+  }
+
+  .qz-mastery-marker.reached {
+    font-size: 1.3em;
+  }
 }

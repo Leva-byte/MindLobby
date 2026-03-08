@@ -64,15 +64,23 @@
   function _renderDocCard(doc) {
     const ext      = doc.file_type || 'txt';
     const icon     = _fileIcon(ext);
-    const date     = new Date(doc.upload_date).toLocaleDateString();
+    const ago      = _timeAgo(doc.upload_date);
     const name     = _esc(doc.original_filename || doc.filename || '');
     const nameAttr = (doc.original_filename || doc.filename || '')
                        .replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const count    = doc.flashcard_count || 0;
+    const topicDots = (doc.topics || []).map(t =>
+      '<span class="doc-topic-dot" style="--dot-color:' + t.color + '" title="' + _esc(t.name) + '"></span>'
+    ).join('');
+    const badgeLabel = ext === 'youtube' ? 'YOUTUBE' : ext.toUpperCase();
+    const iconPrefix = ext === 'youtube' ? '' : 'fas ';
 
     return `
       <div class="document-card" onclick="Notes.openForDocument('${doc.id}', '${nameAttr}')">
         <div class="doc-header">
-          <div class="doc-icon"><i class="fas ${icon}"></i></div>
+          <div class="doc-icon doc-icon-${ext}"><i class="${iconPrefix}${icon}"></i></div>
+          <span class="doc-type-badge doc-type-${ext}">${badgeLabel}</span>
+          ${topicDots}
           <div class="doc-actions">
             <button class="doc-rename-btn" onclick="event.stopPropagation(); openRenameModal('${doc.id}', '${nameAttr}')" title="Rename">
               <i class="fas fa-pen"></i>
@@ -82,17 +90,25 @@
             </button>
           </div>
         </div>
-        <span class="doc-type-badge doc-type-${ext}">${ext.toUpperCase()}</span>
         <h3 class="doc-title">${name}</h3>
         <div class="doc-meta">
-          <span class="doc-meta-item"><i class="fas fa-layer-group"></i> ${doc.flashcard_count || 0} cards</span>
-          <span class="doc-meta-item"><i class="fas fa-calendar"></i> ${date}</span>
+          <span class="doc-meta-item"><i class="fas fa-layer-group"></i> ${count} card${count !== 1 ? 's' : ''}</span>
+          <span class="doc-meta-item"><i class="fas fa-clock"></i> ${ago}</span>
         </div>
-        <button class="doc-study-btn" onclick="event.stopPropagation(); Notes.openForDocument('${doc.id}', '${nameAttr}')">
+        <button class="doc-study-btn doc-study-btn-notes" onclick="event.stopPropagation(); Notes.openForDocument('${doc.id}', '${nameAttr}')">
           <i class="fas fa-sticky-note"></i> View Notes
         </button>
       </div>
     `;
+  }
+
+  function _timeAgo(dateStr) {
+    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+    return new Date(dateStr).toLocaleDateString();
   }
 
   function _fileIcon(ext) {
@@ -100,6 +116,7 @@
       case 'pdf':  return 'fa-file-pdf';
       case 'doc':  case 'docx': return 'fa-file-word';
       case 'ppt':  case 'pptx': return 'fa-file-powerpoint';
+      case 'youtube': return 'fa-brands fa-youtube';
       default:     return 'fa-file-alt';
     }
   }
@@ -457,28 +474,24 @@
   // ============================================================================
 
   function _transitionTo(viewName, callback) {
-    // Create overlay on the main content area only
     const content = document.querySelector('.main-content') || document.querySelector('.studio-content') || document.body;
     const overlay = document.createElement('div');
     overlay.className = 'notes-transition-overlay';
     overlay.innerHTML = `
       <div class="notes-transition-inner">
-        <img src="/static/images/favicon.png" class="notes-transition-logo">
+        <img src="/static/images/favicon.png" class="notes-transition-logo" alt="">
       </div>`;
     content.appendChild(overlay);
 
-    // Fade in
     requestAnimationFrame(() => {
       requestAnimationFrame(() => overlay.classList.add('visible'));
     });
 
-    // Switch view under the overlay
     setTimeout(() => {
       if (typeof showView === 'function') showView(viewName);
       if (typeof callback === 'function') callback();
     }, 250);
 
-    // Fade out and remove
     setTimeout(() => {
       overlay.classList.remove('visible');
       setTimeout(() => overlay.remove(), 350);
