@@ -86,6 +86,34 @@
   transform: translateY(-2px);
 }
 
+.fc-action-btn {
+  font-weight: 700;
+}
+
+.fc-notes-btn {
+  background: rgba(43, 87, 154, 0.15);
+  border-color: rgba(43, 87, 154, 0.4);
+  color: #5b9bd5;
+}
+
+.fc-notes-btn:hover {
+  background: rgba(43, 87, 154, 0.3);
+  border-color: #5b9bd5;
+  transform: translateY(-2px);
+}
+
+.fc-quiz-btn {
+  background: rgba(46, 213, 115, 0.12);
+  border-color: rgba(46, 213, 115, 0.35);
+  color: #2ed573;
+}
+
+.fc-quiz-btn:hover {
+  background: rgba(46, 213, 115, 0.22);
+  border-color: #2ed573;
+  transform: translateY(-2px);
+}
+
 /* ---- Progress Bar ---- */
 .fc-panel-progress-bar {
   height: 4px;
@@ -330,6 +358,28 @@ body.light-mode .fc-control-btn {
 
 body.light-mode .fc-control-btn:hover {
   background: rgba(108, 99, 192, 0.18);
+}
+
+body.light-mode .fc-notes-btn {
+  background: rgba(43, 87, 154, 0.1);
+  border-color: rgba(43, 87, 154, 0.25);
+  color: #3a6fa8;
+}
+
+body.light-mode .fc-notes-btn:hover {
+  background: rgba(43, 87, 154, 0.2);
+  border-color: #3a6fa8;
+}
+
+body.light-mode .fc-quiz-btn {
+  background: rgba(30, 160, 80, 0.1);
+  border-color: rgba(30, 160, 80, 0.25);
+  color: #1ea050;
+}
+
+body.light-mode .fc-quiz-btn:hover {
+  background: rgba(30, 160, 80, 0.2);
+  border-color: #1ea050;
 }
 
 body.light-mode .fc-search-wrapper {

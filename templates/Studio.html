@@ -271,80 +271,25 @@
        UPLOAD LOADING OVERLAY
        ===================================================================== -->
   <div class="fc-loading-overlay" id="fcLoadingOverlay">
-  <div class="fc-loading-box">
-    <!-- Animated Progress Ring -->
-    <div class="fc-progress-ring">
-      <svg class="fc-ring-svg" width="120" height="120">
-        <circle class="fc-ring-bg" cx="60" cy="60" r="54"></circle>
-        <circle class="fc-ring-progress" cx="60" cy="60" r="54"></circle>
-      </svg>
-      <div class="fc-ring-icon">
-        <i class="fas fa-file-upload"></i>
+    <div class="fc-loading-card">
+      <div class="fc-loading-icon"><i class="fas fa-file-upload"></i></div>
+      <h2 class="fc-loading-title" id="fcLoadingTitle">Uploading File...</h2>
+      <p class="fc-loading-msg" id="fcStatusMsg">Sending file to server</p>
+      <p class="fc-loading-file" id="fcLoadingFile"></p>
+      <div class="fc-loading-meta">
+        <div class="fc-timer" id="fcTimer"><i class="fas fa-clock"></i> <span id="fcTimerText">0:00</span></div>
+        <button class="fc-cancel-btn" id="fcCancelBtn" onclick="window.cancelUpload('doc')"><i class="fas fa-times"></i> Cancel</button>
       </div>
+      <div class="fc-loading-steps">
+        <div class="fc-load-step" id="step1"><i class="fas fa-upload"></i> Upload</div>
+        <div class="fc-load-step" id="step2"><i class="fas fa-file-alt"></i> Extract</div>
+        <div class="fc-load-step" id="step3"><i class="fas fa-layer-group"></i> Flashcards</div>
+        <div class="fc-load-step" id="step4"><i class="fas fa-sticky-note"></i> Notes</div>
+        <div class="fc-load-step" id="step5"><i class="fas fa-check-circle"></i> Done</div>
+      </div>
+      <div class="fc-loading-bar"><div class="fc-loading-bar-fill" id="fcLoadingBarFill"></div></div>
     </div>
-
-    <!-- Current Step Title -->
-    <p class="fc-loading-title" id="fcLoadingTitle">Uploading File...</p>
-    
-    <!-- Filename -->
-    <p class="fc-loading-file" id="fcLoadingFile"></p>
-
-    <!-- Live Timer -->
-    <div class="fc-timer" id="fcTimer">
-      <i class="fas fa-clock"></i>
-      <span id="fcTimerText">0s</span>
-    </div>
-
-    <!-- Step Progress Indicators -->
-    <div class="fc-steps">
-      <div class="fc-step" id="step1">
-        <div class="fc-step-icon">
-          <i class="fas fa-upload"></i>
-        </div>
-        <span class="fc-step-label">Uploading</span>
-      </div>
-
-      <div class="fc-step-connector"></div>
-
-      <div class="fc-step" id="step2">
-        <div class="fc-step-icon">
-          <i class="fas fa-file-alt"></i>
-        </div>
-        <span class="fc-step-label">Extracting</span>
-      </div>
-
-      <div class="fc-step-connector"></div>
-
-      <div class="fc-step" id="step3">
-        <div class="fc-step-icon">
-          <i class="fas fa-layer-group"></i>
-        </div>
-        <span class="fc-step-label">Flashcards</span>
-      </div>
-
-      <div class="fc-step-connector"></div>
-
-      <div class="fc-step" id="step4">
-        <div class="fc-step-icon">
-          <i class="fas fa-sticky-note"></i>
-        </div>
-        <span class="fc-step-label">Notes</span>
-      </div>
-
-      <div class="fc-step-connector"></div>
-
-      <div class="fc-step" id="step5">
-        <div class="fc-step-icon">
-          <i class="fas fa-check"></i>
-        </div>
-        <span class="fc-step-label">Complete</span>
-      </div>
-    </div>
-
-    <!-- Status Message -->
-    <p class="fc-status-msg" id="fcStatusMsg">Preparing upload...</p>
   </div>
-</div>
 
   <!-- =====================================================================
        FILE UPLOAD MODAL
@@ -394,7 +339,7 @@
   <div class="yt-modal" id="ytModal">
     <div class="yt-modal-header">
       <div>
-        <h2 class="yt-modal-title"><i class="fa-brands fa-youtube"></i> Import YouTube Video</h2>
+        <h2 class="yt-modal-title"><i class="fa-brands fa-youtube"></i>&nbsp;Import YouTube Video</h2>
         <p class="yt-modal-subtitle">Generate flashcards and notes from any video with captions</p>
       </div>
       <button class="yt-close-btn" onclick="closeYoutubeModal()">
@@ -455,7 +400,7 @@
   <div class="upload-modal" id="uploadModal">
     <div class="upload-modal-header">
       <div>
-        <h2 class="upload-modal-title">Upload Documents</h2>
+        <h2 class="upload-modal-title"><i class="fa-solid fa-cloud-arrow-up"></i>&nbsp;Upload Documents</h2>
         <p class="upload-modal-subtitle">Add your study materials</p>
       </div>
       <button class="upload-close-btn" onclick="closeUploadModal()">
@@ -560,7 +505,7 @@
     </div>
     <h2 class="overtime-title">Hang Tight!</h2>
     <p class="overtime-message">
-      Your file is a bit large and taking longer than usual to process.
+      This is taking longer than expected.
       Everything is still running — thanks for your patience!
     </p>
     <button class="overtime-btn" onclick="closeOvertimeModal()">
@@ -573,11 +518,13 @@
        ===================================================================== -->
   <div class="yt-loading-overlay" id="ytLoadingOverlay">
     <div class="yt-loading-card">
-      <div class="yt-loading-icon">
-        <i class="fa-brands fa-youtube"></i>
-      </div>
+      <div class="yt-loading-icon"><i class="fa-brands fa-youtube"></i></div>
       <h2 class="yt-loading-title" id="ytLoadingTitle">Fetching Transcript...</h2>
       <p class="yt-loading-msg" id="ytLoadingMsg">Connecting to YouTube servers</p>
+      <div class="yt-loading-meta">
+        <div class="yt-timer" id="ytTimer"><i class="fas fa-clock"></i> <span id="ytTimerText">0:00</span></div>
+        <button class="yt-cancel-btn" id="ytCancelBtn" onclick="window.cancelUpload('yt')"><i class="fas fa-times"></i> Cancel</button>
+      </div>
       <div class="yt-loading-steps">
         <div class="yt-load-step active" id="ytStep1"><i class="fas fa-closed-captioning"></i> Transcript</div>
         <div class="yt-load-step" id="ytStep2"><i class="fas fa-layer-group"></i> Flashcards</div>
@@ -585,6 +532,28 @@
         <div class="yt-load-step" id="ytStep4"><i class="fas fa-check-circle"></i> Done</div>
       </div>
       <div class="yt-loading-bar"><div class="yt-loading-bar-fill" id="ytLoadingBarFill"></div></div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       CANCEL CONFIRMATION MODAL
+       ===================================================================== -->
+  <div class="cancel-confirm-backdrop" id="cancelConfirmBackdrop" onclick="window.dismissCancel()"></div>
+  <div class="cancel-confirm-modal" id="cancelConfirmModal">
+    <div class="cancel-confirm-icon">
+      <i class="fas fa-exclamation-triangle"></i>
+    </div>
+    <h2 class="cancel-confirm-title">Cancel Upload?</h2>
+    <p class="cancel-confirm-msg">
+      All progress made so far will be deleted, including any flashcards and notes already generated.
+    </p>
+    <div class="cancel-confirm-actions">
+      <button class="cancel-confirm-keep" onclick="window.dismissCancel()">
+        <i class="fas fa-arrow-left"></i> Keep Going
+      </button>
+      <button class="cancel-confirm-yes" onclick="window.confirmCancel()">
+        <i class="fas fa-trash-alt"></i> Cancel Upload
+      </button>
     </div>
   </div>
 

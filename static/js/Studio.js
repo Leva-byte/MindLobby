@@ -1285,13 +1285,18 @@ async function submitYoutubeUrl() {
   }
 
   try {
+    window._ytAbortController = new AbortController();
     var response = await fetch('/api/youtube/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url, max_flashcards: maxCards })
+      body: JSON.stringify({ url: url, max_flashcards: maxCards }),
+      signal: window._ytAbortController.signal
     });
 
     var data = await response.json();
+
+    // Track document_id for cancel cleanup (UploadLoading.js reads this)
+    if (data.document_id) window._lastYtDocId = data.document_id;
 
     if (data.success) {
       if (typeof window.completeYtLoading === 'function') {
@@ -1300,6 +1305,8 @@ async function submitYoutubeUrl() {
 
       // Small delay so completion animation plays
       await new Promise(function(r) { setTimeout(r, 1800); });
+
+      window._lastYtDocId = null; // Upload succeeded, no cleanup needed
 
       if (typeof window.hideYtLoadingOverlay === 'function') {
         window.hideYtLoadingOverlay();
@@ -1328,10 +1335,13 @@ async function submitYoutubeUrl() {
       window.hideYtLoadingOverlay();
     }
 
-    openYoutubeModal();
-    if (urlInput) urlInput.value = url;
-    updateYtPreview(url);
-    if (errEl) { errEl.textContent = 'Network error. Please check your connection.'; errEl.style.display = 'block'; }
+    // Don't show error if cancelled by user
+    if (error.name !== 'AbortError') {
+      openYoutubeModal();
+      if (urlInput) urlInput.value = url;
+      updateYtPreview(url);
+      if (errEl) { errEl.textContent = 'Network error. Please check your connection.'; errEl.style.display = 'block'; }
+    }
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-brands fa-youtube"></i> Import Video';

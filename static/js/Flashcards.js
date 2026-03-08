@@ -8,6 +8,8 @@
   let _cards = [];
   let _index = 0;
   let _allDocs = [];
+  let _currentDocId = null;
+  let _currentDocName = '';
 
   // ===========================================================================
   // BROWSE VIEW — document card grid
@@ -151,6 +153,8 @@
         return;
       }
 
+      _currentDocId = docId;
+      _currentDocName = filename || '';
       openPanel(cards, filename, `${cards.length} flashcards`, docId);
     } catch (err) {
       console.error('Error loading flashcards:', err);
@@ -164,6 +168,8 @@
   function openPanel(cards, title, subtitle, docId) {
     _cards = cards || [];
     _index = 0;
+    if (docId) _currentDocId = docId;
+    if (title) _currentDocName = title;
 
     const titleEl = document.getElementById('fcPanelTitle');
     const subtitleEl = document.getElementById('fcPanelSubtitle');
@@ -275,6 +281,54 @@
   }
 
   // ===========================================================================
+  // CROSS-PANEL NAVIGATION
+  // ===========================================================================
+  function _transitionTo(viewName, callback) {
+    const content = document.querySelector('.main-content') || document.querySelector('.studio-content') || document.body;
+    const overlay = document.createElement('div');
+    overlay.className = 'notes-transition-overlay';
+    overlay.innerHTML = `
+      <div class="notes-transition-inner">
+        <img src="/static/images/favicon.png" class="notes-transition-logo">
+      </div>`;
+    content.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => overlay.classList.add('visible'));
+    });
+
+    setTimeout(() => {
+      if (typeof showView === 'function') showView(viewName);
+      if (typeof callback === 'function') callback();
+    }, 250);
+
+    setTimeout(() => {
+      overlay.classList.remove('visible');
+      setTimeout(() => overlay.remove(), 350);
+    }, 600);
+  }
+
+  function openQuiz() {
+    if (!_currentDocId) return;
+    _transitionTo('quizzes', () => {
+      showBrowse(); // Reset to grid under the overlay so returning shows document selection
+      if (window.Quizzes && Quizzes.startQuiz) {
+        setTimeout(() => Quizzes.startQuiz(_currentDocId, _currentDocName), 50);
+      }
+    });
+  }
+
+  function openNotes() {
+    if (!_currentDocId) return;
+    _transitionTo('notes', () => {
+      showBrowse(); // Reset to grid under the overlay so returning shows document selection
+      if (window.Notes && Notes.openForDocument) {
+        setTimeout(() => Notes.openForDocument(_currentDocId, _currentDocName), 50);
+      }
+    });
+  }
+
+  // ===========================================================================
   // KEYBOARD SHORTCUTS
   // ===========================================================================
   document.addEventListener('keydown', (e) => {
@@ -300,6 +354,8 @@
     loadDocs,
     filterDocs,
     showBrowse,
+    openQuiz,
+    openNotes,
   };
 
   // Legacy compatibility shim for Topics.js inline onclick handlers

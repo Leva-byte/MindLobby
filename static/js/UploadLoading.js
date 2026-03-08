@@ -1,351 +1,267 @@
 // ============================================================================
-// COMPLETE FIXED LOADING SYSTEM - Timer and Steps Working
+// UNIFIED LOADING SYSTEM — Document Uploads & YouTube Imports
+// Card-style overlays, count-up timer (M:SS), simulated step progression,
+// overtime modal, cancel with confirmation + server cleanup
 // ============================================================================
 
-let isUploading = false;
-let uploadTimer = null;
-let uploadStartTime = null;
-let overtimeNotified = false;
-let uploadAbortController = null;
-const ESTIMATED_UPLOAD_TIME = 120; // 120 seconds — two AI calls now
-const MAX_UPLOAD_TIME = 240;       // hard fail at 240 seconds
+// ── State ───────────────────────────────────────────────────────────────────
+var isUploading = false;
+var uploadAbortController = null;
+
+// Track document_id so we can delete on cancel
+var _lastDocId = null;
+
+// Document state
+var _docTimerInterval = null;
+var _docStartTime = null;
+var _docOvertimeNotified = false;
+var _docProgressInterval = null;
+
+// YouTube state
+var _ytTimerInterval = null;
+var _ytStartTime = null;
+var _ytOvertimeNotified = false;
+var _ytLoadInterval = null;
+
+// Thresholds (seconds)
+var OVERTIME_THRESHOLD = 120;
+var HARD_TIMEOUT = 240;
+var WARNING_THRESHOLD = 90;
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function _formatTime(totalSeconds) {
+  var m = Math.floor(totalSeconds / 60);
+  var s = totalSeconds % 60;
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function sleep(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+// Delete a document from the server (cleanup on cancel)
+function _deleteDocument(docId) {
+  if (!docId) return;
+  fetch('/api/documents/' + docId, { method: 'DELETE' }).catch(function () {});
+}
+
+// ── Shared Timer ────────────────────────────────────────────────────────────
+
+function _startTimer(type) {
+  var startTime = Date.now();
+
+  var timerEl, timerTextEl;
+  if (type === 'doc') {
+    _docStartTime = startTime;
+    _docOvertimeNotified = false;
+    timerEl = document.getElementById('fcTimer');
+    timerTextEl = document.getElementById('fcTimerText');
+  } else {
+    _ytStartTime = startTime;
+    _ytOvertimeNotified = false;
+    timerEl = document.getElementById('ytTimer');
+    timerTextEl = document.getElementById('ytTimerText');
+  }
+
+  if (!timerEl || !timerTextEl) return;
+
+  timerTextEl.textContent = '0:00';
+  timerEl.classList.remove('warning');
+
+  var interval = setInterval(function () {
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    timerTextEl.textContent = _formatTime(elapsed);
+
+    if (elapsed >= WARNING_THRESHOLD) {
+      timerEl.classList.add('warning');
+    }
+
+    if (elapsed >= OVERTIME_THRESHOLD) {
+      var alreadyNotified = type === 'doc' ? _docOvertimeNotified : _ytOvertimeNotified;
+      if (!alreadyNotified) {
+        if (type === 'doc') _docOvertimeNotified = true;
+        else _ytOvertimeNotified = true;
+        showOvertimeModal();
+      }
+    }
+
+    if (elapsed >= HARD_TIMEOUT) {
+      _doCancel(type);
+      closeOvertimeModal();
+      showNotification('Process timed out. Please try again with a smaller file.', 'error');
+    }
+  }, 500);
+
+  if (type === 'doc') _docTimerInterval = interval;
+  else _ytTimerInterval = interval;
+}
+
+function _stopTimer(type) {
+  if (type === 'doc' && _docTimerInterval) {
+    clearInterval(_docTimerInterval);
+    _docTimerInterval = null;
+  }
+  if (type === 'yt' && _ytTimerInterval) {
+    clearInterval(_ytTimerInterval);
+    _ytTimerInterval = null;
+  }
+}
+
+// ============================================================================
+// DOCUMENT UPLOAD LOADING — with simulated progression
+// ============================================================================
 
 function showLoadingOverlay(filename) {
   if (isUploading) {
-    showNotification('⏳ Please wait for the current upload to complete', 'warning');
+    showNotification('Please wait for the current process to complete.', 'warning');
     return false;
   }
-  
+
   isUploading = true;
-  uploadStartTime = Date.now();
-  overtimeNotified = false;
-  
-  const overlay = document.getElementById('fcLoadingOverlay');
-  if (!overlay) {
-    console.error('fcLoadingOverlay not found!');
-    return false;
-  }
-  
-  // Reset classes
-  overlay.classList.remove('completing');
+  _lastDocId = null;
+
+  var overlay = document.getElementById('fcLoadingOverlay');
+  if (!overlay) { console.error('fcLoadingOverlay not found'); return false; }
+
   overlay.classList.add('active');
-  
-  // Reset all steps
-  for (let i = 1; i <= 5; i++) {
-    const step = document.getElementById(`step${i}`);
-    if (step) {
-      step.classList.remove('active', 'complete');
-    }
+
+  // Reset steps
+  for (var i = 1; i <= 5; i++) {
+    var s = document.getElementById('step' + i);
+    if (s) s.classList.remove('active', 'complete');
   }
-  
+
+  // Reset bar
+  var bar = document.getElementById('fcLoadingBarFill');
+  if (bar) bar.style.width = '0%';
+
   // Set filename
-  const fileEl = document.getElementById('fcLoadingFile');
-  if (fileEl) {
-    fileEl.textContent = filename || '';
-  }
-  
-  // IMPORTANT: Set initial timer text BEFORE starting interval
-  const timerText = document.getElementById('fcTimerText');
-  if (timerText) {
-    timerText.textContent = `${ESTIMATED_UPLOAD_TIME}s`;
-  }
-  
-  // Start countdown timer
-  startCountdownTimer();
-  
-  // Start Step 1 immediately
-  setTimeout(() => {
-    setLoadingStep(1, 'Uploading File...', 'Sending file to server...');
-  }, 100);
-  
+  var fileEl = document.getElementById('fcLoadingFile');
+  if (fileEl) fileEl.textContent = filename || '';
+
+  // Initial text
+  var titleEl = document.getElementById('fcLoadingTitle');
+  var msgEl = document.getElementById('fcStatusMsg');
+  if (titleEl) titleEl.textContent = 'Uploading File...';
+  if (msgEl) msgEl.textContent = 'Sending file to server';
+
+  // Show cancel button
+  var cancelBtn = document.getElementById('fcCancelBtn');
+  if (cancelBtn) cancelBtn.style.display = '';
+
+  // Start timer
+  _startTimer('doc');
+
+  // Activate step 1 immediately
+  _setDocStep(1);
+
+  // Simulated step progression (bar creeps forward like YouTube)
+  var elapsed = 0;
+  if (_docProgressInterval) clearInterval(_docProgressInterval);
+  _docProgressInterval = setInterval(function () {
+    elapsed++;
+    var pct = Math.min(elapsed * 0.8, 85);
+    if (bar) bar.style.width = pct + '%';
+
+    if (elapsed === 3) {
+      _setDocStep(2);
+      _setDocText('Extracting Text...', 'Reading document content');
+    } else if (elapsed === 10) {
+      _setDocStep(3);
+      _setDocText('Generating Flashcards...', 'AI is creating your study cards');
+    } else if (elapsed === 25) {
+      _setDocStep(4);
+      _setDocText('Summarizing Notes...', 'AI is writing your lecture notes');
+    }
+  }, 1000);
+
   return true;
 }
 
 function hideLoadingOverlay() {
   isUploading = false;
-  
-  // Stop timer
-  if (uploadTimer) {
-    clearInterval(uploadTimer);
-    uploadTimer = null;
-  }
-  
-  const overlay = document.getElementById('fcLoadingOverlay');
-  if (!overlay) return;
-  
-  // Hide overlay
-  overlay.classList.remove('active', 'completing');
-  
-  // Reset timer display
-  const timerEl = document.getElementById('fcTimer');
-  const timerText = document.getElementById('fcTimerText');
+  _stopTimer('doc');
+  if (_docProgressInterval) { clearInterval(_docProgressInterval); _docProgressInterval = null; }
+
+  var overlay = document.getElementById('fcLoadingOverlay');
+  if (overlay) overlay.classList.remove('active');
+
+  var timerEl = document.getElementById('fcTimer');
+  var timerText = document.getElementById('fcTimerText');
   if (timerEl) timerEl.classList.remove('warning');
-  if (timerText) timerText.textContent = `${ESTIMATED_UPLOAD_TIME}s`;
+  if (timerText) timerText.textContent = '0:00';
 }
 
-function startCountdownTimer() {
-  const timerEl = document.getElementById('fcTimer');
-  const timerText = document.getElementById('fcTimerText');
-  
-  if (!timerEl || !timerText) {
-    console.error('Timer elements not found!');
-    return;
-  }
-  
-  // Clear any existing timer
-  if (uploadTimer) {
-    clearInterval(uploadTimer);
-  }
-  
-  // Update immediately
-  timerText.textContent = `${ESTIMATED_UPLOAD_TIME}s`;
-  timerEl.classList.remove('warning');
-  
-  // Then start interval
-  uploadTimer = setInterval(() => {
-    if (!uploadStartTime) return;
-    
-    const elapsed = Math.floor((Date.now() - uploadStartTime) / 1000);
-    const remainingSeconds = Math.max(0, ESTIMATED_UPLOAD_TIME - elapsed);
-    
-    timerText.textContent = `${remainingSeconds}s`;
-    
-    // Turn orange when less than 20 seconds remain
-    if (remainingSeconds <= 20 && remainingSeconds > 0) {
-      timerEl.classList.add('warning');
-    }
-    
-    // If we go past estimated time, show overtime
-    if (remainingSeconds === 0 && elapsed > ESTIMATED_UPLOAD_TIME) {
-      const overtime = elapsed - ESTIMATED_UPLOAD_TIME;
-      timerText.textContent = `+${overtime}s`;
-      timerEl.classList.add('warning');
+function completeDocLoading(data) {
+  // Stop simulated progression
+  if (_docProgressInterval) { clearInterval(_docProgressInterval); _docProgressInterval = null; }
 
-      // Show patience modal once at overtime
-      if (!overtimeNotified) {
-        overtimeNotified = true;
-        showOvertimeModal();
-      }
+  // Hide cancel button
+  var cancelBtn = document.getElementById('fcCancelBtn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
 
-      // Hard fail at 240s
-      if (elapsed >= MAX_UPLOAD_TIME) {
-        if (uploadAbortController) uploadAbortController.abort();
-        hideLoadingOverlay();
-        closeOvertimeModal();
-        showNotification('Upload timed out — the file was too large to process. Please try a smaller file.', 'error');
-      }
-    }
-  }, 100); // Update every 100ms for smoother countdown
+  // Snap bar to 100%
+  var bar = document.getElementById('fcLoadingBarFill');
+  if (bar) bar.style.width = '100%';
+
+  // Mark all steps complete, set step 5 active
+  _setDocStep(5);
+  var count = data && data.flashcards_generated ? data.flashcards_generated : 0;
+  _setDocText('Complete!', count + ' flashcards and notes created!');
 }
 
-function setLoadingStep(stepNumber, title, message) {
-  console.log(`Setting step ${stepNumber}: ${title}`);
-  
-  // Update title
-  const titleEl = document.getElementById('fcLoadingTitle');
-  if (titleEl) {
-    titleEl.textContent = title;
-  } else {
-    console.error('fcLoadingTitle not found!');
-  }
-  
-  // Update status message
-  const msgEl = document.getElementById('fcStatusMsg');
-  if (msgEl) {
-    msgEl.textContent = message;
-  } else {
-    console.error('fcStatusMsg not found!');
-  }
-  
-  // Mark previous steps as complete
-  for (let i = 1; i < stepNumber; i++) {
-    const step = document.getElementById(`step${i}`);
-    if (step) {
-      step.classList.remove('active');
-      step.classList.add('complete');
-    } else {
-      console.error(`step${i} not found!`);
-    }
-  }
-  
-  // Mark current step as active
-  const currentStep = document.getElementById(`step${stepNumber}`);
-  if (currentStep) {
-    currentStep.classList.remove('complete');
-    currentStep.classList.add('active');
-  } else {
-    console.error(`step${stepNumber} not found!`);
-  }
-  
-  // Remove active from future steps
-  for (let i = stepNumber + 1; i <= 5; i++) {
-    const step = document.getElementById(`step${i}`);
-    if (step) {
-      step.classList.remove('active', 'complete');
-    }
-  }
+function _setDocText(title, msg) {
+  var t = document.getElementById('fcLoadingTitle');
+  var m = document.getElementById('fcStatusMsg');
+  if (t) t.textContent = title;
+  if (m) m.textContent = msg;
 }
 
-function completeLoadingSpinner() {
-  const overlay = document.getElementById('fcLoadingOverlay');
-  if (overlay) {
-    overlay.classList.add('completing');
+function _setDocStep(num) {
+  for (var i = 1; i <= 5; i++) {
+    var s = document.getElementById('step' + i);
+    if (!s) continue;
+    if (i < num) { s.classList.remove('active'); s.classList.add('complete'); }
+    else if (i === num) { s.classList.remove('complete'); s.classList.add('active'); }
+    else { s.classList.remove('active', 'complete'); }
   }
 }
 
 // ============================================================================
-// OVERTIME MODAL CONTROL
+// YOUTUBE LOADING
 // ============================================================================
-
-function showOvertimeModal() {
-  const backdrop = document.getElementById('overtimeBackdrop');
-  const modal = document.getElementById('overtimeModal');
-  if (backdrop) backdrop.classList.add('open');
-  if (modal) modal.classList.add('open');
-}
-
-function closeOvertimeModal() {
-  const backdrop = document.getElementById('overtimeBackdrop');
-  const modal = document.getElementById('overtimeModal');
-  if (backdrop) backdrop.classList.remove('open');
-  if (modal) modal.classList.remove('open');
-}
-
-window.closeOvertimeModal = closeOvertimeModal;
-
-// ============================================================================
-// UPLOAD FILE FUNCTION
-// ============================================================================
-
-window.uploadFile = async function(file) {
-  console.log('uploadFile called for:', file.name);
-
-  if (!showLoadingOverlay(file.name)) {
-    return false;
-  }
-
-  uploadAbortController = new AbortController();
-  const formData = new FormData();
-  formData.append('file', file);
-
-  try {
-    // Step 1 is already set in showLoadingOverlay
-
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-      signal: uploadAbortController.signal
-    });
-
-    // Step 2: Extracting
-    setLoadingStep(2, 'Extracting Text...', 'Reading document content...');
-    await sleep(800);
-
-    const data = await response.json();
-
-    if (response.ok && data.success) {
-      // Step 3: Generating Flashcards
-      setLoadingStep(3, 'Generating Flashcards...', 'AI is creating your study cards...');
-      await sleep(1000);
-
-      // Step 4: Generating Notes
-      setLoadingStep(4, 'Summarizing Notes...', 'AI is writing your lecture notes...');
-      await sleep(1000);
-
-      // Step 5: Complete
-      setLoadingStep(5, 'Complete!', `${data.flashcards_generated} flashcards and notes created!`);
-      completeLoadingSpinner();
-      await sleep(1200);
-      
-      hideLoadingOverlay();
-      
-      showNotification(`✅ ${data.flashcards_generated} flashcards created for "${file.name}"!`, 'success');
-      
-      // Refresh documents, dashboard stats, flashcards grid, and notes grid
-      if (typeof loadDocuments === 'function') loadDocuments();
-      if (typeof updateDashboardStats === 'function') updateDashboardStats();
-      if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
-      if (window.Notes && Notes.loadDocs) Notes.loadDocs();
-
-      // Auto-open flashcard panel
-      if (data.flashcards && data.flashcards.length > 0 && window.Flashcards) {
-        setTimeout(() => {
-          Flashcards.openPanel(data.flashcards, file.name, `${data.flashcards.length} flashcards generated`);
-        }, 300);
-      }
-      return true;
-
-    } else {
-      hideLoadingOverlay();
-      const msg = data.message || 'Upload failed';
-      showNotification(msg, 'error');
-      return false;
-    }
-
-  } catch (err) {
-    hideLoadingOverlay();
-    closeOvertimeModal();
-    // Don't show a duplicate error if the abort was triggered by the timeout
-    if (err.name !== 'AbortError') {
-      showNotification(`Network error uploading ${file.name}`, 'error');
-    }
-    console.error('Upload error:', err);
-    return false;
-  }
-};
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// ============================================================================
-// UPLOAD BUTTON CONTROL
-// ============================================================================
-
-function disableUploadButtons() {
-  const uploadBtns = document.querySelectorAll('.upload-btn, [onclick*="uploadDocument"], button:has(i.fa-upload)');
-  uploadBtns.forEach(btn => {
-    btn.disabled = true;
-    btn.style.opacity = '0.5';
-    btn.style.cursor = 'not-allowed';
-  });
-}
-
-function enableUploadButtons() {
-  const uploadBtns = document.querySelectorAll('.upload-btn, [onclick*="uploadDocument"], button:has(i.fa-upload)');
-  uploadBtns.forEach(btn => {
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    btn.style.cursor = 'pointer';
-  });
-}
-
-// ============================================================================
-// YOUTUBE LOADING OVERLAY — separate sequence for YouTube imports
-// ============================================================================
-
-let _ytLoadInterval = null;
 
 function showYtLoadingOverlay(url) {
-  const overlay = document.getElementById('ytLoadingOverlay');
+  window._lastYtDocId = null;
+
+  var overlay = document.getElementById('ytLoadingOverlay');
   if (!overlay) return;
   overlay.classList.add('active');
 
   // Reset steps
-  for (let i = 1; i <= 4; i++) {
-    const s = document.getElementById('ytStep' + i);
-    if (s) { s.classList.remove('active', 'complete'); }
+  for (var i = 1; i <= 4; i++) {
+    var s = document.getElementById('ytStep' + i);
+    if (s) s.classList.remove('active', 'complete');
   }
-  const s1 = document.getElementById('ytStep1');
+  var s1 = document.getElementById('ytStep1');
   if (s1) s1.classList.add('active');
 
-  const bar = document.getElementById('ytLoadingBarFill');
+  // Reset bar
+  var bar = document.getElementById('ytLoadingBarFill');
   if (bar) bar.style.width = '0%';
+
+  // Show cancel button
+  var cancelBtn = document.getElementById('ytCancelBtn');
+  if (cancelBtn) cancelBtn.style.display = '';
 
   _setYtText('Fetching Transcript...', 'Connecting to YouTube servers');
 
-  // Simulate step progression
-  let elapsed = 0;
+  // Start timer
+  _startTimer('yt');
+
+  // Simulated step progression
+  var elapsed = 0;
   if (_ytLoadInterval) clearInterval(_ytLoadInterval);
   _ytLoadInterval = setInterval(function () {
     elapsed++;
@@ -365,6 +281,10 @@ function showYtLoadingOverlay(url) {
 function completeYtLoading(data) {
   if (_ytLoadInterval) { clearInterval(_ytLoadInterval); _ytLoadInterval = null; }
 
+  // Hide cancel button
+  var cancelBtn = document.getElementById('ytCancelBtn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+
   var bar = document.getElementById('ytLoadingBarFill');
   if (bar) bar.style.width = '100%';
 
@@ -375,8 +295,15 @@ function completeYtLoading(data) {
 
 function hideYtLoadingOverlay() {
   if (_ytLoadInterval) { clearInterval(_ytLoadInterval); _ytLoadInterval = null; }
+  _stopTimer('yt');
+
   var overlay = document.getElementById('ytLoadingOverlay');
   if (overlay) overlay.classList.remove('active');
+
+  var timerEl = document.getElementById('ytTimer');
+  var timerText = document.getElementById('ytTimerText');
+  if (timerEl) timerEl.classList.remove('warning');
+  if (timerText) timerText.textContent = '0:00';
 }
 
 function _setYtText(title, msg) {
@@ -396,6 +323,176 @@ function _setYtStep(num) {
   }
 }
 
+// ============================================================================
+// OVERTIME MODAL
+// ============================================================================
+
+function showOvertimeModal() {
+  var backdrop = document.getElementById('overtimeBackdrop');
+  var modal = document.getElementById('overtimeModal');
+  if (backdrop) backdrop.classList.add('open');
+  if (modal) modal.classList.add('open');
+}
+
+function closeOvertimeModal() {
+  var backdrop = document.getElementById('overtimeBackdrop');
+  var modal = document.getElementById('overtimeModal');
+  if (backdrop) backdrop.classList.remove('open');
+  if (modal) modal.classList.remove('open');
+}
+
+// ============================================================================
+// CANCEL — confirmation modal + cleanup
+// ============================================================================
+
+// Which cancel type is pending confirmation
+var _pendingCancelType = null;
+
+// Show confirmation modal before cancelling
+window.cancelUpload = function (type) {
+  _pendingCancelType = type;
+  var backdrop = document.getElementById('cancelConfirmBackdrop');
+  var modal = document.getElementById('cancelConfirmModal');
+  if (backdrop) backdrop.classList.add('open');
+  if (modal) modal.classList.add('open');
+};
+
+// User confirmed cancel
+window.confirmCancel = function () {
+  _closeCancelModal();
+  if (_pendingCancelType) {
+    _doCancel(_pendingCancelType);
+  }
+  _pendingCancelType = null;
+};
+
+// User chose to keep going
+window.dismissCancel = function () {
+  _closeCancelModal();
+  _pendingCancelType = null;
+};
+
+function _closeCancelModal() {
+  var backdrop = document.getElementById('cancelConfirmBackdrop');
+  var modal = document.getElementById('cancelConfirmModal');
+  if (backdrop) backdrop.classList.remove('open');
+  if (modal) modal.classList.remove('open');
+}
+
+// Actually perform the cancel + cleanup
+function _doCancel(type) {
+  if (type === 'doc') {
+    if (uploadAbortController) uploadAbortController.abort();
+    // Delete any document already saved server-side
+    if (_lastDocId) { _deleteDocument(_lastDocId); _lastDocId = null; }
+    hideLoadingOverlay();
+  } else if (type === 'yt') {
+    if (window._ytAbortController) window._ytAbortController.abort();
+    if (window._lastYtDocId) { _deleteDocument(window._lastYtDocId); window._lastYtDocId = null; }
+    hideYtLoadingOverlay();
+  }
+  closeOvertimeModal();
+  showNotification('Upload cancelled. Any generated content has been removed.', 'warning');
+}
+
+// ============================================================================
+// UPLOAD FILE FUNCTION
+// ============================================================================
+
+window.uploadFile = async function (file) {
+  console.log('uploadFile called for:', file.name);
+
+  if (!showLoadingOverlay(file.name)) {
+    return false;
+  }
+
+  uploadAbortController = new AbortController();
+  var formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    var response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+      signal: uploadAbortController.signal
+    });
+
+    var data = await response.json();
+
+    // Track document_id for cancel cleanup
+    if (data.document_id) _lastDocId = data.document_id;
+
+    if (response.ok && data.success) {
+      // Show completion
+      completeDocLoading(data);
+      await sleep(1500);
+
+      hideLoadingOverlay();
+      _lastDocId = null; // Clear — upload succeeded, no cleanup needed
+
+      showNotification(data.flashcards_generated + ' flashcards created for "' + file.name + '"!', 'success');
+
+      // Refresh everything
+      if (typeof loadDocuments === 'function') loadDocuments();
+      if (typeof updateDashboardStats === 'function') updateDashboardStats();
+      if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
+      if (window.Notes && Notes.loadDocs) Notes.loadDocs();
+
+      // Auto-open notes panel (show summarization first, per Dean's advice)
+      if (data.document_id && window.Notes && Notes.openForDocument) {
+        setTimeout(function () {
+          if (typeof showView === 'function') showView('notes');
+          Notes.openForDocument(data.document_id, file.name);
+        }, 300);
+      }
+      return true;
+
+    } else {
+      hideLoadingOverlay();
+      _lastDocId = null;
+      var msg = data.message || 'Upload failed';
+      showNotification(msg, 'error');
+      return false;
+    }
+
+  } catch (err) {
+    hideLoadingOverlay();
+    closeOvertimeModal();
+    if (err.name !== 'AbortError') {
+      showNotification('Network error uploading ' + file.name, 'error');
+    }
+    console.error('Upload error:', err);
+    return false;
+  }
+};
+
+// ============================================================================
+// UPLOAD BUTTON CONTROL
+// ============================================================================
+
+function disableUploadButtons() {
+  var btns = document.querySelectorAll('.upload-btn, [onclick*="uploadDocument"], button:has(i.fa-upload)');
+  btns.forEach(function (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+  });
+}
+
+function enableUploadButtons() {
+  var btns = document.querySelectorAll('.upload-btn, [onclick*="uploadDocument"], button:has(i.fa-upload)');
+  btns.forEach(function (btn) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  });
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
 window.showYtLoadingOverlay = showYtLoadingOverlay;
-window.completeYtLoading    = completeYtLoading;
+window.completeYtLoading = completeYtLoading;
 window.hideYtLoadingOverlay = hideYtLoadingOverlay;
+window.closeOvertimeModal = closeOvertimeModal;
