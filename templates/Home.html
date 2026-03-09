@@ -48,6 +48,8 @@
   <section class="hero-section">
     <div class="hero-content">
       <div class="hero-text">
+        <div class="hero-badge"><span></span> AI-Powered Study Platform</div>
+
         <h1 class="hero-title">
           <span class="rotating-text-wrapper">
             <span class="rotating-text active">Study Smarter</span>
@@ -56,13 +58,14 @@
             <span class="rotating-text">Review Better</span>
             <span class="rotating-text">Think Deeper</span>
           </span>
-          <br>with MindLobby
+          <span class="hero-title-static">with MindLobby</span>
         </h1>
+
         <p class="hero-subtitle">
-          Transform your study documents into interactive quizzes, flashcards, and competitive learning experiences. 
+          Transform your study documents into interactive quizzes, flashcards, and competitive learning experiences.
           Host multiplayer study sessions or join others in the ultimate academic arena.
         </p>
-        
+
         <div class="hero-cta">
           <button class="btn-hero btn-primary" onclick="showSignupModal()">
             <i class="fas fa-rocket"></i>
@@ -73,47 +76,11 @@
             Learn More
           </button>
         </div>
-
-        <div class="hero-stats">
-          <div class="stat-item">
-            <div class="stat-number">1000+</div>
-            <div class="stat-label">Active Students</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-number">5000+</div>
-            <div class="stat-label">Study Sessions</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-number">10K+</div>
-            <div class="stat-label">Questions Generated</div>
-          </div>
-        </div>
       </div>
 
-      <div class="hero-visual">
-        <div class="feature-card">
-          <div class="card-icon">
-            <i class="fas fa-file-upload"></i>
-          </div>
-          <h3>Upload Documents</h3>
-          <p>PDF, DOCX, TXT - we process them all</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="card-icon">
-            <i class="fas fa-brain"></i>
-          </div>
-          <h3>AI-Powered Review</h3>
-          <p>Automatic flashcards and quiz generation</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="card-icon">
-            <i class="fas fa-users"></i>
-          </div>
-          <h3>Multiplayer Lobbies</h3>
-          <p>Study together in real-time</p>
-        </div>
+      <div class="brain-container">
+        <div class="brain-glow"></div>
+        <canvas id="brainRenderer"></canvas>
       </div>
     </div>
   </section>
@@ -133,31 +100,31 @@
           <h3>Document-Based Study</h3>
           <span class="panel-badge">Requires Account</span>
         </div>
-        
+
         <div class="panel-content">
           <ul class="feature-list">
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Upload study materials (PDF, DOCX, TXT)</span>
+              <span>Upload documents or import YouTube videos</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>AI generates flashcards & quizzes</span>
+              <span>AI generates flashcards, notes &amp; quizzes</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Create custom study lobbies</span>
+              <span>Create and host multiplayer study lobbies</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Track your progress over time</span>
+              <span>Track scores and review wrong answers</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Save and organize your content</span>
+              <span>Organize content with color-coded topics</span>
             </li>
           </ul>
-          
+
           <button class="btn-panel" onclick="showSignupModal()">
             <i class="fas fa-user-plus"></i>
             Create Account
@@ -172,31 +139,31 @@
           <h3>Quick Play Mode</h3>
           <span class="panel-badge guest">No Account Needed</span>
         </div>
-        
+
         <div class="panel-content">
           <ul class="feature-list">
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Join existing study lobbies instantly</span>
+              <span>Join study lobbies with a room code</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Create casual quiz rooms</span>
+              <span>Compete in real-time quiz battles</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Play with friends without signup</span>
+              <span>Play with friends without signing up</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Access basic quiz features</span>
+              <span>Enter as a guest with a custom nickname</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Perfect for group study sessions</span>
+              <span>Jump straight into the action</span>
             </li>
           </ul>
-          
+
           <a href="/quickplay" class="btn-panel btn-panel-secondary">
             <i class="fas fa-play"></i>
             Quick Play Now
@@ -219,8 +186,8 @@
         <div class="step-icon">
           <i class="fas fa-cloud-upload-alt"></i>
         </div>
-        <h3>Upload Your Material</h3>
-        <p>Drag and drop your study documents - PDFs, Word docs, or text files</p>
+        <h3>Upload or Import</h3>
+        <p>Drag and drop your study documents or paste a YouTube link to get started</p>
       </div>
 
       <div class="step-arrow">
@@ -232,8 +199,8 @@
         <div class="step-icon">
           <i class="fas fa-magic"></i>
         </div>
-        <h3>AI Processes Content</h3>
-        <p>Our intelligent system extracts key concepts and generates study materials</p>
+        <h3>AI Generates Content</h3>
+        <p>Our AI extracts key concepts and generates flashcards, study notes, and quiz questions</p>
       </div>
 
       <div class="step-arrow">
@@ -245,8 +212,8 @@
         <div class="step-icon">
           <i class="fas fa-gamepad"></i>
         </div>
-        <h3>Create or Join Lobby</h3>
-        <p>Host a study session or join others for collaborative learning</p>
+        <h3>Study Solo or Together</h3>
+        <p>Take quizzes on your own, review flashcards, or create a multiplayer lobby with friends</p>
       </div>
 
       <div class="step-arrow">
@@ -259,7 +226,7 @@
           <i class="fas fa-trophy"></i>
         </div>
         <h3>Master the Material</h3>
-        <p>Compete, learn, and track your progress as you study</p>
+        <p>Track your scores, review wrong answers, and retake quizzes until you've got it down</p>
       </div>
     </div>
   </section>
@@ -268,7 +235,7 @@
   <section class="cta-section">
     <div class="cta-content">
       <h2>Ready to Transform Your Study Sessions?</h2>
-      <p>Join thousands of students who are learning smarter, not harder</p>
+      <p>Join students who are learning smarter, not harder</p>
       <div class="cta-buttons">
         <button class="btn-cta btn-cta-primary" onclick="showSignupModal()">
           <i class="fas fa-rocket"></i>
@@ -543,6 +510,7 @@
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="/static/js/home.js"></script>
 </body>
 </html>

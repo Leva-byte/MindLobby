@@ -6,19 +6,18 @@
 // GLOBAL CONSTANTS & CONFIGURATION
 // ============================================================================
 
-// Allowed file types - STRICTLY ENFORCED (PDF, DOC, DOCX, PPT, PPTX, TXT)
+// Allowed file types - STRICTLY ENFORCED (PDF, DOC, DOCX, PPTX, TXT)
 const ALLOWED_FILE_TYPES = {
   'application/pdf': '.pdf',
   'application/msword': '.doc',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
-  'application/vnd.ms-powerpoint': '.ppt',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
   'text/plain': '.txt'
 };
 
-const ACCEPTED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt'];
+const ACCEPTED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.pptx', '.txt'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
-const MAX_FILES_PER_UPLOAD = 10; // Maximum files in one batch
+const MAX_FILES_PER_UPLOAD = 5; // Maximum files in one batch
 
 // ============================================================================
 // SIDEBAR NAVIGATION
@@ -402,7 +401,6 @@ function getFileTypeName(file) {
     '.pdf': 'PDF Document',
     '.doc': 'Word Document',
     '.docx': 'Word Document',
-    '.ppt': 'PowerPoint Presentation',
     '.pptx': 'PowerPoint Presentation',
     '.txt': 'Text File'
   };
@@ -1053,13 +1051,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function handleModalFiles(files) {
-  const validTypes = ['application/pdf', 'application/msword', 
+  const validTypes = ['application/pdf', 'application/msword',
                      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                     'application/vnd.ms-powerpoint',
                      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                      'text/plain'];
-  
-  const validExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt'];
+
+  const validExtensions = ['.pdf', '.doc', '.docx', '.pptx', '.txt'];
   const maxSize = 10 * 1024 * 1024;
   
   const validFiles = files.filter(file => {
@@ -1089,7 +1086,7 @@ function handleModalFiles(files) {
       f.name === file.name && f.size === file.size
     );
     
-    if (!isDuplicate && selectedFilesForUpload.length < 10) {
+    if (!isDuplicate && selectedFilesForUpload.length < MAX_FILES_PER_UPLOAD) {
       selectedFilesForUpload.push(file);
     }
   });
@@ -1154,41 +1151,22 @@ function clearSelectedFiles() {
 
 
 async function startUpload() {
-  console.log('🔵 startUpload() called');
-  console.log('🔵 selectedFilesForUpload:', selectedFilesForUpload);
-  
-  if (!selectedFilesForUpload.length) {
-    console.log('⚠️ No files selected!');
-    return;
-  }
-  
-  console.log('🔵 Files count:', selectedFilesForUpload.length);
-  
-  // Close modal FIRST (but don't clear files yet)
+  if (!selectedFilesForUpload.length) return;
+
+  // Close modal
   const modal = document.getElementById('uploadModal');
   const backdrop = document.getElementById('uploadModalBackdrop');
   if (backdrop) backdrop.classList.remove('open');
   if (modal) modal.classList.remove('open');
-  
-  console.log('🔵 Checking window.uploadFile:', typeof window.uploadFile);
-  
-  // Now upload the files
-  for (const file of selectedFilesForUpload) {
-    console.log('🔵 Processing file:', file.name);
-    
-    if (typeof window.uploadFile === 'function') {
-      console.log('✅ Calling window.uploadFile for:', file.name);
-      await window.uploadFile(file);
-      console.log('✅ Completed for:', file.name);
-    } else {
-      console.error('❌ window.uploadFile is NOT a function!', typeof window.uploadFile);
-    }
-  }
-  
-  // AFTER uploading, clear the files
-  console.log('🔵 Clearing selected files...');
+
+  // Copy files and clear selection
+  const filesToUpload = [...selectedFilesForUpload];
   clearSelectedFiles();
-  console.log('✅ startUpload() completed');
+
+  // Delegate to batch upload queue in UploadLoading.js
+  if (typeof window.startBatchUpload === 'function') {
+    await window.startBatchUpload(filesToUpload);
+  }
 }
 
 function getFileIcon(filename) {

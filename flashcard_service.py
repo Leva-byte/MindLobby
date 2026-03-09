@@ -1,8 +1,10 @@
 import os
+import re
 import json
 import random
 import requests
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv, find_dotenv
 from markitdown import MarkItDown
 
@@ -37,7 +39,13 @@ def extract_text(file_path, filename):
     into clean Markdown text, which is then fed to the AI.
     """
     ext = filename.rsplit('.', 1)[-1].lower()
-    supported = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'}
+    supported = {'pdf', 'doc', 'docx', 'pptx', 'txt'}
+
+    if ext == 'ppt':
+        raise ValueError(
+            "Legacy .ppt files are not supported. "
+            "Please save as .pptx (PowerPoint 2007+) and re-upload."
+        )
 
     if ext not in supported:
         raise ValueError(f"Unsupported file type: .{ext}")
@@ -53,8 +61,9 @@ def extract_text(file_path, filename):
 
     if not text:
         raise ValueError(
-            "No readable text found in the file. "
-            "It may be a scanned image, password-protected, or empty."
+            "No readable text found. This file may contain only images, "
+            "be scanned/password-protected, or be empty. "
+            "Text-based documents are required for processing."
         )
 
     return text
@@ -166,8 +175,15 @@ Document content (Markdown):
     try:
         flashcards = json.loads(raw_content)
     except json.JSONDecodeError:
-        logger.error(f"❌ Invalid JSON from AI:\n{raw_content}")
-        raise ValueError("AI returned invalid JSON. Try again or use a different model.")
+        # Attempt to repair common AI malformat: "question": "..." A: "..."
+        # Should be: "question": "...", "answer": "..."
+        repaired = re.sub(r'"\s*A:\s*"', '", "answer": "', raw_content)
+        try:
+            flashcards = json.loads(repaired)
+            logger.info("⚡ Repaired malformed AI JSON (missing 'answer' keys)")
+        except json.JSONDecodeError:
+            logger.error(f"❌ Invalid JSON from AI:\n{raw_content}")
+            raise ValueError("AI returned invalid JSON. Try again or use a different model.")
 
     if not isinstance(flashcards, list):
         raise ValueError("AI response was not a list of flashcards.")
@@ -369,6 +385,12 @@ def process_file_to_flashcards(file_path, filename):
     """
     logger.info(f"🔄 Processing '{filename}'")
     markdown_text = extract_text(file_path, filename)
-    flashcards = generate_flashcards(markdown_text)
-    notes = generate_notes(markdown_text)
+
+    # Run flashcard and notes generation in parallel to cut processing time in half
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        fc_future = executor.submit(generate_flashcards, markdown_text)
+        notes_future = executor.submit(generate_notes, markdown_text)
+        flashcards = fc_future.result()
+        notes = notes_future.result()
+
     return flashcards, notes

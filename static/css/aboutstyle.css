@@ -17,6 +17,29 @@ body {
   min-height: 100vh;
 }
 
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(124,119,198,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,119,198,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Radial vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(8,8,18,0.7) 100%);
+  z-index: 0;
+  pointer-events: none;
+}
+
 /* Navigation */
 .main-nav {
   position: fixed;
@@ -125,6 +148,7 @@ body {
   padding: 140px 40px 80px;
   text-align: center;
   position: relative;
+  z-index: 1;
 }
 
 .about-hero::before {
@@ -217,6 +241,8 @@ body {
 /* Mission Section */
 .mission-section {
   padding: 80px 0;
+  position: relative;
+  z-index: 1;
 }
 
 .mission-content {
@@ -286,6 +312,8 @@ body {
 .team-section {
   padding: 80px 0;
   background: rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
 }
 
 .team-grid {
@@ -411,6 +439,8 @@ body {
 /* Project Section */
 .project-section {
   padding: 80px 0;
+  position: relative;
+  z-index: 1;
 }
 
 .project-content {
@@ -466,6 +496,8 @@ body {
 .cta-section {
   padding: 100px 40px;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .cta-content h2 {
@@ -529,6 +561,8 @@ body {
   background: rgba(15, 15, 35, 0.95);
   border-top: 1px solid rgba(124, 119, 198, 0.2);
   padding: 60px 40px 30px;
+  position: relative;
+  z-index: 1;
 }
 
 .footer-content {

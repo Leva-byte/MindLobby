@@ -14,6 +14,29 @@ body {
   min-height: 100vh;
 }
 
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(124,119,198,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,119,198,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Radial vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(8,8,18,0.7) 100%);
+  z-index: 0;
+  pointer-events: none;
+}
+
 /* ---- Navigation ---- */
 .main-nav {
   position: fixed;
@@ -122,6 +145,7 @@ body {
   text-align: center;
   position: relative;
   overflow: hidden;
+  z-index: 1;
 }
 
 .features-hero-glow {
@@ -257,6 +281,8 @@ body {
 /* ---- Features Section ---- */
 .features-section {
   padding: 80px 0;
+  position: relative;
+  z-index: 1;
 }
 
 .features-grid {
@@ -362,6 +388,8 @@ body {
 .how-section {
   padding: 80px 0;
   background: rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
 }
 
 .steps-container {
@@ -369,7 +397,7 @@ body {
   margin: 0 auto;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
   gap: 20px;
   flex-wrap: wrap;
 }
@@ -384,6 +412,8 @@ body {
   text-align: center;
   transition: all 0.3s ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .step-card:hover {
@@ -427,6 +457,11 @@ body {
 .step-arrow {
   font-size: 2em;
   color: #7c77c6;
+  align-self: center;
+}
+
+.step-card p {
+  flex: 1;
 }
 
 @media (max-width: 1024px) {
@@ -506,6 +541,8 @@ body {
 .cta-section {
   padding: 100px 40px;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .cta-content h2 {
@@ -569,6 +606,8 @@ body {
   background: rgba(15, 15, 35, 0.95);
   border-top: 1px solid rgba(124, 119, 198, 0.2);
   padding: 60px 40px 30px;
+  position: relative;
+  z-index: 1;
 }
 
 .footer-content {

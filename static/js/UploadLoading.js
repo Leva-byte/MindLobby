@@ -11,6 +11,12 @@ var uploadAbortController = null;
 // Track document_id so we can delete on cancel
 var _lastDocId = null;
 
+// ── Batch Queue State ───────────────────────────────────────────────────────
+var _batchTotal = 0;
+var _batchCurrent = 0;
+var _batchResults = [];
+var _batchCancelled = false;
+
 // Document state
 var _docTimerInterval = null;
 var _docStartTime = null;
@@ -139,6 +145,17 @@ function showLoadingOverlay(filename) {
   // Set filename
   var fileEl = document.getElementById('fcLoadingFile');
   if (fileEl) fileEl.textContent = filename || '';
+
+  // Queue status
+  var queueEl = document.getElementById('fcQueueStatus');
+  if (queueEl) {
+    if (_batchTotal > 1) {
+      queueEl.textContent = 'Processing ' + _batchCurrent + ' of ' + _batchTotal;
+      queueEl.style.display = '';
+    } else {
+      queueEl.style.display = 'none';
+    }
+  }
 
   // Initial text
   var titleEl = document.getElementById('fcLoadingTitle');
@@ -382,6 +399,7 @@ function _closeCancelModal() {
 // Actually perform the cancel + cleanup
 function _doCancel(type) {
   if (type === 'doc') {
+    _batchCancelled = true; // Stop processing remaining queue
     if (uploadAbortController) uploadAbortController.abort();
     // Delete any document already saved server-side
     if (_lastDocId) { _deleteDocument(_lastDocId); _lastDocId = null; }
@@ -396,14 +414,73 @@ function _doCancel(type) {
 }
 
 // ============================================================================
-// UPLOAD FILE FUNCTION
+// UPLOAD FILE FUNCTION (single file — used by legacy callers)
 // ============================================================================
 
 window.uploadFile = async function (file) {
-  console.log('uploadFile called for:', file.name);
+  _batchTotal = 1;
+  _batchCurrent = 1;
+  _batchResults = [];
+  _batchCancelled = false;
+  var result = await _uploadSingleFile(file);
+  if (result.success) {
+    _showPostUploadActions(result.data.document_id, file.name);
+  }
+  return result.success;
+};
 
+// ============================================================================
+// BATCH UPLOAD QUEUE
+// ============================================================================
+
+window.startBatchUpload = async function (files) {
+  if (isUploading) {
+    showNotification('Please wait for the current process to complete.', 'warning');
+    return;
+  }
+
+  _batchTotal = files.length;
+  _batchCurrent = 0;
+  _batchResults = [];
+  _batchCancelled = false;
+
+  for (var i = 0; i < files.length; i++) {
+    if (_batchCancelled) break;
+
+    _batchCurrent = i + 1;
+
+    // Reset isUploading so showLoadingOverlay won't reject this batch item
+    isUploading = false;
+
+    var result = await _uploadSingleFile(files[i]);
+    _batchResults.push({ file: files[i], success: result.success, data: result.data });
+
+    if (_batchCancelled) break;
+
+    // Brief pause between files (not after the last one)
+    if (i < files.length - 1 && !_batchCancelled) {
+      await sleep(800);
+    }
+  }
+
+  // Batch complete (or cancelled)
+  isUploading = false;
+  if (!_batchCancelled) {
+    _onBatchComplete();
+  } else {
+    // Show summary for partial batch
+    var done = _batchResults.filter(function (r) { return r.success; }).length;
+    if (done > 0) {
+      showNotification(done + ' file(s) uploaded before cancellation.', 'warning');
+    }
+  }
+};
+
+// ── Single File Upload (internal) ───────────────────────────────────────────
+
+async function _uploadSingleFile(file) {
   if (!showLoadingOverlay(file.name)) {
-    return false;
+    return { success: false, data: null };
   }
 
   uploadAbortController = new AbortController();
@@ -418,54 +495,27 @@ window.uploadFile = async function (file) {
     });
 
     var data = await response.json();
-
-    // Track document_id for cancel cleanup
     if (data.document_id) _lastDocId = data.document_id;
 
     if (response.ok && data.success) {
-      // Show completion
       completeDocLoading(data);
       await sleep(1500);
-
       hideLoadingOverlay();
-      _lastDocId = null; // Clear — upload succeeded, no cleanup needed
+      _lastDocId = null;
 
-      // Refresh everything
+      // Refresh document lists incrementally
       if (typeof loadDocuments === 'function') loadDocuments();
       if (typeof updateDashboardStats === 'function') updateDashboardStats();
       if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
       if (window.Notes && Notes.loadDocs) Notes.loadDocs();
 
-      // Show topic picker, then auto-open notes after user picks or skips
-      var _docId = data.document_id;
-      var _fileName = file.name;
-      var _cardCount = data.flashcards_generated;
-
-      if (_docId && typeof window.showTopicPicker === 'function') {
-        window.showTopicPicker(_docId, _fileName, function () {
-          // After topic picker closes, open notes
-          if (window.Notes && Notes.openForDocument) {
-            setTimeout(function () {
-              if (typeof showView === 'function') showView('notes');
-              Notes.openForDocument(_docId, _fileName);
-            }, 300);
-          }
-        });
-      } else if (_docId && window.Notes && Notes.openForDocument) {
-        // Fallback if topic picker not available
-        setTimeout(function () {
-          if (typeof showView === 'function') showView('notes');
-          Notes.openForDocument(_docId, _fileName);
-        }, 300);
-      }
-      return true;
-
+      return { success: true, data: data };
     } else {
       hideLoadingOverlay();
       _lastDocId = null;
       var msg = data.message || 'Upload failed';
-      showNotification(msg, 'error');
-      return false;
+      showNotification(msg + ' (' + file.name + ')', 'error');
+      return { success: false, data: data };
     }
 
   } catch (err) {
@@ -474,10 +524,58 @@ window.uploadFile = async function (file) {
     if (err.name !== 'AbortError') {
       showNotification('Network error uploading ' + file.name, 'error');
     }
-    console.error('Upload error:', err);
-    return false;
+    return { success: false, data: null };
   }
-};
+}
+
+// ── Batch Complete Handler ──────────────────────────────────────────────────
+
+function _onBatchComplete() {
+  var successResults = _batchResults.filter(function (r) { return r.success; });
+  var successCount = successResults.length;
+  var failCount = _batchResults.length - successCount;
+
+  if (successCount === 0) {
+    showNotification('All uploads failed.', 'error');
+    return;
+  }
+
+  // Summary notification for multi-file batches
+  if (_batchTotal > 1) {
+    if (failCount > 0) {
+      showNotification(successCount + ' of ' + _batchTotal + ' files uploaded successfully.', 'warning');
+    } else {
+      showNotification('All ' + successCount + ' files uploaded successfully!', 'success');
+    }
+  }
+
+  // Show topic picker ONCE for the last successful document, then auto-open its notes
+  var last = successResults[successResults.length - 1];
+  var lastDocId = last.data.document_id;
+  var lastFileName = last.file.name;
+
+  _showPostUploadActions(lastDocId, lastFileName);
+}
+
+// ── Post-Upload Actions (topic picker + auto-open notes) ────────────────────
+
+function _showPostUploadActions(docId, fileName) {
+  if (docId && typeof window.showTopicPicker === 'function') {
+    window.showTopicPicker(docId, fileName, function () {
+      if (window.Notes && Notes.openForDocument) {
+        setTimeout(function () {
+          if (typeof showView === 'function') showView('notes');
+          Notes.openForDocument(docId, fileName);
+        }, 300);
+      }
+    });
+  } else if (docId && window.Notes && Notes.openForDocument) {
+    setTimeout(function () {
+      if (typeof showView === 'function') showView('notes');
+      Notes.openForDocument(docId, fileName);
+    }, 300);
+  }
+}
 
 // ============================================================================
 // UPLOAD BUTTON CONTROL
@@ -547,7 +645,7 @@ function showTopicPicker(docId, docName, onDone) {
             return '<div class="tp-topic-item" data-topic-id="' + t.id + '" onclick="window._tpSelect(' + t.id + ', this)">' +
               '<div class="tp-topic-dot" style="background:' + (t.color || '#7c77c6') + '"></div>' +
               '<span class="tp-topic-name">' + _escHtml(t.name) + '</span>' +
-              '<span class="tp-topic-count">' + (t.document_count || 0) + ' docs</span>' +
+              '<span class="tp-topic-count">' + (t.doc_count || 0) + ' docs</span>' +
               '</div>';
           }).join('');
         }

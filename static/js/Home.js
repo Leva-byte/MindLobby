@@ -17,18 +17,126 @@ window.addEventListener('load', () => {
 });
 
 // ============================================================================
-// ROTATING TEXT ANIMATION
+// ROTATING TEXT ANIMATION (slide up/down transitions)
 // ============================================================================
-let currentTextIndex = 0;
-const rotatingTexts = document.querySelectorAll('.rotating-text');
+(function () {
+  const words = document.querySelectorAll('.rotating-text');
+  let current = 0;
+  setInterval(() => {
+    words[current].classList.remove('active');
+    words[current].classList.add('exit');
+    const prev = current;
+    setTimeout(() => words[prev].classList.remove('exit'), 500);
+    current = (current + 1) % words.length;
+    words[current].classList.add('active');
+  }, 2200);
+})();
 
-function rotateText() {
-  rotatingTexts[currentTextIndex].classList.remove('active');
-  currentTextIndex = (currentTextIndex + 1) % rotatingTexts.length;
-  rotatingTexts[currentTextIndex].classList.add('active');
-}
+// ============================================================================
+// 3D PARTICLE SPHERE (Three.js — 50k particles, additive glow)
+// ============================================================================
+(function () {
+  const canvas = document.getElementById('brainRenderer');
+  if (!canvas || typeof THREE === 'undefined') return;
 
-setInterval(rotateText, 3000);
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+  camera.position.set(0, 0, 3);
+
+  function resize() {
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+
+  // ── Particle sphere ──
+  const geometry = new THREE.BufferGeometry();
+  const positions = [];
+  const colors = [];
+  const PARTICLE_COUNT = 50000;
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const phi   = Math.random() * Math.PI * 2;
+    const theta = Math.acos(2 * Math.random() - 1);
+    const r = Math.pow(Math.random(), 1 / 6) * 0.12 + 0.88;
+
+    const x = r * Math.sin(theta) * Math.cos(phi);
+    const y = r * Math.sin(theta) * Math.sin(phi);
+    const z = r * Math.cos(theta);
+    positions.push(x, y, z);
+
+    const t = (y + 1) / 2;
+    const cr = 0.45 + t * 0.55;
+    const cg = 0.42 + t * 0.52;
+    const cb = 0.85 + t * 0.15;
+    colors.push(Math.min(cr, 1), Math.min(cg, 1), Math.min(cb, 1));
+  }
+
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color',    new THREE.Float32BufferAttribute(colors, 3));
+
+  // Soft sprite texture
+  const spriteCanvas = document.createElement('canvas');
+  spriteCanvas.width = spriteCanvas.height = 64;
+  const ctx = spriteCanvas.getContext('2d');
+  const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0,   'rgba(255,255,255,1)');
+  grad.addColorStop(0.4, 'rgba(255,255,255,0.6)');
+  grad.addColorStop(1,   'rgba(255,255,255,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 64, 64);
+  const sprite = new THREE.CanvasTexture(spriteCanvas);
+
+  const material = new THREE.PointsMaterial({
+    size: 0.008,
+    map: sprite,
+    vertexColors: true,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true,
+  });
+
+  const particles = new THREE.Points(geometry, material);
+  scene.add(particles);
+
+  // ── Mouse interaction ──
+  let targetX = 0, targetY = 0;
+  let currentX = 0, currentY = 0;
+
+  document.addEventListener('mousemove', (e) => {
+    targetX = (e.clientX / window.innerWidth  - 0.5) * 0.6;
+    targetY = (e.clientY / window.innerHeight - 0.5) * 0.4;
+  });
+
+  // ── Animation ──
+  const clock = new THREE.Clock();
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+
+    currentX += (targetX - currentX) * 0.04;
+    currentY += (targetY - currentY) * 0.04;
+
+    particles.rotation.y = t * 0.06 + currentX * 0.5;
+    particles.rotation.x = currentY * 0.5;
+
+    const breathe = 1 + Math.sin(t * 0.7) * 0.015;
+    particles.scale.setScalar(breathe);
+
+    renderer.render(scene, camera);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  animate();
+})();
 
 // ============================================================================
 // SMOOTH SCROLL
@@ -53,7 +161,7 @@ const observer = new IntersectionObserver((entries) => {
   });
 }, observerOptions);
 
-document.querySelectorAll('.feature-panel, .step-card, .feature-card').forEach(el => {
+document.querySelectorAll('.feature-panel, .step-card').forEach(el => {
   observer.observe(el);
 });
 

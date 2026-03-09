@@ -2,6 +2,7 @@ import re
 import logging
 import requests as http_requests
 import yt_dlp
+from concurrent.futures import ThreadPoolExecutor
 from flask import Blueprint, request, jsonify, session
 from flashcard_service import generate_flashcards, generate_notes
 from database import save_document, save_flashcards
@@ -145,21 +146,24 @@ def import_youtube():
             'message': 'The transcript is too short to generate meaningful content.'
         }), 400
 
-    # Generate flashcards and notes using existing AI pipeline
+    # Generate flashcards and notes in parallel to cut processing time in half
     try:
-        logger.info(f"Generating flashcards from YouTube transcript ({len(transcript_text)} chars)")
-        flashcards = generate_flashcards(transcript_text)
-        # Apply optional cap from the slider
-        if max_flashcards and isinstance(max_flashcards, int) and max_flashcards > 0:
-            flashcards = flashcards[:max_flashcards]
+        logger.info(f"Generating flashcards + notes from YouTube transcript ({len(transcript_text)} chars)")
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            fc_future = executor.submit(generate_flashcards, transcript_text)
+            notes_future = executor.submit(generate_notes, transcript_text, 'youtube')
+
+            flashcards = fc_future.result()
+            # Apply optional cap from the slider
+            if max_flashcards and isinstance(max_flashcards, int) and max_flashcards > 0:
+                flashcards = flashcards[:max_flashcards]
+
+            try:
+                notes = notes_future.result()
+            except Exception:
+                notes = transcript_text  # Fallback to raw transcript
     except ValueError as e:
         return jsonify({'success': False, 'message': str(e)}), 500
-
-    try:
-        logger.info("Generating notes from YouTube transcript")
-        notes = generate_notes(transcript_text, source_type='youtube')
-    except Exception:
-        notes = transcript_text  # Fallback to raw transcript
 
     # Save document to DB
     display_title = f"YouTube: {video_title}"

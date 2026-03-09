@@ -24,16 +24,27 @@ body {
   min-height: 100vh;
 }
 
-/* Ambient glow */
+/* Subtle grid background */
 body::before {
   content: '';
   position: fixed;
-  top: -200px; left: 50%;
-  transform: translateX(-50%);
-  width: 700px; height: 500px;
-  background: radial-gradient(ellipse, rgba(124, 119, 198, 0.08) 0%, transparent 70%);
-  pointer-events: none;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(124,119,198,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,119,198,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
   z-index: 0;
+  pointer-events: none;
+}
+
+/* Radial vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(8,8,18,0.7) 100%);
+  z-index: 0;
+  pointer-events: none;
 }
 
 /* ---- Navigation ---- */
@@ -146,6 +157,7 @@ body::before {
   padding: 140px 40px 80px;
   text-align: center;
   position: relative;
+  z-index: 1;
 }
 
 .terms-hero::before {
@@ -414,6 +426,8 @@ body::before {
 .cta-section {
   padding: 100px 40px;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .cta-content h2 {
@@ -477,6 +491,8 @@ body::before {
   background: rgba(15, 15, 35, 0.95);
   border-top: 1px solid rgba(124, 119, 198, 0.2);
   padding: 60px 40px 30px;
+  position: relative;
+  z-index: 1;
 }
 
 .footer-content {

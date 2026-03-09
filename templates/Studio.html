@@ -276,6 +276,7 @@
       <h2 class="fc-loading-title" id="fcLoadingTitle">Uploading File...</h2>
       <p class="fc-loading-msg" id="fcStatusMsg">Sending file to server</p>
       <p class="fc-loading-file" id="fcLoadingFile"></p>
+      <p class="fc-queue-status" id="fcQueueStatus" style="display:none;"></p>
       <div class="fc-loading-meta">
         <div class="fc-timer" id="fcTimer"><i class="fas fa-clock"></i> <span id="fcTimerText">0:00</span></div>
         <button class="fc-cancel-btn" id="fcCancelBtn" onclick="window.cancelUpload('doc')"><i class="fas fa-times"></i> Cancel</button>
@@ -423,9 +424,9 @@
           </button>
           <p class="upload-formats">
             <i class="fas fa-info-circle"></i>
-            Supports: PDF, Word (.doc, .docx), PowerPoint (.ppt, .pptx), Text (.txt)
+            Supports: PDF, Word (.doc, .docx), PowerPoint (.pptx), Text (.txt)
           </p>
-          <p class="upload-limit">Maximum 10MB per file • Up to 10 files at once</p>
+          <p class="upload-limit">Maximum 10MB per file • Up to 5 files at once</p>
         </div>
       </div>
 
@@ -586,7 +587,7 @@
   </div>
 
   <!-- Hidden file input -->
-  <input type="file" id="modalFileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
+  <input type="file" id="modalFileInput" multiple accept=".pdf,.doc,.docx,.pptx,.txt" style="display: none;">
 
   <!-- External JavaScript -->
   <script src="/static/js/Studio.js"></script>

@@ -22,7 +22,7 @@ from database import (
 flashcard_bp = Blueprint('flashcards', __name__)
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'}
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'pptx', 'txt'}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 

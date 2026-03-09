@@ -353,17 +353,23 @@
       const allDocs = allData.documents || [];
       const topicDocIds = new Set((topicData.documents || []).map(d => d.id));
 
+      // Single-topic: only show docs in THIS topic or docs with NO topic at all
+      const filteredDocs = allDocs.filter(doc => {
+        if (topicDocIds.has(doc.id)) return true;           // already in this topic
+        return !doc.topics || doc.topics.length === 0;      // unassigned
+      });
+
       const listEl = document.getElementById('addDocList');
       const emptyEl = document.getElementById('addDocEmpty');
 
-      if (allDocs.length === 0) {
+      if (filteredDocs.length === 0) {
         if (listEl) listEl.style.display = 'none';
         if (emptyEl) emptyEl.style.display = 'block';
       } else {
         if (emptyEl) emptyEl.style.display = 'none';
         if (listEl) {
           listEl.style.display = 'flex';
-          listEl.innerHTML = allDocs.map(doc => {
+          listEl.innerHTML = filteredDocs.map(doc => {
             const inTopic = topicDocIds.has(doc.id);
             const icon = _fileIcon(doc.file_type);
             const name = doc.original_filename || doc.filename;

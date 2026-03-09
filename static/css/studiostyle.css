@@ -1300,8 +1300,20 @@ body {
 .fc-loading-file {
   font-size: 0.8em;
   color: rgba(255, 255, 255, 0.4);
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   word-break: break-all;
+}
+
+.fc-queue-status {
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--primary-light, #7c77c6);
+  margin-bottom: 20px;
+  padding: 4px 14px;
+  background: rgba(124, 119, 198, 0.12);
+  border-radius: 12px;
+  display: inline-block;
+  letter-spacing: 0.3px;
 }
 
 /* Timer + Cancel row */
@@ -2672,6 +2684,7 @@ body.light-mode .yt-loading-title { color: #1a1a2e; }
 body.light-mode .fc-loading-msg,
 body.light-mode .yt-loading-msg { color: rgba(26, 26, 46, 0.55); }
 body.light-mode .fc-loading-file { color: rgba(26, 26, 46, 0.4); }
+body.light-mode .fc-queue-status { color: #6c63b3; background: rgba(108, 99, 179, 0.1); }
 body.light-mode .fc-load-step { color: rgba(26, 26, 46, 0.3); }
 body.light-mode .fc-load-step.active { color: #6c63b3; }
 body.light-mode .fc-load-step.complete { color: #2ecc71; }
