@@ -3,11 +3,17 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     font-family: 'Inter', 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 30%, #2d1b69 70%, #1a1a3e 100%);
+    background-color: #0f0f23;
+    background-image:
+        radial-gradient(circle at 20% 80%, rgba(124, 119, 198, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(124, 119, 198, 0.05) 0%, transparent 50%),
+        linear-gradient(135deg, #0f0f23 0%, #1a1a3e 30%, #2d1b69 70%, #1a1a3e 100%);
     color: white;
     min-height: 100vh;
     display: flex;
@@ -18,7 +24,7 @@ body {
     position: relative;
 }
 
-/* Animated Background Pattern */
+/* Animated Background Pattern — desktop only, Safari iOS can't handle fixed pseudo-elements */
 body::before {
     content: '';
     position: fixed;
@@ -26,12 +32,19 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: 
+    background:
         radial-gradient(circle at 20% 80%, rgba(124, 119, 198, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
         radial-gradient(circle at 40% 40%, rgba(124, 119, 198, 0.05) 0%, transparent 50%);
     z-index: -1;
     animation: bgFloat 20s ease-in-out infinite;
+}
+
+/* Disable the animated pseudo-element on mobile (body background handles it) */
+@supports (-webkit-touch-callout: none) {
+    body::before {
+        display: none;
+    }
 }
 
 @keyframes bgFloat {
@@ -842,6 +855,7 @@ body::before {
     }
     
     .lobby-stats {
+        width: 50%;
         flex-direction: column;
         gap: 15px;
     }

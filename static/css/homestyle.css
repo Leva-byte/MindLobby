@@ -22,6 +22,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -30,32 +31,22 @@ html {
 
 body {
   font-family: 'Inter', sans-serif;
-  background: #0d0d1a;
+  background-color: #0d0d1a;
+  background-image:
+    radial-gradient(ellipse at center, transparent 40%, rgba(8,8,18,0.7) 100%),
+    linear-gradient(rgba(124,119,198,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,119,198,0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 60px 60px, 60px 60px;
+  background-attachment: fixed;
   color: white;
   overflow-x: hidden;
 }
 
-/* Subtle grid background */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(124,119,198,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124,119,198,0.04) 1px, transparent 1px);
-  background-size: 60px 60px;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* Radial vignette */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse at center, transparent 40%, rgba(8,8,18,0.7) 100%);
-  z-index: 0;
-  pointer-events: none;
+/* Safari iOS fallback — background-attachment:fixed is unsupported */
+@supports (-webkit-touch-callout: none) {
+  body {
+    background-attachment: scroll;
+  }
 }
 
 ::selection {

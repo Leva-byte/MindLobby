@@ -50,6 +50,39 @@ function closeSidebarOnClickOutside(e) {
   }
 }
 
+// ============================================================================
+// MOBILE BOTTOM NAV — DRAWER OPEN/CLOSE
+// ============================================================================
+
+function openMobileDrawer() {
+  document.getElementById('mobileDrawer').classList.add('open');
+  document.getElementById('mobileDrawerOverlay').classList.add('open');
+  document.getElementById('mobileMoreBtn').classList.add('active');
+}
+
+function closeMobileDrawer() {
+  document.getElementById('mobileDrawer').classList.remove('open');
+  document.getElementById('mobileDrawerOverlay').classList.remove('open');
+  document.getElementById('mobileMoreBtn').classList.remove('active');
+}
+
+/** Sync mobile bottom-nav active state to match current view */
+function _syncMobileNav(viewName) {
+  // Views accessible via the "More" drawer
+  const drawerViews = ['notes', 'flashcards', 'quizzes', 'profile', 'settings'];
+
+  const btns = document.querySelectorAll('.mobile-nav-btn[data-view]');
+  btns.forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-view') === viewName);
+  });
+
+  // If the view came from the drawer, highlight "More" button
+  const moreBtn = document.getElementById('mobileMoreBtn');
+  if (moreBtn) {
+    moreBtn.classList.toggle('active', drawerViews.includes(viewName));
+  }
+}
+
 // Panel icon map for sidebar transitions (only these panels get the icon transition)
 const _sidebarPanelIcons = {
   flashcards:  'fas fa-layer-group',
@@ -122,11 +155,14 @@ document.addEventListener('DOMContentLoaded', () => {
 function showView(viewName) {
   console.log(`Switching to view: ${viewName}`);
 
-  // Update active nav item
+  // Update active nav item (sidebar)
   const navItems = document.querySelectorAll('.nav-item[data-view]');
   navItems.forEach(item => {
     item.classList.toggle('active', item.getAttribute('data-view') === viewName);
   });
+
+  // Update active nav item (mobile bottom nav)
+  _syncMobileNav(viewName);
 
   // Hide ALL view panels
   document.querySelectorAll('.view-panel').forEach(panel => {
@@ -147,7 +183,9 @@ function showView(viewName) {
     item.classList.remove('active');
   });
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Scroll to top — main-content is the scrollable container
+  const mc = document.getElementById('mainContent');
+  if (mc) mc.scrollTo({ top: 0, behavior: 'smooth' });
 
   // Refresh sidebar docs (topic dot colors may have changed)
   loadDocuments();
@@ -573,9 +611,11 @@ async function updateDashboardStats() {
       studyTimeEl.textContent = _formatElapsed(data.created_at);
     }
 
-    // Update the topic count badge in sidebar
+    // Update the topic count badge in sidebar + mobile bottom nav
     const topicBadge = document.querySelector('.nav-item[data-view="topics"] .nav-badge');
     if (topicBadge) topicBadge.textContent = data.topics || 0;
+    const mobileBadge = document.getElementById('mobileTopicsBadge');
+    if (mobileBadge) mobileBadge.textContent = data.topics || 0;
 
     // --- Load profile images for welcome banner ---
     _loadWelcomeBannerProfile();

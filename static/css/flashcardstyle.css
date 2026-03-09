@@ -396,6 +396,38 @@ body.light-mode .fc-empty-state {
   .fc-panel-header {
     flex-direction: column;
     align-items: flex-start;
+    margin-top: 20px;
+  }
+
+  .fc-panel-header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .fc-back-btn {
+    flex-shrink: 0;
+  }
+
+  .fc-panel-title {
+    font-size: 1.1em;
+  }
+
+  .fc-panel-subtitle {
+    font-size: 0.78em;
+  }
+
+  .fc-panel-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .fc-control-btn {
+    justify-content: center;
+    padding: 10px 12px;
+    font-size: 0.82em;
   }
 
   .fc-panel-card {
@@ -417,6 +449,7 @@ body.light-mode .fc-empty-state {
   }
 
   .fc-browse-header {
+    margin-top: 20px;
     flex-direction: column;
     align-items: flex-start;
   }

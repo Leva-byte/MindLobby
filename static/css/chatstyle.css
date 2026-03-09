@@ -395,17 +395,28 @@ body.light-mode .chat-input {
 }
 
 /* ---- Responsive ---- */
+@media (max-width: 768px) {
+  /* Lift chatbot FAB above the mobile bottom nav (68px) */
+  .chat-fab {
+    bottom: 84px;
+  }
+
+  .chat-panel {
+    bottom: 84px;
+  }
+}
+
 @media (max-width: 480px) {
   .chat-panel {
     width: calc(100vw - 16px);
-    height: calc(100vh - 80px);
-    bottom: 8px;
+    height: calc(100vh - 160px);
+    bottom: 80px;
     right: 8px;
     border-radius: 16px;
   }
 
   .chat-fab {
-    bottom: 16px;
+    bottom: 80px;
     right: 16px;
   }
 }

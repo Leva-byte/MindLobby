@@ -461,6 +461,7 @@
   .profile-banner {
     height: 140px;
     border-radius: 12px;
+    margin-top: 20px;
   }
 
   .profile-avatar-wrapper {

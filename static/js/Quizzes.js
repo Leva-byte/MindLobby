@@ -260,9 +260,7 @@
 
     // Update live score
     var liveScore = document.getElementById('qzLiveScore');
-    var liveTotal = document.getElementById('qzLiveTotal');
     if (liveScore) liveScore.textContent = _score;
-    if (liveTotal) liveTotal.textContent = _currentIndex + 1;
 
     // Show next button (or "See Results" if last question)
     var nextBtn = document.getElementById('qzNextBtn');

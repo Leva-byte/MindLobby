@@ -234,3 +234,9 @@ body.light-mode .settings-preview-btn {
 body.light-mode .settings-preview-btn:hover {
   color: white;
 }
+
+@media (max-width: 768px) {
+  .profile-section h3 {
+    margin-top: 30px;
+  }
+}

@@ -268,6 +268,76 @@
   </main>
 
   <!-- =====================================================================
+       MOBILE BOTTOM NAV + MORE DRAWER
+       ===================================================================== -->
+  <!-- Drawer overlay -->
+  <div class="mobile-drawer-overlay" id="mobileDrawerOverlay" onclick="closeMobileDrawer()"></div>
+
+  <!-- More drawer (slides up) -->
+  <div class="mobile-drawer" id="mobileDrawer">
+    <div class="mobile-drawer-handle"></div>
+
+    <div class="mobile-drawer-section-title">Study Tools</div>
+    <button class="mobile-drawer-item" onclick="closeMobileDrawer(); showView('notes');">
+      <i class="fa-solid fa-note-sticky"></i>
+      Notes
+    </button>
+    <button class="mobile-drawer-item" onclick="closeMobileDrawer(); showView('flashcards');">
+      <i class="fas fa-layer-group"></i>
+      Flashcards
+    </button>
+    <button class="mobile-drawer-item" onclick="closeMobileDrawer(); showView('quizzes');">
+      <i class="fas fa-question-circle"></i>
+      Quizzes
+    </button>
+
+    <div class="mobile-drawer-divider"></div>
+    <div class="mobile-drawer-section-title">Account</div>
+
+    <button class="mobile-drawer-item" onclick="closeMobileDrawer(); showView('profile');">
+      <i class="fas fa-user"></i>
+      Profile
+    </button>
+    <button class="mobile-drawer-item" onclick="closeMobileDrawer(); showView('settings');">
+      <i class="fas fa-cog"></i>
+      Settings
+    </button>
+    <button class="mobile-drawer-item mobile-drawer-logout" onclick="closeMobileDrawer(); handleLogout(event);">
+      <i class="fas fa-sign-out-alt"></i>
+      Logout
+    </button>
+  </div>
+
+  <!-- Bottom nav bar -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <button class="mobile-nav-btn active" data-view="overview" onclick="showView('overview')">
+      <i class="fas fa-home"></i>
+      <span>Home</span>
+    </button>
+
+    <button class="mobile-nav-btn" data-view="topics" onclick="showView('topics')">
+      <span class="mobile-nav-badge" id="mobileTopicsBadge">0</span>
+      <i class="fas fa-folder"></i>
+      <span>Topics</span>
+    </button>
+
+    <button class="mobile-nav-btn mobile-nav-add" onclick="openAddMaterialModal(event)">
+      <i class="fas fa-plus"></i>
+      <span>Add</span>
+    </button>
+
+    <button class="mobile-nav-btn" onclick="window.location.href='/quickplay'">
+      <i class="fas fa-gamepad"></i>
+      <span>Play</span>
+    </button>
+
+    <button class="mobile-nav-btn" id="mobileMoreBtn" onclick="openMobileDrawer()">
+      <i class="fas fa-ellipsis-h"></i>
+      <span>More</span>
+    </button>
+  </nav>
+
+  <!-- =====================================================================
        UPLOAD LOADING OVERLAY
        ===================================================================== -->
   <div class="fc-loading-overlay" id="fcLoadingOverlay">
