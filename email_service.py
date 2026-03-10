@@ -1,6 +1,8 @@
-import resend
+import smtplib
 import random
 import string
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import os
 from dotenv import load_dotenv
 from datetime import datetime
@@ -9,8 +11,12 @@ from datetime import datetime
 load_dotenv()
 
 # Email configuration
-resend.api_key = os.getenv('RESEND_API_KEY')
-SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'onboarding@resend.dev')
+# Production (Railway): set SMTP_SERVER=smtp-relay.brevo.com in Railway variables
+# Local debug: falls back to smtp.gmail.com automatically
+SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
+SENDER_EMAIL = os.getenv('SENDER_EMAIL')
+SENDER_PASSWORD = os.getenv('SENDER_APP_PASSWORD')
 
 def generate_otp(length=6):
     """Generate a random 6-digit OTP"""
@@ -18,50 +24,30 @@ def generate_otp(length=6):
 
 def send_email(to_email, subject, html_content):
     """
-    Send an email using Resend API (production/Railway) or
-    Gmail SMTP as fallback (local debug mode).
+    Send an email via SMTP.
+    Production: Brevo SMTP (set SMTP_SERVER=smtp-relay.brevo.com in Railway)
+    Local debug: Gmail SMTP (default fallback, no env change needed)
     Returns (success, message)
     """
-    # Use Resend if API key is present (Railway/production)
-    if os.getenv('RESEND_API_KEY'):
-        try:
-            resend.Emails.send({
-                "from": f"MindLobby <{SENDER_EMAIL}>",
-                "to": [to_email],
-                "subject": subject,
-                "html": html_content,
-            })
-            return True, "Email sent successfully"
-        except Exception as e:
-            return False, f"Failed to send email: {str(e)}"
-
-    # Fallback: Gmail SMTP for local debug mode
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-
-    smtp_server = "smtp.gmail.com"
-    smtp_port = 587
-    sender_password = os.getenv('SENDER_APP_PASSWORD')
-
     try:
         message = MIMEMultipart('alternative')
         message['Subject'] = subject
-        message['From'] = f"MindLobby <{os.getenv('SENDER_EMAIL')}>"
+        message['From'] = f"MindLobby <{SENDER_EMAIL}>"
         message['To'] = to_email
         message.attach(MIMEText(html_content, 'html'))
 
         try:
-            with smtplib.SMTP_SSL(smtp_server, 465) as server:
-                server.login(os.getenv('SENDER_EMAIL'), sender_password)
+            with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
                 server.send_message(message)
         except OSError:
-            with smtplib.SMTP(smtp_server, smtp_port) as server:
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
                 server.starttls()
-                server.login(os.getenv('SENDER_EMAIL'), sender_password)
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
                 server.send_message(message)
 
         return True, "Email sent successfully"
+
     except Exception as e:
         return False, f"Failed to send email: {str(e)}"
 
@@ -148,10 +134,8 @@ def send_password_reset_email(to_email, username, reset_link, request_ip=None, r
     """
     subject = "Reset Your MindLobby Password"
     
-    # Format request metadata for display
     metadata_section = ""
     if request_ip or request_user_agent or request_time:
-        # Parse user agent for better display
         browser_info = "Unknown browser"
         if request_user_agent:
             user_agent = str(request_user_agent)
@@ -164,7 +148,6 @@ def send_password_reset_email(to_email, username, reset_link, request_ip=None, r
             elif 'Edge' in user_agent:
                 browser_info = "Edge"
         
-        # Format timestamp
         time_str = "Unknown time"
         if request_time:
             try:
@@ -294,26 +277,6 @@ def send_contact_email(first_name, last_name, email, subject_type, message):
     </html>
     """
 
-    # Send to your support inbox; Reply-To goes to the user
-    # Use Resend if API key is present (Railway/production)
-    if os.getenv('RESEND_API_KEY'):
-        try:
-            resend.Emails.send({
-                "from": f"MindLobby Contact <{SENDER_EMAIL}>",
-                "to": [SENDER_EMAIL],
-                "reply_to": f"{first_name} {last_name} <{email}>",
-                "subject": subject,
-                "html": html_content,
-            })
-            return True, "Message sent successfully"
-        except Exception as e:
-            return False, f"Failed to send message: {str(e)}"
-
-    # Fallback: Gmail SMTP for local debug mode
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-
     try:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
@@ -323,13 +286,13 @@ def send_contact_email(first_name, last_name, email, subject_type, message):
         msg.attach(MIMEText(html_content, 'html'))
 
         try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                server.login(SENDER_EMAIL, os.getenv('SENDER_APP_PASSWORD'))
+            with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
                 server.send_message(msg)
         except OSError:
-            with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
                 server.starttls()
-                server.login(SENDER_EMAIL, os.getenv('SENDER_APP_PASSWORD'))
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
                 server.send_message(msg)
 
         return True, "Message sent successfully"
