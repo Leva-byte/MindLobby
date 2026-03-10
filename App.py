@@ -1794,8 +1794,6 @@ def handle_reset_game(data):
 # RUN APPLICATION
 # ============================================================================
 if __name__ == '__main__':
-    # For development
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-    
-    # For production (Render/Railway), use:
-    # socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    port = int(os.environ.get('PORT', 5000))
+    debug = not os.environ.get('DATABASE_URL')  # dev mode when no DATABASE_URL
+    socketio.run(app, host='0.0.0.0', port=port, debug=debug, allow_unsafe_werkzeug=True)
