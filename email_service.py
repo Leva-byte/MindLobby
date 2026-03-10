@@ -37,10 +37,17 @@ def send_email(to_email, subject, html_content):
         message.attach(html_part)
         
         # Connect to Gmail SMTP server
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.send_message(message)
+        # Try SSL on port 465 first (works on cloud platforms that block port 587),
+        # fall back to STARTTLS on port 587 (works locally)
+        try:
+            with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+                server.send_message(message)
+        except OSError:
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+                server.starttls()
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+                server.send_message(message)
         
         return True, "Email sent successfully"
     
@@ -285,10 +292,15 @@ def send_contact_email(first_name, last_name, email, subject_type, message):
         msg['Reply-To'] = f"{first_name} {last_name} <{email}>"
         msg.attach(MIMEText(html_content, 'html'))
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.send_message(msg)
+        try:
+            with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+                server.send_message(msg)
+        except OSError:
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+                server.starttls()
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+                server.send_message(msg)
 
         return True, "Message sent successfully"
     except Exception as e:
