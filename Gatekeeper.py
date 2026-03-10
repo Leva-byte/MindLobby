@@ -3,12 +3,12 @@ Gatekeeper.py - MindLobby Security Module
 Handles IP banning, fingerprinting, geofencing, and audit logging
 """
 
-import sqlite3
 import hashlib
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import request, jsonify, session, abort
 import logging
+from db_adapter import get_db_connection, is_postgres
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -20,13 +20,18 @@ logger = logging.getLogger(__name__)
 
 def init_security_tables():
     """Initialize security-related database tables"""
-    conn = sqlite3.connect('mindlobby.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
-    
+
+    if is_postgres():
+        PK = 'SERIAL PRIMARY KEY'
+    else:
+        PK = 'INTEGER PRIMARY KEY AUTOINCREMENT'
+
     # Banned IPs/Fingerprints table
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS banned_entities (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             ip_address TEXT,
             fingerprint TEXT,
             reason TEXT,
@@ -36,11 +41,11 @@ def init_security_tables():
             ban_count INTEGER DEFAULT 1
         )
     ''')
-    
+
     # Admin audit log
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS admin_audit_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             admin_user_id INTEGER,
             action TEXT NOT NULL,
             details TEXT,
@@ -50,22 +55,22 @@ def init_security_tables():
             FOREIGN KEY (admin_user_id) REFERENCES users (id)
         )
     ''')
-    
+
     # Failed login attempts
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS failed_login_attempts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             ip_address TEXT,
             fingerprint TEXT,
             attempted_at TEXT NOT NULL,
             reason TEXT
         )
     ''')
-    
+
     # Admin sessions (for session binding)
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS admin_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             user_id INTEGER NOT NULL,
             session_token TEXT NOT NULL,
             ip_address TEXT NOT NULL,
@@ -77,7 +82,7 @@ def init_security_tables():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
-    
+
     conn.commit()
     conn.close()
     print("✅ Security tables initialized")
@@ -120,7 +125,7 @@ def ban_entity(ip_address=None, fingerprint=None, reason="Unauthorized access at
         duration_hours: Ban duration (default 24 hours)
         permanent: If True, ban is permanent
     """
-    conn = sqlite3.connect('mindlobby.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     banned_at = datetime.now()
@@ -163,15 +168,14 @@ def ban_entity(ip_address=None, fingerprint=None, reason="Unauthorized access at
 
 def is_banned(ip_address, fingerprint):
     """Check if IP or fingerprint is banned"""
-    conn = sqlite3.connect('mindlobby.db')
-    conn.row_factory = sqlite3.Row
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT * FROM banned_entities 
-        WHERE (ip_address = ? OR fingerprint = ?) 
-        AND (permanent = 1 OR datetime(expires_at) > datetime('now'))
-    ''', (ip_address, fingerprint))
+        SELECT * FROM banned_entities
+        WHERE (ip_address = ? OR fingerprint = ?)
+        AND (permanent = 1 OR expires_at > ?)
+    ''', (ip_address, fingerprint, datetime.now().isoformat()))
     
     result = cursor.fetchone()
     conn.close()
@@ -180,7 +184,7 @@ def is_banned(ip_address, fingerprint):
 
 def unban_entity(ip_address=None, fingerprint=None):
     """Unban an IP address or fingerprint (emergency use)"""
-    conn = sqlite3.connect('mindlobby.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     if ip_address:
@@ -197,13 +201,13 @@ def unban_entity(ip_address=None, fingerprint=None):
 
 def cleanup_expired_bans():
     """Remove expired bans from database"""
-    conn = sqlite3.connect('mindlobby.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute('''
-        DELETE FROM banned_entities 
-        WHERE permanent = 0 AND datetime(expires_at) < datetime('now')
-    ''')
+        DELETE FROM banned_entities
+        WHERE permanent = 0 AND expires_at < ?
+    ''', (datetime.now().isoformat(),))
     
     deleted = cursor.rowcount
     conn.commit()
@@ -243,7 +247,7 @@ def is_within_business_hours():
 
 def log_admin_action(admin_user_id, action, details=None, request_obj=None):
     """Log admin actions for security audit trail"""
-    conn = sqlite3.connect('mindlobby.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     ip_address = request_obj.remote_addr if request_obj else None
@@ -262,7 +266,7 @@ def log_admin_action(admin_user_id, action, details=None, request_obj=None):
 
 def log_failed_login(ip_address, fingerprint, reason):
     """Log failed login attempts"""
-    conn = sqlite3.connect('mindlobby.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -282,7 +286,7 @@ def log_failed_login(ip_address, fingerprint, reason):
 
 def get_recent_failed_attempts(fingerprint, hours=1):
     """Get count of failed attempts in last N hours"""
-    conn = sqlite3.connect('mindlobby.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     cutoff_time = (datetime.now() - timedelta(hours=hours)).isoformat()
@@ -402,7 +406,7 @@ def destroy_admin_session():
 
 def emergency_unban_all():
     """EMERGENCY: Unban all entities (use with caution!)"""
-    conn = sqlite3.connect('mindlobby.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('DELETE FROM banned_entities')
     deleted = cursor.rowcount
@@ -414,17 +418,16 @@ def emergency_unban_all():
 
 def get_ban_statistics():
     """Get statistics about current bans"""
-    conn = sqlite3.connect('mindlobby.db')
-    conn.row_factory = sqlite3.Row
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT 
+        SELECT
             COUNT(*) as total_bans,
             SUM(CASE WHEN permanent = 1 THEN 1 ELSE 0 END) as permanent_bans,
-            SUM(CASE WHEN datetime(expires_at) > datetime('now') THEN 1 ELSE 0 END) as active_bans
+            SUM(CASE WHEN expires_at > ? THEN 1 ELSE 0 END) as active_bans
         FROM banned_entities
-    ''')
+    ''', (datetime.now().isoformat(),))
     
     stats = cursor.fetchone()
     conn.close()

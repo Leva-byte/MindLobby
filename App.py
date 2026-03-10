@@ -789,10 +789,11 @@ if GATEKEEPER_AVAILABLE:
             conn = get_db_connection()
             
             # Count active bans
+            from datetime import datetime as _dt
             active_bans = conn.execute('''
-                SELECT COUNT(*) as count FROM banned_entities 
-                WHERE expires_at > datetime('now')
-            ''').fetchone()
+                SELECT COUNT(*) as count FROM banned_entities
+                WHERE expires_at > ?
+            ''', (_dt.now().isoformat(),)).fetchone()
             
             # Count failed attempts
             failed_attempts = conn.execute('''
@@ -829,15 +830,16 @@ if GATEKEEPER_AVAILABLE:
         try:
             from database import get_db_connection
             conn = get_db_connection()
+            from datetime import datetime as _dt
             rows = conn.execute('''
                 SELECT b.id, b.fingerprint, b.reason, b.banned_at, b.expires_at,
                        b.permanent, b.ban_count,
                        u.id AS user_id, u.username, u.email
                 FROM banned_entities b
-                JOIN users u ON b.fingerprint = 'user:' || u.id
-                WHERE b.permanent = 1 OR datetime(b.expires_at) > datetime('now')
+                JOIN users u ON b.fingerprint = 'user:' || CAST(u.id AS TEXT)
+                WHERE b.permanent = 1 OR b.expires_at > ?
                 ORDER BY b.banned_at DESC
-            ''').fetchall()
+            ''', (_dt.now().isoformat(),)).fetchall()
             conn.close()
             return jsonify({'success': True, 'banned_users': [dict(r) for r in rows]})
         except Exception as e:
@@ -852,12 +854,13 @@ if GATEKEEPER_AVAILABLE:
         try:
             from database import get_db_connection
             conn = get_db_connection()
+            from datetime import datetime as _dt
             tokens = conn.execute('''
                 SELECT id, created_at, expires_at, used, request_ip, request_user_agent
                 FROM password_reset_tokens
-                WHERE user_id = ? AND used = 0 AND datetime(expires_at) > datetime('now')
+                WHERE user_id = ? AND used = 0 AND expires_at > ?
                 ORDER BY created_at DESC
-            ''', (user_id,)).fetchall()
+            ''', (user_id, _dt.now().isoformat())).fetchall()
             conn.close()
             return jsonify({'success': True, 'tokens': [dict(t) for t in tokens]})
         except Exception as e:

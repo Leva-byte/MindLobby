@@ -5,35 +5,39 @@ from werkzeug.security import generate_password_hash
 import secrets
 import hashlib
 
-def get_db_connection():
-    """Get database connection"""
-    conn = sqlite3.connect('mindlobby.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+from db_adapter import get_db_connection, is_postgres
 
 def init_db():
-    """Initialize database with all tables"""
+    """Initialize database with all tables (works for both SQLite and PostgreSQL)"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
+    # Use SERIAL for PostgreSQL, INTEGER PRIMARY KEY AUTOINCREMENT for SQLite
+    if is_postgres():
+        PK = 'SERIAL PRIMARY KEY'
+    else:
+        PK = 'INTEGER PRIMARY KEY AUTOINCREMENT'
+
     # Users table (WITH email_verified field)
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             email TEXT UNIQUE NOT NULL,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             role TEXT DEFAULT 'user',
             email_verified INTEGER DEFAULT 0,
             created_at TEXT NOT NULL,
-            last_login TEXT
+            last_login TEXT,
+            profile_picture TEXT,
+            banner TEXT
         )
     ''')
-    
+
     # OTP codes table
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS otp_codes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             user_id INTEGER NOT NULL,
             otp_code TEXT NOT NULL,
             created_at TEXT NOT NULL,
@@ -42,11 +46,11 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
-    
+
     # Password reset tokens table - STORES HASHED TOKENS
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS password_reset_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             user_id INTEGER NOT NULL,
             token_hash TEXT NOT NULL,
             created_at TEXT NOT NULL,
@@ -57,11 +61,11 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
-    
+
     # Documents table
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS documents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             user_id INTEGER NOT NULL,
             filename TEXT NOT NULL,
             original_filename TEXT NOT NULL,
@@ -71,11 +75,11 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
-    
+
     # Flashcards table
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS flashcards (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             document_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             question TEXT NOT NULL,
@@ -87,9 +91,9 @@ def init_db():
     ''')
 
     # Room history table
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS room_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             room_code TEXT NOT NULL,
             host_id INTEGER,
             created_at TEXT NOT NULL,
@@ -99,9 +103,9 @@ def init_db():
     ''')
 
     # Topics table
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS topics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             user_id INTEGER NOT NULL,
             name TEXT NOT NULL,
             color TEXT NOT NULL DEFAULT '#7c77c6',
@@ -111,9 +115,9 @@ def init_db():
     ''')
 
     # Document-Topic junction table (many-to-many)
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS document_topics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             document_id INTEGER NOT NULL,
             topic_id INTEGER NOT NULL,
             UNIQUE(document_id, topic_id),
@@ -123,9 +127,9 @@ def init_db():
     ''')
 
     # Quiz results table
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS quiz_results (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             document_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             score INTEGER NOT NULL,
@@ -137,9 +141,9 @@ def init_db():
     ''')
 
     # Quiz wrong answers table (per-attempt detail)
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS quiz_wrong_answers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             quiz_result_id INTEGER NOT NULL,
             question TEXT NOT NULL,
             selected_answer TEXT NOT NULL,
@@ -149,9 +153,9 @@ def init_db():
     ''')
 
     # Document reports table (admin-only flagging)
-    cursor.execute('''
+    cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS document_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {PK},
             document_id INTEGER NOT NULL,
             admin_user_id INTEGER NOT NULL,
             reason TEXT NOT NULL,
@@ -164,49 +168,25 @@ def init_db():
         )
     ''')
 
-    # --- Migrations: add profile columns if missing ---
-    existing_cols = [row[1] for row in cursor.execute('PRAGMA table_info(users)').fetchall()]
-    if 'profile_picture' not in existing_cols:
-        cursor.execute('ALTER TABLE users ADD COLUMN profile_picture TEXT')
-    if 'banner' not in existing_cols:
-        cursor.execute('ALTER TABLE users ADD COLUMN banner TEXT')
-    if 'banner' not in existing_cols:
-        cursor.execute('ALTER TABLE users ADD COLUMN banner TEXT')
+    # User settings table
+    cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS user_settings (
+            user_id INTEGER PRIMARY KEY,
+            settings_json TEXT DEFAULT '{{}}'
+        )
+    ''')
 
-    # --- Migration: add markdown_text to documents if missing ---
-    doc_cols = [row[1] for row in cursor.execute('PRAGMA table_info(documents)').fetchall()]
-    if 'markdown_text' not in doc_cols:
-        cursor.execute('ALTER TABLE documents ADD COLUMN markdown_text TEXT')
+    # --- SQLite-only migrations (add columns if missing on older dev DBs) ---
+    if not is_postgres():
+        existing_cols = [row[1] for row in cursor.execute('PRAGMA table_info(users)').fetchall()]
+        if 'profile_picture' not in existing_cols:
+            cursor.execute('ALTER TABLE users ADD COLUMN profile_picture TEXT')
+        if 'banner' not in existing_cols:
+            cursor.execute('ALTER TABLE users ADD COLUMN banner TEXT')
 
-    # --- Migration: create user_settings if missing ---
-    existing_tables = [row[0] for row in cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()]
-    if 'user_settings' not in existing_tables:
-        cursor.execute('''
-            CREATE TABLE user_settings (
-                user_id INTEGER PRIMARY KEY,
-                settings_json TEXT DEFAULT '{}',
-                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-            )
-        ''')
-
-    # --- Migration: create document_reports if missing ---
-    if 'document_reports' not in existing_tables:
-        cursor.execute('''
-            CREATE TABLE document_reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                document_id INTEGER NOT NULL,
-                admin_user_id INTEGER NOT NULL,
-                reason TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'pending',
-                created_at TEXT NOT NULL,
-                reviewed_by INTEGER,
-                reviewed_at TEXT,
-                FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE,
-                FOREIGN KEY (admin_user_id) REFERENCES users (id)
-            )
-        ''')
+        doc_cols = [row[1] for row in cursor.execute('PRAGMA table_info(documents)').fetchall()]
+        if 'markdown_text' not in doc_cols:
+            cursor.execute('ALTER TABLE documents ADD COLUMN markdown_text TEXT')
 
     conn.commit()
     conn.close()
@@ -239,9 +219,11 @@ def create_user(email, username, password, role='user'):
         user_id = cursor.lastrowid
         conn.close()
         return user_id
-    except sqlite3.IntegrityError:
-        conn.close()
-        return None
+    except (sqlite3.IntegrityError, Exception) as e:
+        if 'IntegrityError' in type(e).__name__ or 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+            conn.close()
+            return None
+        raise
 
 def get_user_by_email(email):
     """Get user by email"""
@@ -378,10 +360,17 @@ def get_user_settings(user_id):
 def save_user_settings(user_id, settings_dict):
     """Upsert user settings as JSON."""
     conn = get_db_connection()
-    conn.execute(
-        'INSERT OR REPLACE INTO user_settings (user_id, settings_json) VALUES (?, ?)',
-        (user_id, json.dumps(settings_dict))
-    )
+    if is_postgres():
+        conn.execute(
+            '''INSERT INTO user_settings (user_id, settings_json) VALUES (?, ?)
+               ON CONFLICT (user_id) DO UPDATE SET settings_json = EXCLUDED.settings_json''',
+            (user_id, json.dumps(settings_dict))
+        )
+    else:
+        conn.execute(
+            'INSERT OR REPLACE INTO user_settings (user_id, settings_json) VALUES (?, ?)',
+            (user_id, json.dumps(settings_dict))
+        )
     conn.commit()
     conn.close()
 
@@ -477,17 +466,17 @@ def create_password_reset_token(user_id, request_ip=None, request_user_agent=Non
     try:
         # Try new schema with metadata columns
         cursor.execute('''
-            INSERT INTO password_reset_tokens 
+            INSERT INTO password_reset_tokens
             (user_id, token_hash, created_at, expires_at, used, request_ip, request_user_agent)
             VALUES (?, ?, ?, ?, 0, ?, ?)
-        ''', (user_id, token_hash, created_at.isoformat(), expires_at.isoformat(), 
+        ''', (user_id, token_hash, created_at.isoformat(), expires_at.isoformat(),
               request_ip, request_user_agent))
         print(f"✅ Token created with metadata (new schema)")
-    except sqlite3.OperationalError as e:
-        # Fallback to old schema without metadata columns
+    except Exception as e:
+        # Fallback to old schema without metadata columns (SQLite dev DB migration)
         print(f"⚠️ Old database schema detected, using basic insert: {e}")
         cursor.execute('''
-            INSERT INTO password_reset_tokens 
+            INSERT INTO password_reset_tokens
             (user_id, token_hash, created_at, expires_at, used)
             VALUES (?, ?, ?, ?, 0)
         ''', (user_id, token_hash, created_at.isoformat(), expires_at.isoformat()))
@@ -973,9 +962,11 @@ def add_document_to_topic(document_id, topic_id, user_id):
         conn.commit()
         conn.close()
         return True
-    except sqlite3.IntegrityError:
-        conn.close()
-        return False
+    except (sqlite3.IntegrityError, Exception) as e:
+        if 'IntegrityError' in type(e).__name__ or 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+            conn.close()
+            return False
+        raise
 
 def remove_document_from_topic(document_id, topic_id, user_id):
     """Unlink a document from a topic. Verifies ownership."""
@@ -1054,7 +1045,8 @@ def cleanup_expired_otps():
     """Delete expired OTP codes"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM otp_codes WHERE datetime(expires_at) < datetime("now")')
+    # Use Python-side timestamp for cross-DB compatibility
+    cursor.execute('DELETE FROM otp_codes WHERE expires_at < ?', (datetime.now().isoformat(),))
     deleted = cursor.rowcount
     conn.commit()
     conn.close()
