@@ -225,10 +225,11 @@ def signup():
             otp_code = ''.join([str(_r.randint(0, 9)) for _ in range(6)])
             create_otp(user_id, otp_code)
 
-            try:
-                send_otp_email(email, username, otp_code)
-            except Exception as e:
-                logger.error(f"Failed to send OTP email: {e}")
+            email_success, email_msg = send_otp_email(email, username, otp_code)
+            if email_success:
+                logger.info(f"OTP email sent to {email}")
+            else:
+                logger.error(f"Failed to send OTP email to {email}: {email_msg}")
 
             # Store pending user info in session for verification step
             session['pending_user_id'] = user_id
