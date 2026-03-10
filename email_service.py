@@ -1,8 +1,6 @@
-import smtplib
+import resend
 import random
 import string
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import os
 from dotenv import load_dotenv
 from datetime import datetime
@@ -11,10 +9,8 @@ from datetime import datetime
 load_dotenv()
 
 # Email configuration
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SENDER_EMAIL = os.getenv('SENDER_EMAIL')
-SENDER_PASSWORD = os.getenv('SENDER_APP_PASSWORD')
+resend.api_key = os.getenv('RESEND_API_KEY')
+SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'onboarding@resend.dev')
 
 def generate_otp(length=6):
     """Generate a random 6-digit OTP"""
@@ -22,35 +18,50 @@ def generate_otp(length=6):
 
 def send_email(to_email, subject, html_content):
     """
-    Send an email using Gmail SMTP
+    Send an email using Resend API (production/Railway) or
+    Gmail SMTP as fallback (local debug mode).
     Returns (success, message)
     """
+    # Use Resend if API key is present (Railway/production)
+    if os.getenv('RESEND_API_KEY'):
+        try:
+            resend.Emails.send({
+                "from": f"MindLobby <{SENDER_EMAIL}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content,
+            })
+            return True, "Email sent successfully"
+        except Exception as e:
+            return False, f"Failed to send email: {str(e)}"
+
+    # Fallback: Gmail SMTP for local debug mode
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587
+    sender_password = os.getenv('SENDER_APP_PASSWORD')
+
     try:
-        # Create message
         message = MIMEMultipart('alternative')
         message['Subject'] = subject
-        message['From'] = f"MindLobby <{SENDER_EMAIL}>"
+        message['From'] = f"MindLobby <{os.getenv('SENDER_EMAIL')}>"
         message['To'] = to_email
-        
-        # Attach HTML content
-        html_part = MIMEText(html_content, 'html')
-        message.attach(html_part)
-        
-        # Connect to Gmail SMTP server
-        # Try SSL on port 465 first (works on cloud platforms that block port 587),
-        # fall back to STARTTLS on port 587 (works locally)
+        message.attach(MIMEText(html_content, 'html'))
+
         try:
-            with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
-                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            with smtplib.SMTP_SSL(smtp_server, 465) as server:
+                server.login(os.getenv('SENDER_EMAIL'), sender_password)
                 server.send_message(message)
         except OSError:
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
                 server.starttls()
-                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+                server.login(os.getenv('SENDER_EMAIL'), sender_password)
                 server.send_message(message)
-        
+
         return True, "Email sent successfully"
-    
     except Exception as e:
         return False, f"Failed to send email: {str(e)}"
 
@@ -284,6 +295,25 @@ def send_contact_email(first_name, last_name, email, subject_type, message):
     """
 
     # Send to your support inbox; Reply-To goes to the user
+    # Use Resend if API key is present (Railway/production)
+    if os.getenv('RESEND_API_KEY'):
+        try:
+            resend.Emails.send({
+                "from": f"MindLobby Contact <{SENDER_EMAIL}>",
+                "to": [SENDER_EMAIL],
+                "reply_to": f"{first_name} {last_name} <{email}>",
+                "subject": subject,
+                "html": html_content,
+            })
+            return True, "Message sent successfully"
+        except Exception as e:
+            return False, f"Failed to send message: {str(e)}"
+
+    # Fallback: Gmail SMTP for local debug mode
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
     try:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
@@ -293,13 +323,13 @@ def send_contact_email(first_name, last_name, email, subject_type, message):
         msg.attach(MIMEText(html_content, 'html'))
 
         try:
-            with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
-                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(SENDER_EMAIL, os.getenv('SENDER_APP_PASSWORD'))
                 server.send_message(msg)
         except OSError:
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            with smtplib.SMTP("smtp.gmail.com", 587) as server:
                 server.starttls()
-                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+                server.login(SENDER_EMAIL, os.getenv('SENDER_APP_PASSWORD'))
                 server.send_message(msg)
 
         return True, "Message sent successfully"

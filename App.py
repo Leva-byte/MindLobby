@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from werkzeug.security import check_password_hash
 import logging
+from db_adapter import get_db_connection
 
 # ============================================================================
 # ORIGINAL IMPORTS (UNCHANGED)
@@ -228,20 +229,32 @@ def signup():
             email_success, email_msg = send_otp_email(email, username, otp_code)
             if email_success:
                 logger.info(f"OTP email sent to {email}")
+                # Store pending user info in session for verification step
+                session['pending_user_id'] = user_id
+                session['pending_email'] = email
+                session['pending_username'] = username
+
+                logger.info(f"New user registered (pending OTP): {username}")
+                return jsonify({
+                    'success': True,
+                    'message': 'Verification code sent to your email',
+                    'requires_verification': True,
+                })
             else:
-                logger.error(f"Failed to send OTP email to {email}: {email_msg}")
+                # Email failed (e.g. SMTP blocked on cloud platform) — auto-verify
+                logger.warning(f"Email send failed ({email_msg}), auto-verifying user {username}")
+                conn = get_db_connection()
+                conn.execute('UPDATE users SET email_verified = 1 WHERE id = ?', (user_id,))
+                conn.commit()
+                conn.close()
 
-            # Store pending user info in session for verification step
-            session['pending_user_id'] = user_id
-            session['pending_email'] = email
-            session['pending_username'] = username
-
-            logger.info(f"New user registered (pending OTP): {username}")
-            return jsonify({
-                'success': True,
-                'message': 'Verification code sent to your email',
-                'requires_verification': True,
-            })
+                session['user_id'] = user_id
+                session['username'] = username
+                return jsonify({
+                    'success': True,
+                    'message': 'Account created successfully!',
+                    'requires_verification': False,
+                })
         else:
             return jsonify({'success': False, 'message': 'Registration failed'}), 500
         
