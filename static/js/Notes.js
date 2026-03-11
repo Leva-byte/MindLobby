@@ -72,7 +72,7 @@
     const topicDots = (doc.topics || []).map(t =>
       '<span class="doc-topic-dot" style="--dot-color:' + t.color + '" title="' + _esc(t.name) + '"></span>'
     ).join('');
-    const badgeLabel = ext === 'youtube' ? 'YOUTUBE' : ext.toUpperCase();
+    const badgeLabel = ext === 'youtube' ? 'YT LINK' : ext.toUpperCase();
     const iconPrefix = ext === 'youtube' ? '' : 'fas ';
 
     return `
@@ -156,6 +156,7 @@
 
       _renderNotes();
       _setState('ready');
+      if (window.Chatbot) Chatbot.loadDocument(docId, filename);
 
     } catch (err) {
       console.error('Notes: fetch error', err);
@@ -449,6 +450,7 @@
 
   function showBrowse() {
     const browse = document.getElementById('notesBrowseView');
+    if (window.Chatbot) Chatbot.clearDocument();
     const viewer = document.getElementById('notesViewerView');
     if (browse) browse.style.display = 'block';
     if (viewer) viewer.style.display = 'none';

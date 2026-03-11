@@ -7,6 +7,74 @@
   // --- State ---
   let _messages = []; // { role: 'user'|'assistant', content: '' }
   let _isSending = false;
+  let _documentId = null;       // null = general mode
+  let _documentFilename = null; // display name for the banner
+
+  // ===========================================================================
+  // DOCUMENT MODE
+  // ===========================================================================
+
+  /**
+   * Load a document into iTERA's context.
+   * Call this from any page that has a document open, e.g.:
+   *
+   *   Chatbot.loadDocument(42, 'Chapter 3 - French Revolution.pdf');
+   *
+   * @param {number} docId       - The document's database ID
+   * @param {string} filename    - The display name shown in the banner
+   */
+  function loadDocument(docId, filename) {
+    _documentId = docId;
+    _documentFilename = filename || 'Document';
+    _updateDocumentUI(true);
+    // Reset conversation so the new context starts fresh
+    _messages = [];
+    _clearMessages();
+    _appendBubble('bot',
+      'Document loaded! I\'m now reading "' + _documentFilename + '". ' +
+      'Ask me anything about it — I can explain concepts, quiz you, or summarise sections.'
+    );
+  }
+
+  /**
+   * Clear the loaded document and return to general mode.
+   * Also called by the ✕ button on the banner.
+   */
+  function clearDocument() {
+    _documentId = null;
+    _documentFilename = null;
+    _updateDocumentUI(false);
+    _messages = [];
+    _clearMessages();
+
+    // Restore the original welcome bubble
+    _appendBubble('bot', 'Hi! I\'m iTERA, your AI study buddy. Ask me anything about MindLobby or your studies!');
+
+    // Restore suggestion pills
+    const suggestions = document.getElementById('chatSuggestions');
+    if (suggestions) suggestions.classList.remove('hidden');
+  }
+
+  /** Update all visual indicators when document mode changes. */
+  function _updateDocumentUI(isDocMode) {
+    const panel       = document.getElementById('chatPanel');
+    const banner      = document.getElementById('chatDocBanner');
+    const label       = document.getElementById('chatDocLabel');
+    const input       = document.getElementById('chatInput');
+    const suggestions = document.getElementById('chatSuggestions');
+
+    if (isDocMode) {
+      if (label)  label.textContent = _documentFilename;
+      if (banner) banner.classList.add('visible');
+      if (panel)  panel.classList.add('doc-mode');
+      if (input)  input.placeholder = 'Ask about this document...';
+      if (suggestions) suggestions.classList.add('hidden');
+    } else {
+      if (banner) banner.classList.remove('visible');
+      if (panel)  panel.classList.remove('doc-mode');
+      if (input)  input.placeholder = 'Ask iTERA anything...';
+    }
+  }
 
   // ===========================================================================
   // TOGGLE PANEL
@@ -55,10 +123,16 @@
     const typingEl = _showTyping();
 
     try {
+      // Build request body — include document_id when in document mode
+      const requestBody = { messages: _messages };
+      if (_documentId !== null) {
+        requestBody.document_id = _documentId;
+      }
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: _messages }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await res.json();
@@ -111,6 +185,12 @@
   // ===========================================================================
   // DOM HELPERS
   // ===========================================================================
+
+  function _clearMessages() {
+    const container = document.getElementById('chatMessages');
+    if (container) container.innerHTML = '';
+  }
+
   function _appendBubble(type, text) {
     const container = document.getElementById('chatMessages');
     if (!container) return;
@@ -176,5 +256,7 @@
     send,
     sendSuggestion,
     handleKey,
+    loadDocument,    // NEW — call from flashcard/notes/quiz pages
+    clearDocument,   // NEW — also wired to the banner ✕ button
   };
 })();

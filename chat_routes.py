@@ -3,6 +3,7 @@ import requests
 import logging
 from flask import Blueprint, request, jsonify, session
 from dotenv import load_dotenv, find_dotenv
+from db_adapter import get_db_connection
 
 load_dotenv(find_dotenv(), override=True)
 
@@ -125,6 +126,23 @@ ITERA_SYSTEM_PROMPT = (
     "- You can help with general study questions and explain academic concepts too."
 )
 
+# Appended to ITERA_SYSTEM_PROMPT when a document is loaded.
+# {filename} and {content} are replaced at runtime.
+DOCUMENT_CONTEXT_TEMPLATE = (
+    "\n\n===== DOCUMENT MODE =====\n"
+    "The student is currently studying a document called \"{filename}\".\n"
+    "The full extracted text of that document is provided below.\n"
+    "Use it as your primary reference when answering the student's questions.\n"
+    "If the answer is clearly not in the document, say so honestly and offer "
+    "general help instead. Do NOT invent information.\n\n"
+    "--- DOCUMENT CONTENT START ---\n"
+    "{content}\n"
+    "--- DOCUMENT CONTENT END ---\n"
+    "===== END DOCUMENT MODE =====\n"
+)
+
+MAX_DOC_CHARS = 8000   # Safe limit for the free-tier model's context window
+
 
 def _get_api_key():
     """Read the API key fresh every time."""
@@ -134,13 +152,48 @@ def _get_api_key():
     return key
 
 
+def _get_document_context(document_id, user_id):
+    """
+    Fetch the document's original_filename and markdown_text from the DB.
+    Returns a formatted context string, or an empty string if not found.
+    Only returns documents that belong to the requesting user (security check).
+    """
+    try:
+        conn = get_db_connection()
+        row = conn.execute(
+            'SELECT original_filename, markdown_text FROM documents WHERE id = ? AND user_id = ?',
+            (document_id, user_id)
+        ).fetchone()
+        conn.close()
+
+        if not row or not row['markdown_text']:
+            return '', None
+
+        trimmed = row['markdown_text'][:MAX_DOC_CHARS]
+        context = DOCUMENT_CONTEXT_TEMPLATE.format(
+            filename=row['original_filename'],
+            content=trimmed
+        )
+        return context, row['original_filename']
+
+    except Exception as e:
+        logger.error(f"Failed to load document context (doc_id={document_id}): {e}")
+        return '', None
+
+
 # ============================================================================
 # ROUTES
 # ============================================================================
 
 @chat_bp.route('/api/chat', methods=['POST'])
 def chat():
-    """Send a message to iTERA and get a response."""
+    """
+    Send a message to iTERA and get a response.
+
+    Accepts an optional `document_id` in the request body.
+    When present, the document's extracted text is injected into the system
+    prompt so iTERA can answer questions specifically about that material.
+    """
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Not logged in'}), 401
 
@@ -152,8 +205,22 @@ def chat():
     if not isinstance(user_messages, list) or len(user_messages) == 0:
         return jsonify({'success': False, 'message': 'Messages must be a non-empty list'}), 400
 
-    # Build the full conversation with system prompt
-    messages = [{"role": "system", "content": ITERA_SYSTEM_PROMPT}]
+    # --- Optional document context ---
+    document_id = data.get('document_id')   # None = general mode
+    document_filename = None
+    document_context = ''
+
+    if document_id:
+        document_context, document_filename = _get_document_context(
+            document_id, session['user_id']
+        )
+        # If the client sent a bad/unauthorized document_id, we just fall back
+        # to general mode silently rather than erroring out.
+
+    # Build the full conversation: system prompt (+ optional doc context) + history
+    system_prompt = ITERA_SYSTEM_PROMPT + document_context
+    messages = [{"role": "system", "content": system_prompt}]
+
     for msg in user_messages[-20:]:  # Keep last 20 messages to avoid token overflow
         role = msg.get('role', 'user')
         content = msg.get('content', '')
@@ -201,6 +268,9 @@ def chat():
         return jsonify({
             'success': True,
             'reply': reply,
+            # Echo back so the frontend can confirm which mode was active
+            'document_mode': document_filename is not None,
+            'document_filename': document_filename,
         })
 
     except requests.exceptions.Timeout:

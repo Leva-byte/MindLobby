@@ -96,7 +96,7 @@
     var topicDots = (doc.topics || []).map(function(t) {
       return '<span class="doc-topic-dot" style="--dot-color:' + t.color + '" title="' + _esc(t.name) + '"></span>';
     }).join('');
-    var badgeLabel = ext === 'youtube' ? 'YOUTUBE' : ext.toUpperCase();
+    var badgeLabel = ext === 'youtube' ? 'YT LINK' : ext.toUpperCase();
     var iconPrefix = ext === 'youtube' ? '' : 'fas ';
 
     // Quiz history badge — always shown (0% if no attempts)

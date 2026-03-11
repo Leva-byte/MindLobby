@@ -10,7 +10,7 @@
 <!-- Chat Panel -->
 <div class="chat-panel" id="chatPanel">
 
-  <!-- Header -->
+  <!-- Header (always static) -->
   <div class="chat-header">
     <div class="chat-header-info">
       <div class="chat-avatar">
@@ -41,6 +41,17 @@
     <button class="chat-suggestion-chip" onclick="Chatbot.sendSuggestion(this)">How do flashcards work?</button>
     <button class="chat-suggestion-chip" onclick="Chatbot.sendSuggestion(this)">How do I study with my flashcards?</button>
     <button class="chat-suggestion-chip" onclick="Chatbot.sendSuggestion(this)">What file types are supported?</button>
+  </div>
+
+  <!-- Document Mode Banner (above input, hidden by default) -->
+  <div class="chat-doc-banner" id="chatDocBanner">
+    <div class="chat-doc-banner-inner">
+      <i class="fas fa-file-alt chat-doc-icon"></i>
+      <span class="chat-doc-label" id="chatDocLabel">Document name here</span>
+    </div>
+    <button class="chat-doc-clear" onclick="Chatbot.clearDocument()" title="Return to general mode">
+      <i class="fas fa-times"></i>
+    </button>
   </div>
 
   <!-- Input Area -->

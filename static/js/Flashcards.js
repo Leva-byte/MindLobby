@@ -77,7 +77,7 @@
     const topicDots = (doc.topics || []).map(t =>
       '<span class="doc-topic-dot" style="--dot-color:' + t.color + '" title="' + _esc(t.name) + '"></span>'
     ).join('');
-    const badgeLabel = ext === 'youtube' ? 'YOUTUBE' : ext.toUpperCase();
+    const badgeLabel = ext === 'youtube' ? 'YT LINK' : ext.toUpperCase();
     const iconPrefix = ext === 'youtube' ? '' : 'fas ';
 
     return `
@@ -133,6 +133,7 @@
   }
 
   function showBrowse() {
+    if (window.Chatbot) Chatbot.clearDocument();
     const browse = document.getElementById('fcBrowseView');
     const viewer = document.getElementById('fcViewerView');
     if (browse) browse.style.display = 'block';
@@ -173,6 +174,7 @@
       _currentDocId = docId;
       _currentDocName = filename || '';
       openPanel(cards, filename, `${cards.length} flashcards`, docId);
+      if (window.Chatbot) Chatbot.loadDocument(docId, filename);
     } catch (err) {
       console.error('Error loading flashcards:', err);
       showNotification('Failed to load flashcards', 'error');

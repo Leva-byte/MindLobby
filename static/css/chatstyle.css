@@ -120,7 +120,9 @@
 .chat-header-status {
   font-size: 0.75em;
   color: var(--text-muted);
+  transition: color 0.3s ease;
 }
+
 
 .chat-close-btn {
   background: none;
@@ -138,6 +140,79 @@
 }
 
 .chat-close-btn:hover {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+/* ============================================================================
+   DOCUMENT MODE BANNER
+   ============================================================================ */
+.chat-doc-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(124, 119, 198, 0.12);
+  border-top: 1px solid rgba(124, 119, 198, 0.2);
+  flex-shrink: 0;
+
+  /* Hidden by default */
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+.chat-doc-banner.visible {
+  max-height: 48px;
+  opacity: 1;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.chat-doc-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0; /* allows text-overflow to work */
+}
+
+.chat-doc-icon {
+  color: var(--primary-light);
+  font-size: 0.8em;
+  flex-shrink: 0;
+}
+
+.chat-doc-label {
+  font-size: 0.76em;
+  color: var(--primary-light);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.chat-doc-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7em;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.chat-doc-clear:hover {
   background: rgba(231, 76, 60, 0.15);
   color: #e74c3c;
 }
@@ -334,6 +409,7 @@
 
 .chat-input::placeholder {
   color: var(--text-muted);
+  transition: color 0.2s ease;
 }
 
 .chat-send-btn {
@@ -392,6 +468,11 @@ body.light-mode .chat-suggestion-chip:hover {
 
 body.light-mode .chat-input {
   background: rgba(0, 0, 0, 0.04);
+}
+
+body.light-mode .chat-doc-banner {
+  background: rgba(108, 99, 192, 0.08);
+  border-top-color: rgba(108, 99, 192, 0.15);
 }
 
 /* ---- Responsive ---- */
