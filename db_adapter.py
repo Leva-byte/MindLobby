@@ -101,13 +101,27 @@ class PgCursorWrapper:
             return stripped + ' RETURNING id'
         return sql
 
+    # Tables that don't have an 'id' column — skip RETURNING id for these
+    _NO_ID_TABLES = {'user_settings', 'document_topics'}
+
+    def _table_has_no_id(self, sql):
+        """Check if the INSERT targets a table that has no 'id' column."""
+        import re
+        match = re.match(r'INSERT\s+INTO\s+(\w+)', sql.strip(), re.IGNORECASE)
+        if match:
+            return match.group(1).lower() in self._NO_ID_TABLES
+        return False
+
     def execute(self, sql, params=None):
         translated = self._translate_query(sql)
 
         # For INSERT statements, add RETURNING id to capture lastrowid
+        # Skip tables that don't have an id column
         has_returning = False
         stripped_upper = translated.strip().upper()
-        if stripped_upper.startswith('INSERT') and 'RETURNING' not in stripped_upper:
+        if (stripped_upper.startswith('INSERT')
+                and 'RETURNING' not in stripped_upper
+                and not self._table_has_no_id(translated)):
             translated = translated.strip().rstrip(';') + ' RETURNING id'
             has_returning = True
 
