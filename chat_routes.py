@@ -4,6 +4,7 @@ import logging
 from flask import Blueprint, request, jsonify, session
 from dotenv import load_dotenv, find_dotenv
 from db_adapter import get_db_connection
+from database import log_user_activity
 
 load_dotenv(find_dotenv(), override=True)
 
@@ -264,6 +265,12 @@ def chat():
             }), 502
 
         reply = result['choices'][0]['message']['content']
+
+        # Log chatbot usage
+        chat_detail = f"Document mode: {document_filename}" if document_filename else "General mode"
+        log_user_activity(session['user_id'], session.get('username'), 'chat_message',
+                          detail=chat_detail,
+                          ip_address=request.remote_addr)
 
         return jsonify({
             'success': True,

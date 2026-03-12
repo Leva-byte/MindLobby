@@ -1052,15 +1052,39 @@ let activityOffset = 0;
 const ACTIVITY_LIMIT = 50;
 
 const ACTIVITY_ICONS = {
-  login:           { icon: 'fa-right-to-bracket', cls: 'activity-login'   },
-  logout:          { icon: 'fa-right-from-bracket', cls: 'activity-logout' },
-  signup:          { icon: 'fa-user-plus',         cls: 'activity-signup'  },
-  otp_verified:    { icon: 'fa-envelope-circle-check', cls: 'activity-otp' },
-  document_upload: { icon: 'fa-cloud-arrow-up',    cls: 'activity-upload'  },
-  quiz_attempt:    { icon: 'fa-circle-question',   cls: 'activity-quiz'    },
-  youtube_import:  { icon: 'fa-youtube',           cls: 'activity-youtube' },
-  notes_download:  { icon: 'fa-file-arrow-down',   cls: 'activity-notes'   },
-  default:         { icon: 'fa-bolt',              cls: 'activity-default' },
+  // Authentication
+  login:                  { icon: 'fa-right-to-bracket',    cls: 'activity-login'    },
+  logout:                 { icon: 'fa-right-from-bracket',  cls: 'activity-logout'   },
+  signup:                 { icon: 'fa-user-plus',           cls: 'activity-signup'   },
+  otp_verified:           { icon: 'fa-envelope-circle-check', cls: 'activity-otp'    },
+  failed_login:           { icon: 'fa-triangle-exclamation', cls: 'activity-failed'  },
+  // Documents
+  document_upload:        { icon: 'fa-cloud-arrow-up',      cls: 'activity-upload'   },
+  document_delete:        { icon: 'fa-trash-can',           cls: 'activity-delete'   },
+  document_rename:        { icon: 'fa-pen',                 cls: 'activity-rename'   },
+  youtube_import:         { icon: 'fa-youtube',             cls: 'activity-youtube'  },
+  // Study tools
+  flashcard_view:         { icon: 'fa-clone',               cls: 'activity-flashcard'},
+  notes_view:             { icon: 'fa-book-open',           cls: 'activity-notesview'},
+  notes_download:         { icon: 'fa-file-arrow-down',     cls: 'activity-notes'    },
+  quiz_attempt:           { icon: 'fa-circle-question',     cls: 'activity-quiz'     },
+  chat_message:           { icon: 'fa-robot',               cls: 'activity-chat'     },
+  // Organization
+  topic_create:           { icon: 'fa-folder-plus',         cls: 'activity-topic'    },
+  topic_update:           { icon: 'fa-folder-open',         cls: 'activity-topic'    },
+  topic_delete:           { icon: 'fa-folder-minus',        cls: 'activity-topicdel' },
+  // Profile & Account
+  username_change:        { icon: 'fa-id-badge',            cls: 'activity-profile'  },
+  profile_picture_update: { icon: 'fa-camera',              cls: 'activity-profile'  },
+  banner_update:          { icon: 'fa-image',               cls: 'activity-profile'  },
+  password_reset_request: { icon: 'fa-key',                 cls: 'activity-reset'    },
+  password_reset_complete:{ icon: 'fa-lock',                cls: 'activity-reset'    },
+  account_delete:         { icon: 'fa-user-slash',          cls: 'activity-danger'   },
+  // Multiplayer
+  room_create:            { icon: 'fa-gamepad',             cls: 'activity-room'     },
+  room_join:              { icon: 'fa-door-open',           cls: 'activity-room'     },
+  // Fallback
+  default:                { icon: 'fa-bolt',                cls: 'activity-default'  },
 };
 
 function loadUserActivity(reset = false) {

@@ -1031,12 +1031,31 @@ body::before {
   font-size: 14px;
   flex-shrink: 0;
 }
+/* Authentication */
 .activity-login    { background: rgba(46,213,115,0.15);  color: #2ed573; }
 .activity-logout   { background: rgba(255,107,107,0.15); color: #ff6b6b; }
 .activity-signup   { background: rgba(124,119,198,0.2);  color: #a8a4e3; }
 .activity-otp      { background: rgba(255,214,0,0.15);   color: #ffd600; }
+.activity-failed   { background: rgba(255,59,48,0.2);    color: #ff3b30; }
+/* Documents */
 .activity-upload   { background: rgba(30,144,255,0.15);  color: #1e90ff; }
+.activity-delete   { background: rgba(255,69,58,0.15);   color: #ff453a; }
+.activity-rename   { background: rgba(175,130,255,0.15); color: #af82ff; }
+/* Study tools */
+.activity-flashcard{ background: rgba(52,199,89,0.15);   color: #34c759; }
+.activity-notesview{ background: rgba(100,210,255,0.15); color: #64d2ff; }
 .activity-quiz     { background: rgba(255,165,0,0.15);   color: #ffa500; }
+.activity-chat     { background: rgba(88,86,214,0.15);   color: #5856d6; }
+/* Organization */
+.activity-topic    { background: rgba(48,209,88,0.15);   color: #30d158; }
+.activity-topicdel { background: rgba(255,159,10,0.15);  color: #ff9f0a; }
+/* Profile & Account */
+.activity-profile  { background: rgba(10,132,255,0.15);  color: #0a84ff; }
+.activity-reset    { background: rgba(255,214,10,0.15);  color: #ffd60a; }
+.activity-danger   { background: rgba(255,45,85,0.2);    color: #ff2d55; }
+/* Multiplayer */
+.activity-room     { background: rgba(191,90,242,0.15);  color: #bf5af2; }
+/* Fallback */
 .activity-default  { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
 
 .activity-body { flex: 1; min-width: 0; }
@@ -1063,13 +1082,26 @@ body::before {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.activity-badge.activity-login  { background: rgba(46,213,115,0.15);  color: #2ed573; }
-.activity-badge.activity-logout { background: rgba(255,107,107,0.15); color: #ff6b6b; }
-.activity-badge.activity-signup { background: rgba(124,119,198,0.2);  color: #a8a4e3; }
-.activity-badge.activity-otp    { background: rgba(255,214,0,0.15);   color: #ffd600; }
-.activity-badge.activity-upload { background: rgba(30,144,255,0.15);  color: #1e90ff; }
-.activity-badge.activity-quiz   { background: rgba(255,165,0,0.15);   color: #ffa500; }
-.activity-badge.activity-default{ background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
+/* Badge variants inherit the same color scheme as their icon counterparts */
+.activity-badge.activity-login     { background: rgba(46,213,115,0.15);  color: #2ed573; }
+.activity-badge.activity-logout    { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+.activity-badge.activity-signup    { background: rgba(124,119,198,0.2);  color: #a8a4e3; }
+.activity-badge.activity-otp       { background: rgba(255,214,0,0.15);   color: #ffd600; }
+.activity-badge.activity-failed    { background: rgba(255,59,48,0.2);    color: #ff3b30; }
+.activity-badge.activity-upload    { background: rgba(30,144,255,0.15);  color: #1e90ff; }
+.activity-badge.activity-delete    { background: rgba(255,69,58,0.15);   color: #ff453a; }
+.activity-badge.activity-rename    { background: rgba(175,130,255,0.15); color: #af82ff; }
+.activity-badge.activity-flashcard { background: rgba(52,199,89,0.15);   color: #34c759; }
+.activity-badge.activity-notesview { background: rgba(100,210,255,0.15); color: #64d2ff; }
+.activity-badge.activity-quiz      { background: rgba(255,165,0,0.15);   color: #ffa500; }
+.activity-badge.activity-chat      { background: rgba(88,86,214,0.15);   color: #5856d6; }
+.activity-badge.activity-topic     { background: rgba(48,209,88,0.15);   color: #30d158; }
+.activity-badge.activity-topicdel  { background: rgba(255,159,10,0.15);  color: #ff9f0a; }
+.activity-badge.activity-profile   { background: rgba(10,132,255,0.15);  color: #0a84ff; }
+.activity-badge.activity-reset     { background: rgba(255,214,10,0.15);  color: #ffd60a; }
+.activity-badge.activity-danger    { background: rgba(255,45,85,0.2);    color: #ff2d55; }
+.activity-badge.activity-room      { background: rgba(191,90,242,0.15);  color: #bf5af2; }
+.activity-badge.activity-default   { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
 
 .activity-detail {
   font-size: 13px;
@@ -1095,3 +1127,4 @@ body::before {
 .activity-notes    { background: rgba(0,206,209,0.15);   color: #00ced1; }
 .activity-badge.activity-youtube { background: rgba(255,0,0,0.15);   color: #ff4444; }
 .activity-badge.activity-notes   { background: rgba(0,206,209,0.15); color: #00ced1; }
+.activity-badge.activity-room    { background: rgba(191,90,242,0.15); color: #bf5af2; }

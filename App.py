@@ -285,6 +285,9 @@ def login():
         
         # Verify password
         if not check_password_hash(user['password'], password):
+            log_user_activity(user['id'], user['username'], 'failed_login',
+                              detail=f"Invalid password attempt",
+                              ip_address=request.remote_addr)
             return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
         
         # Check if this account is banned
@@ -470,6 +473,9 @@ def api_forgot_password():
     except Exception as e:
         logger.error(f"Reset email error: {e}")
 
+    log_user_activity(user['id'], user['username'], 'password_reset_request',
+                      detail='Reset requested from login page',
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'message': 'If that email is registered, a reset link has been sent.'})
 
 
@@ -496,6 +502,10 @@ def api_reset_password():
     mark_reset_token_used(token)
 
     logger.info(f"Password reset completed for user ID {user_id}")
+    user = get_user_by_id(user_id)
+    log_user_activity(user_id, user['username'] if user else 'Unknown', 'password_reset_complete',
+                      detail='Password reset via email link',
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'message': 'Password has been reset! You can now log in.'})
 
 
@@ -631,6 +641,9 @@ def create_room():
     room_settings[room_code] = {'public': is_public}
 
     logger.info(f"Created new room: {room_code} by user: {username} (public={is_public})")
+    log_user_activity(session['user_id'], username, 'room_create',
+                      detail=f"Created room {room_code} ({'public' if is_public else 'private'})",
+                      ip_address=request.remote_addr)
     return redirect(url_for('room', room_code=room_code, username=username))
 
 @app.route('/join', methods=['POST'])
@@ -1458,6 +1471,10 @@ def handle_join_room(data):
                 'joined_at': datetime.now().isoformat()
             })
             logger.info(f"User {username} joined room {room_code}")
+            if session.get('user_id'):
+                log_user_activity(session['user_id'], username, 'room_join',
+                                  detail=f"Joined room {room_code}",
+                                  ip_address=request.remote_addr if hasattr(request, 'remote_addr') else None)
         
         emit('update_player_list', _build_player_list(room_code), to=room_code)
 

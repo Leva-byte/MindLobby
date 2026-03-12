@@ -66,16 +66,16 @@
       <button class="sidebar-item" onclick="showTab('tab-analytics', this)">
         <i class="fas fa-chart-bar"></i> Analytics
       </button>
+      <button class="sidebar-item" onclick="showTab('tab-useractivity', this)">
+        <i class="fas fa-chart-line"></i> Activity Logs
+      </button>
 
-      <div class="sidebar-label">Logs</div>
+      <div class="sidebar-label">Admin Logs</div>
       <button class="sidebar-item" onclick="showTab('tab-auditlog', this)">
         <i class="fas fa-scroll"></i> Audit Log
       </button>
       <button class="sidebar-item" onclick="showTab('tab-failedlogins', this)">
         <i class="fas fa-triangle-exclamation"></i> Failed Logins
-      </button>
-      <button class="sidebar-item" onclick="showTab('tab-useractivity', this)">
-        <i class="fas fa-chart-line"></i> User Activity
       </button>
 
     </nav>
@@ -339,25 +339,54 @@
 
       </div>
 
-      <!-- ── TAB: User Activity ──────────────────────────────────────────────── -->
+      <!-- ── TAB: Activity Logs ──────────────────────────────────────────────── -->
       <div id="tab-useractivity" class="tab-section">
 
         <div class="page-title-row">
           <div>
-            <div class="page-title">User Activity</div>
+            <div class="page-title">Activity Logs</div>
             <div class="page-subtitle">All platform events — logins, uploads, quizzes, and more</div>
           </div>
           <div style="display:flex; gap:10px; align-items:center;">
-            <select class="modal-input" id="activityFilter" onchange="loadUserActivity(true)" style="padding:6px 12px; font-size:13px; width:160px;">
+            <select class="modal-input" id="activityFilter" onchange="loadUserActivity(true)" style="padding:6px 12px; font-size:13px; width:200px;">
               <option value="">All Events</option>
-              <option value="login">Logins</option>
-              <option value="logout">Logouts</option>
-              <option value="signup">Signups</option>
-              <option value="otp_verified">OTP Verified</option>
-              <option value="document_upload">Uploads</option>
-              <option value="quiz_attempt">Quiz Attempts</option>
-              <option value="youtube_import">YouTube Imports</option>
-              <option value="notes_download">Notes Downloads</option>
+              <optgroup label="Authentication">
+                <option value="login">Logins</option>
+                <option value="logout">Logouts</option>
+                <option value="signup">Signups</option>
+                <option value="otp_verified">OTP Verified</option>
+                <option value="failed_login">Failed Logins</option>
+              </optgroup>
+              <optgroup label="Documents">
+                <option value="document_upload">Uploads</option>
+                <option value="document_delete">Deletions</option>
+                <option value="document_rename">Renames</option>
+                <option value="youtube_import">YouTube Imports</option>
+              </optgroup>
+              <optgroup label="Study Tools">
+                <option value="flashcard_view">Flashcard Views</option>
+                <option value="notes_view">Notes Views</option>
+                <option value="notes_download">Notes Downloads</option>
+                <option value="quiz_attempt">Quiz Attempts</option>
+                <option value="chat_message">iTERA Chat</option>
+              </optgroup>
+              <optgroup label="Organization">
+                <option value="topic_create">Topic Created</option>
+                <option value="topic_update">Topic Updated</option>
+                <option value="topic_delete">Topic Deleted</option>
+              </optgroup>
+              <optgroup label="Profile &amp; Account">
+                <option value="username_change">Username Changes</option>
+                <option value="profile_picture_update">Profile Pic Updates</option>
+                <option value="banner_update">Banner Updates</option>
+                <option value="password_reset_request">Password Reset Requests</option>
+                <option value="password_reset_complete">Password Resets Done</option>
+                <option value="account_delete">Account Deletions</option>
+              </optgroup>
+              <optgroup label="Multiplayer">
+                <option value="room_create">Rooms Created</option>
+                <option value="room_join">Rooms Joined</option>
+              </optgroup>
             </select>
             <button class="btn-refresh" id="refreshActivityBtn" onclick="loadUserActivity(true)">
               <i class="fas fa-rotate-right"></i> Refresh

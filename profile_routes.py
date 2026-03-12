@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify, session
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 from database import (
+    log_user_activity,
     get_user_by_id,
     update_user_profile_picture,
     update_user_banner,
@@ -120,6 +121,9 @@ def upload_picture():
 
     update_user_profile_picture(user_id, path)
 
+    log_user_activity(user_id, session.get('username'), 'profile_picture_update',
+                      detail='Updated profile picture',
+                      ip_address=request.remote_addr)
     return jsonify({
         'success': True,
         'profile_picture': path,
@@ -153,6 +157,9 @@ def upload_banner():
 
     update_user_banner(user_id, path)
 
+    log_user_activity(user_id, session.get('username'), 'banner_update',
+                      detail='Updated banner image',
+                      ip_address=request.remote_addr)
     return jsonify({
         'success': True,
         'banner': path,
@@ -186,9 +193,13 @@ def change_username():
     if not updated:
         return jsonify({'success': False, 'message': 'Username is already taken'}), 409
 
+    old_username = session.get('username')
     # Update session
     session['username'] = new_username
 
+    log_user_activity(session['user_id'], new_username, 'username_change',
+                      detail=f'Changed username: "{old_username}" → "{new_username}"',
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'message': 'Username updated', 'username': new_username})
 
 
@@ -229,6 +240,9 @@ def reset_password():
         logger.error(f"Reset email error: {e}")
         return jsonify({'success': False, 'message': 'Failed to send reset email. Please try again.'}), 500
 
+    log_user_activity(session['user_id'], session.get('username'), 'password_reset_request',
+                      detail=f'Reset email sent to {user["email"]}',
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'message': f'Reset link sent to {user["email"]}'})
 
 
@@ -263,6 +277,10 @@ def delete_account():
                 os.remove(path)
             except OSError:
                 pass
+
+    log_user_activity(user_id, username, 'account_delete',
+                      detail=f'Account permanently deleted',
+                      ip_address=request.remote_addr)
 
     # Clear session
     session.clear()

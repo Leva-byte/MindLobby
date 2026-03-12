@@ -133,6 +133,9 @@ def get_flashcards(document_id):
     if doc is None:
         return jsonify({'success': False, 'message': 'Document not found'}), 404
 
+    log_user_activity(session['user_id'], session.get('username'), 'flashcard_view',
+                      detail=f"{doc['original_filename']} — {len(cards)} cards",
+                      ip_address=request.remote_addr)
     return jsonify({
         'success': True,
         'document_id': document_id,
@@ -147,6 +150,13 @@ def delete_document(document_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Not logged in'}), 401
 
+    # Fetch document name before deleting for the activity log
+    conn = get_db_connection()
+    doc_row = conn.execute('SELECT original_filename FROM documents WHERE id = ? AND user_id = ?',
+                           (document_id, session['user_id'])).fetchone()
+    conn.close()
+    doc_name = doc_row['original_filename'] if doc_row else f'Document #{document_id}'
+
     file_path = delete_document_and_flashcards(document_id, session['user_id'])
 
     if file_path is None:
@@ -156,6 +166,9 @@ def delete_document(document_id):
     if file_path and os.path.exists(file_path):
         os.remove(file_path)
 
+    log_user_activity(session['user_id'], session.get('username'), 'document_delete',
+                      detail=f"Deleted: {doc_name}",
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'message': 'Document and flashcards deleted'})
 
 
@@ -176,6 +189,9 @@ def rename_doc(document_id):
     if not updated:
         return jsonify({'success': False, 'message': 'Document not found'}), 404
 
+    log_user_activity(session['user_id'], session.get('username'), 'document_rename',
+                      detail=f"Renamed to: {new_name}",
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'message': 'Document renamed'})
 
 

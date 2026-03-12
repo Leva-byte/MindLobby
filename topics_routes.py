@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from database import (
+    log_user_activity,
     create_topic,
     get_topics_for_user,
     get_topic_by_id,
@@ -52,6 +53,9 @@ def create_new_topic():
         color = '#7c77c6'
 
     topic_id = create_topic(session['user_id'], name, color)
+    log_user_activity(session['user_id'], session.get('username'), 'topic_create',
+                      detail=f'Created topic: "{name}"',
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'topic_id': topic_id, 'message': f'Topic "{name}" created'})
 
 
@@ -86,6 +90,14 @@ def edit_topic(topic_id):
     updated = update_topic(topic_id, session['user_id'], name=name, color=color)
     if not updated:
         return jsonify({'success': False, 'message': 'Topic not found'}), 404
+    changes = []
+    if name is not None:
+        changes.append(f'name="{name}"')
+    if color is not None:
+        changes.append(f'color={color}')
+    log_user_activity(session['user_id'], session.get('username'), 'topic_update',
+                      detail=f"Updated topic #{topic_id}: {', '.join(changes)}",
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'message': 'Topic updated'})
 
 
@@ -96,6 +108,9 @@ def remove_topic(topic_id):
     deleted = delete_topic(topic_id, session['user_id'])
     if not deleted:
         return jsonify({'success': False, 'message': 'Topic not found'}), 404
+    log_user_activity(session['user_id'], session.get('username'), 'topic_delete',
+                      detail=f"Deleted topic #{topic_id}",
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'message': 'Topic deleted'})
 
 

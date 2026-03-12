@@ -47,6 +47,9 @@ def get_document_notes(document_id):
             'message': 'No notes available for this document. It may have been uploaded before this feature was added.',
         }), 404
 
+    log_user_activity(session['user_id'], session.get('username'), 'notes_view',
+                      detail=f"Viewed notes: {row['original_filename']}",
+                      ip_address=request.remote_addr)
     return jsonify({
         'success': True,
         'document_id': document_id,
