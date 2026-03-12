@@ -331,6 +331,18 @@
       }, 2000);
     };
 
+    // Back-button prevention: if page restored from bfcache, re-check auth
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) {
+        fetch('/check-auth').then(function (r) { return r.json(); }).then(function (data) {
+          if (!data.authenticated) {
+            // Guest returned via back-button — reload to refresh lobby state
+            window.location.reload();
+          }
+        }).catch(function () {});
+      }
+    });
+
     // Add some interactive polish
     document.addEventListener('DOMContentLoaded', function() {
       // Add subtle animations to form elements

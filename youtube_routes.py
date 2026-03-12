@@ -4,6 +4,7 @@ import requests as http_requests
 import yt_dlp
 from concurrent.futures import ThreadPoolExecutor
 from flask import Blueprint, request, jsonify, session
+from utils import get_real_ip
 from flashcard_service import generate_flashcards, generate_notes
 from database import save_document, save_flashcards, log_user_activity
 
@@ -182,7 +183,7 @@ def import_youtube():
     logger.info(f"YouTube import complete: doc_id={doc_id}, {len(flashcards)} flashcards")
     log_user_activity(user_id, session.get('username'), 'youtube_import',
                       detail=f"{display_title} — {len(flashcards)} flashcards generated",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
 
     return jsonify({
         'success': True,

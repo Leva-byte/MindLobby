@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, session
+from utils import get_real_ip
 from database import (
     log_user_activity,
     create_topic,
@@ -55,7 +56,7 @@ def create_new_topic():
     topic_id = create_topic(session['user_id'], name, color)
     log_user_activity(session['user_id'], session.get('username'), 'topic_create',
                       detail=f'Created topic: "{name}"',
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'topic_id': topic_id, 'message': f'Topic "{name}" created'})
 
 
@@ -97,7 +98,7 @@ def edit_topic(topic_id):
         changes.append(f'color={color}')
     log_user_activity(session['user_id'], session.get('username'), 'topic_update',
                       detail=f"Updated topic #{topic_id}: {', '.join(changes)}",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'message': 'Topic updated'})
 
 
@@ -110,7 +111,7 @@ def remove_topic(topic_id):
         return jsonify({'success': False, 'message': 'Topic not found'}), 404
     log_user_activity(session['user_id'], session.get('username'), 'topic_delete',
                       detail=f"Deleted topic #{topic_id}",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'message': 'Topic deleted'})
 
 

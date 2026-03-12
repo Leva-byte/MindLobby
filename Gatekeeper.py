@@ -9,6 +9,7 @@ from functools import wraps
 from flask import request, jsonify, session, abort
 import logging
 from db_adapter import get_db_connection, is_postgres
+from utils import get_real_ip
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -97,7 +98,7 @@ def create_fingerprint(request):
     More reliable than IP alone (survives VPN changes)
     """
     components = [
-        request.remote_addr,
+        get_real_ip(request),
         request.headers.get('User-Agent', ''),
         request.headers.get('Accept-Language', ''),
         request.headers.get('Accept-Encoding', ''),
@@ -250,7 +251,7 @@ def log_admin_action(admin_user_id, action, details=None, request_obj=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    ip_address = request_obj.remote_addr if request_obj else None
+    ip_address = get_real_ip(request_obj) if request_obj else None
     fingerprint = create_fingerprint(request_obj) if request_obj else None
     
     cursor.execute('''
@@ -312,9 +313,9 @@ def security_check(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        ip_address = request.remote_addr
+        ip_address = get_real_ip()
         fingerprint = create_fingerprint(request)
-        
+
         # Check if banned
         if is_banned(ip_address, fingerprint):
             logger.warning(f"🚫 Banned entity attempted access: IP={ip_address}")
@@ -337,7 +338,7 @@ def admin_required(f):
             return jsonify({'success': False, 'message': 'Unauthorized'}), 401
         
         # Session binding - verify IP and User-Agent haven't changed
-        if session.get('admin_ip') != request.remote_addr:
+        if session.get('admin_ip') != get_real_ip():
             logger.warning(f"⚠️ Session hijacking attempt detected: IP mismatch")
             session.clear()
             return jsonify({'success': False, 'message': 'Session expired'}), 401
@@ -386,7 +387,7 @@ def require_reauth(f):
 def create_admin_session(user_id, request_obj):
     """Create a new admin session with binding"""
     session['admin_user_id'] = user_id
-    session['admin_ip'] = request_obj.remote_addr
+    session['admin_ip'] = get_real_ip(request_obj)
     session['admin_user_agent'] = request_obj.headers.get('User-Agent')
     session['admin_fingerprint'] = create_fingerprint(request_obj)
     session['admin_last_activity'] = datetime.now().isoformat()

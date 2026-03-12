@@ -120,46 +120,48 @@
   box-shadow: 0 2px 8px rgba(124, 119, 198, 0.3);
 }
 
-/* ── Audio Theme Select ──────────────────────────────────────────────────── */
-.settings-theme-select-wrap {
+/* ── Audio Theme Toggle Buttons ─────────────────────────────────────────── */
+.settings-audio-theme-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
-.settings-theme-select {
-  appearance: none;
-  -webkit-appearance: none;
+.settings-audio-theme-toggle {
+  display: flex;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.08);
-  color: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.settings-audio-theme-btn {
+  padding: 7px 16px;
+  border: none;
   border-radius: 8px;
-  padding: 7px 32px 7px 12px;
-  font-size: 0.85em;
+  background: transparent;
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
+  font-size: 0.82em;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.settings-theme-select:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-  background-color: rgba(255, 255, 255, 0.12);
+.settings-audio-theme-btn:hover {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.8));
 }
 
-.settings-theme-select:focus {
-  border-color: var(--primary, #7c77c6);
-  box-shadow: 0 0 0 2px rgba(124, 119, 198, 0.2);
-}
-
-.settings-theme-select option {
-  background: #1e1e2e;
-  color: #e0e0e0;
+.settings-audio-theme-btn.active {
+  background: var(--primary, #7c77c6);
+  color: white;
+  box-shadow: 0 2px 8px rgba(124, 119, 198, 0.3);
 }
 
 .settings-preview-btn {
@@ -208,22 +210,20 @@ body.light-mode .settings-lobby-btn.active {
   color: white;
 }
 
-body.light-mode .settings-theme-select {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.12);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
+body.light-mode .settings-audio-theme-toggle {
+  background: rgba(0, 0, 0, 0.06);
 }
 
-body.light-mode .settings-theme-select:hover {
-  background-color: rgba(0, 0, 0, 0.07);
-  border-color: rgba(0, 0, 0, 0.2);
+body.light-mode .settings-audio-theme-btn {
+  color: #888;
 }
 
-body.light-mode .settings-theme-select option {
-  background: #fff;
-  color: #333;
+body.light-mode .settings-audio-theme-btn:hover {
+  color: #555;
+}
+
+body.light-mode .settings-audio-theme-btn.active {
+  color: white;
 }
 
 body.light-mode .settings-preview-btn {

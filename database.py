@@ -365,12 +365,8 @@ def delete_user_account(user_id):
     docs = conn.execute('SELECT filename FROM documents WHERE user_id = ?', (user_id,)).fetchall()
     file_paths = [os.path.join('uploads', row['filename']) for row in docs]
 
-    # Also collect profile picture and banner paths
-    user = conn.execute('SELECT profile_picture, banner FROM users WHERE id = ?', (user_id,)).fetchone()
-    if user:
-        for field in ('profile_picture', 'banner'):
-            if user[field]:
-                file_paths.append(user[field])
+    # Profile pictures and banners are stored as base64 data URIs in the DB
+    # (no physical files to clean up for those)
 
     # Cascade delete all user data
     conn.execute('DELETE FROM document_reports WHERE admin_user_id = ?', (user_id,))

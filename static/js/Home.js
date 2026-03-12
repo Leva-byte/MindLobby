@@ -888,4 +888,15 @@ window.addEventListener('DOMContentLoaded', () => {
 // ============================================================================
 checkAuth();
 
+// Prevent stale page from showing via back-button after login.
+// 'pageshow' fires even when the page is restored from bfcache.
+window.addEventListener('pageshow', function (e) {
+  if (e.persisted) {
+    // Page was restored from back-forward cache — re-check auth
+    fetch('/check-auth').then(r => r.json()).then(function (data) {
+      if (data.authenticated) window.location.replace('/studio');
+    }).catch(function () {});
+  }
+});
+
 console.log('MindLobby Home initialized with password reset');

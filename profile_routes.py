@@ -1,10 +1,10 @@
 import os
-import time
+import base64
 import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from werkzeug.security import check_password_hash
-from werkzeug.utils import secure_filename
+from utils import get_real_ip
 from database import (
     log_user_activity,
     get_user_by_id,
@@ -25,10 +25,16 @@ logger = logging.getLogger(__name__)
 
 profile_bp = Blueprint('profile', __name__)
 
-PROFILE_UPLOAD_FOLDER = os.path.join('static', 'uploads', 'profiles')
-BANNER_UPLOAD_FOLDER = os.path.join('static', 'uploads', 'banners')
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp'}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+# Map extensions to MIME types for data URIs
+_EXT_TO_MIME = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+}
 
 
 def _allowed_image(filename):
@@ -37,8 +43,8 @@ def _allowed_image(filename):
     return ext in ALLOWED_IMAGE_EXTENSIONS
 
 
-def _save_image(file, folder, user_id):
-    """Save an uploaded image file. Returns the relative path or None."""
+def _file_to_data_uri(file):
+    """Read an uploaded file and return a base64 data URI, or None on failure."""
     if not file or not file.filename:
         return None
 
@@ -53,20 +59,10 @@ def _save_image(file, folder, user_id):
         return None
 
     ext = os.path.splitext(file.filename)[1].lower()
-    safe_name = f"{user_id}_{int(time.time())}{ext}"
-    os.makedirs(folder, exist_ok=True)
-    file_path = os.path.join(folder, safe_name)
-    file.save(file_path)
-    return file_path
-
-
-def _delete_old_image(path):
-    """Delete an old image file if it exists."""
-    if path and os.path.isfile(path):
-        try:
-            os.remove(path)
-        except OSError:
-            pass
+    mime = _EXT_TO_MIME.get(ext, 'application/octet-stream')
+    raw = file.read()
+    b64 = base64.b64encode(raw).decode('ascii')
+    return f"data:{mime};base64,{b64}"
 
 
 # ============================================================================
@@ -110,23 +106,18 @@ def upload_picture():
 
     user_id = session['user_id']
 
-    # Delete old picture
-    user = get_user_by_id(user_id)
-    if user and user['profile_picture']:
-        _delete_old_image(user['profile_picture'])
+    data_uri = _file_to_data_uri(file)
+    if not data_uri:
+        return jsonify({'success': False, 'message': 'Failed to process image. Max size is 5MB.'}), 400
 
-    path = _save_image(file, PROFILE_UPLOAD_FOLDER, user_id)
-    if not path:
-        return jsonify({'success': False, 'message': 'Failed to save image. Max size is 5MB.'}), 400
-
-    update_user_profile_picture(user_id, path)
+    update_user_profile_picture(user_id, data_uri)
 
     log_user_activity(user_id, session.get('username'), 'profile_picture_update',
                       detail='Updated profile picture',
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({
         'success': True,
-        'profile_picture': path,
+        'profile_picture': data_uri,
         'message': 'Profile picture updated',
     })
 
@@ -146,23 +137,18 @@ def upload_banner():
 
     user_id = session['user_id']
 
-    # Delete old banner
-    user = get_user_by_id(user_id)
-    if user and user['banner']:
-        _delete_old_image(user['banner'])
+    data_uri = _file_to_data_uri(file)
+    if not data_uri:
+        return jsonify({'success': False, 'message': 'Failed to process image. Max size is 5MB.'}), 400
 
-    path = _save_image(file, BANNER_UPLOAD_FOLDER, user_id)
-    if not path:
-        return jsonify({'success': False, 'message': 'Failed to save image. Max size is 5MB.'}), 400
-
-    update_user_banner(user_id, path)
+    update_user_banner(user_id, data_uri)
 
     log_user_activity(user_id, session.get('username'), 'banner_update',
                       detail='Updated banner image',
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({
         'success': True,
-        'banner': path,
+        'banner': data_uri,
         'message': 'Banner updated',
     })
 
@@ -199,7 +185,7 @@ def change_username():
 
     log_user_activity(session['user_id'], new_username, 'username_change',
                       detail=f'Changed username: "{old_username}" → "{new_username}"',
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'message': 'Username updated', 'username': new_username})
 
 
@@ -216,7 +202,7 @@ def reset_password():
     # Create reset token
     token = create_password_reset_token(
         user['id'],
-        request_ip=request.remote_addr,
+        request_ip=get_real_ip(),
         request_user_agent=request.headers.get('User-Agent', '')
     )
 
@@ -229,7 +215,7 @@ def reset_password():
             to_email=user['email'],
             username=user['username'],
             reset_link=reset_link,
-            request_ip=request.remote_addr,
+            request_ip=get_real_ip(),
             request_user_agent=request.headers.get('User-Agent', ''),
             request_time=datetime.now().isoformat(),
         )
@@ -242,7 +228,7 @@ def reset_password():
 
     log_user_activity(session['user_id'], session.get('username'), 'password_reset_request',
                       detail=f'Reset email sent to {user["email"]}',
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'message': f'Reset link sent to {user["email"]}'})
 
 
@@ -270,7 +256,7 @@ def delete_account():
     # Delete all user data and get file paths to clean up
     file_paths = delete_user_account(user_id)
 
-    # Delete physical files
+    # Delete physical upload files (documents only — profile pics/banners are in DB as base64)
     for path in file_paths:
         if path and os.path.isfile(path):
             try:
@@ -280,7 +266,7 @@ def delete_account():
 
     log_user_activity(user_id, username, 'account_delete',
                       detail=f'Account permanently deleted',
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
 
     # Clear session
     session.clear()

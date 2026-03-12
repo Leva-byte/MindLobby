@@ -2,6 +2,7 @@ import os
 import requests
 import logging
 from flask import Blueprint, request, jsonify, session
+from utils import get_real_ip
 from dotenv import load_dotenv, find_dotenv
 from db_adapter import get_db_connection
 from database import log_user_activity
@@ -270,7 +271,7 @@ def chat():
         chat_detail = f"Document mode: {document_filename}" if document_filename else "General mode"
         log_user_activity(session['user_id'], session.get('username'), 'chat_message',
                           detail=chat_detail,
-                          ip_address=request.remote_addr)
+                          ip_address=get_real_ip())
 
         return jsonify({
             'success': True,

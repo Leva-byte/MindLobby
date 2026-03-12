@@ -75,6 +75,8 @@ except ImportError as e:
     print(f"⚠️  Gatekeeper not available: {e}")
     print("   Admin features will be disabled")
 
+from utils import get_real_ip
+
 app = Flask(__name__)
 
 # Secret key - unique per app run so all sessions are invalidated on restart
@@ -137,7 +139,9 @@ def _build_player_list(room_code):
         if uid:
             db_user = get_user_by_id(uid)
             if db_user and db_user['profile_picture']:
-                entry['profile_picture'] = '/' + db_user['profile_picture']
+                pic = db_user['profile_picture']
+                # base64 data URIs are used directly; legacy file paths need / prefix
+                entry['profile_picture'] = pic if pic.startswith('data:') else '/' + pic
         players.append(entry)
     return players
 
@@ -169,7 +173,7 @@ if GATEKEEPER_AVAILABLE:
         if request.path.startswith('/static') or 'emergency' in request.path:
             return
         
-        ip_address = request.remote_addr
+        ip_address = get_real_ip()
         fingerprint = create_fingerprint(request)
         
         if is_banned(ip_address, fingerprint):
@@ -238,7 +242,7 @@ def signup():
                 logger.info(f"New user registered (pending OTP): {username}")
                 log_user_activity(user_id, username, 'signup',
                                   detail='Pending OTP verification',
-                                  ip_address=request.remote_addr)
+                                  ip_address=get_real_ip())
                 return jsonify({
                     'success': True,
                     'message': 'Verification code sent to your email',
@@ -287,12 +291,12 @@ def login():
         if not check_password_hash(user['password'], password):
             log_user_activity(user['id'], user['username'], 'failed_login',
                               detail=f"Invalid password attempt",
-                              ip_address=request.remote_addr)
+                              ip_address=get_real_ip())
             return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
         
         # Check if this account is banned
         if GATEKEEPER_AVAILABLE:
-            if is_banned(request.remote_addr, f"user:{user['id']}"):
+            if is_banned(get_real_ip(), f"user:{user['id']}"):
                 logger.warning(f"Banned account login attempt: {user['username']}")
                 return jsonify({'success': False, 'message': 'This account has been suspended. Please contact support.'}), 403
         
@@ -308,8 +312,8 @@ def login():
 
         logger.info(f"User logged in: {user['username']}")
         log_user_activity(user['id'], user['username'], 'login',
-                          detail=f"IP: {request.remote_addr}",
-                          ip_address=request.remote_addr)
+                          detail=f"IP: {get_real_ip()}",
+                          ip_address=get_real_ip())
         return jsonify({'success': True, 'message': 'Login successful', 'username': user['username']})
         
     except Exception as e:
@@ -322,7 +326,7 @@ def logout():
     username = session.get('username', 'Unknown')
     user_id = session.get('user_id')
     log_user_activity(user_id, username, 'logout',
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     session.clear()
     logger.info(f"User logged out: {username}")
     return jsonify({'success': True, 'message': 'Logged out successfully'})
@@ -406,7 +410,7 @@ def api_verify_otp():
         logger.info(f"User verified: {user['username']}")
         log_user_activity(user['id'], user['username'], 'otp_verified',
                           detail='Email verified successfully',
-                          ip_address=request.remote_addr)
+                          ip_address=get_real_ip())
         return jsonify({'success': True, 'message': 'Email verified! Welcome to MindLobby!'})
     else:
         return jsonify({'success': False, 'message': 'Invalid or expired code. Please try again.'}), 400
@@ -453,7 +457,7 @@ def api_forgot_password():
 
     token = create_password_reset_token(
         user['id'],
-        request_ip=request.remote_addr,
+        request_ip=get_real_ip(),
         request_user_agent=request.headers.get('User-Agent', ''),
     )
 
@@ -464,7 +468,7 @@ def api_forgot_password():
             to_email=user['email'],
             username=user['username'],
             reset_link=reset_link,
-            request_ip=request.remote_addr,
+            request_ip=get_real_ip(),
             request_user_agent=request.headers.get('User-Agent', ''),
             request_time=datetime.now().isoformat(),
         )
@@ -475,7 +479,7 @@ def api_forgot_password():
 
     log_user_activity(user['id'], user['username'], 'password_reset_request',
                       detail='Reset requested from login page',
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'message': 'If that email is registered, a reset link has been sent.'})
 
 
@@ -505,7 +509,7 @@ def api_reset_password():
     user = get_user_by_id(user_id)
     log_user_activity(user_id, user['username'] if user else 'Unknown', 'password_reset_complete',
                       detail='Password reset via email link',
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'message': 'Password has been reset! You can now log in.'})
 
 
@@ -643,7 +647,7 @@ def create_room():
     logger.info(f"Created new room: {room_code} by user: {username} (public={is_public})")
     log_user_activity(session['user_id'], username, 'room_create',
                       detail=f"Created room {room_code} ({'public' if is_public else 'private'})",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return redirect(url_for('room', room_code=room_code, username=username))
 
 @app.route('/join', methods=['POST'])
@@ -670,7 +674,10 @@ def room(room_code):
         username = f"Guest{random.randint(1000, 9999)}"
     
     logger.info(f"User {username} accessing room {room_code}")
-    return render_template('Room.html', room_code=room_code, username=username)
+    resp = make_response(render_template('Room.html', room_code=room_code, username=username))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 @app.route('/api/room/<room_code>/status')
 def room_status(room_code):
@@ -719,7 +726,7 @@ if GATEKEEPER_AVAILABLE:
             username = data.get('username', '').strip()
             password = data.get('password', '')
             
-            ip_address = request.remote_addr
+            ip_address = get_real_ip()
             fingerprint = create_fingerprint(request)
             
             # Rate limit check
@@ -1376,7 +1383,7 @@ if GATEKEEPER_AVAILABLE:
         
         from Gatekeeper import unban_entity
         
-        ip_address = request.remote_addr
+        ip_address = get_real_ip()
         deleted = unban_entity(ip_address=ip_address)
         
         logger.critical(f"🚨 EMERGENCY UNBAN used from IP: {ip_address}")
@@ -1474,7 +1481,7 @@ def handle_join_room(data):
             if session.get('user_id'):
                 log_user_activity(session['user_id'], username, 'room_join',
                                   detail=f"Joined room {room_code}",
-                                  ip_address=request.remote_addr if hasattr(request, 'remote_addr') else None)
+                                  ip_address=get_real_ip() if hasattr(request, 'remote_addr') else None)
         
         emit('update_player_list', _build_player_list(room_code), to=room_code)
 

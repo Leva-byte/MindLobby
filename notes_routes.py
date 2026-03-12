@@ -1,6 +1,7 @@
 import re
 import io
 from flask import Blueprint, jsonify, session, send_file, request
+from utils import get_real_ip
 from database import get_db_connection, log_user_activity
 from docx import Document as DocxDocument
 from docx.shared import Pt
@@ -49,7 +50,7 @@ def get_document_notes(document_id):
 
     log_user_activity(session['user_id'], session.get('username'), 'notes_view',
                       detail=f"Viewed notes: {row['original_filename']}",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({
         'success': True,
         'document_id': document_id,
@@ -142,7 +143,7 @@ def download_document_notes(document_id):
 
     log_user_activity(session['user_id'], session.get('username'), 'notes_download',
                       detail=f"Downloaded notes for: {row['original_filename']}",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return send_file(
         buf,
         as_attachment=True,

@@ -60,18 +60,19 @@
       _setText('settingsLobbyValue', lobby === 'public' ? 'Public' : 'Private');
     }
 
-    // Audio theme dropdown
-    var themeSelect = document.getElementById('settingsAudioTheme');
-    if (themeSelect && window.AudioManager) {
+    // Audio theme buttons
+    var themeGroup = document.getElementById('settingsAudioThemeGroup');
+    if (themeGroup && window.AudioManager) {
       var themes = AudioManager.getThemeList();
       var currentTheme = AudioManager.getTheme();
-      themeSelect.innerHTML = '';
+      themeGroup.innerHTML = '';
       themes.forEach(function (t) {
-        var opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = t.name;
-        if (t.id === currentTheme) opt.selected = true;
-        themeSelect.appendChild(opt);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'settings-audio-theme-btn' + (t.id === currentTheme ? ' active' : '');
+        btn.dataset.themeId = t.id;
+        btn.innerHTML = '<i class="fas fa-music"></i> ' + t.name;
+        themeGroup.appendChild(btn);
       });
       _setText('settingsThemeAudioValue', (themes.find(function (t) { return t.id === currentTheme; }) || {}).name || 'Default');
     }
@@ -156,12 +157,18 @@
       });
     }
 
-    // Audio theme dropdown
-    var themeSelect = document.getElementById('settingsAudioTheme');
-    if (themeSelect) {
-      themeSelect.addEventListener('change', function () {
-        var themeId = this.value;
+    // Audio theme buttons (delegated click on the group container)
+    var themeGroup = document.getElementById('settingsAudioThemeGroup');
+    if (themeGroup) {
+      themeGroup.addEventListener('click', function (e) {
+        var btn = e.target.closest('.settings-audio-theme-btn');
+        if (!btn) return;
+        var themeId = btn.dataset.themeId;
         if (window.AudioManager) AudioManager.setTheme(themeId);
+        // Update active state
+        themeGroup.querySelectorAll('.settings-audio-theme-btn').forEach(function (b) {
+          b.classList.toggle('active', b === btn);
+        });
         var themes = window.AudioManager ? AudioManager.getThemeList() : [];
         var match = themes.find(function (t) { return t.id === themeId; });
         _setText('settingsThemeAudioValue', match ? match.name : themeId);

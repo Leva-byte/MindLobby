@@ -133,6 +133,7 @@
   }
 
   function showBrowse() {
+    _detachKeyListener();
     if (window.Chatbot) Chatbot.clearDocument();
     const browse = document.getElementById('fcBrowseView');
     const viewer = document.getElementById('fcViewerView');
@@ -222,6 +223,8 @@
     if (browse) browse.style.display = 'none';
     if (viewer) viewer.style.display = 'block';
 
+    _attachKeyListener();
+
     // Highlight the selected document in sidebar
     document.querySelectorAll('.sidebar-doc-item').forEach(item => {
       item.classList.remove('active');
@@ -272,7 +275,10 @@
 
   function flipCard() {
     const inner = document.getElementById('fcPanelCardInner');
-    if (inner) inner.classList.toggle('flipped');
+    if (inner) {
+      inner.classList.toggle('flipped');
+      if (window.AudioManager) AudioManager.playFlip();
+    }
   }
 
   function navigateCard(direction) {
@@ -350,14 +356,32 @@
   // ===========================================================================
   // KEYBOARD SHORTCUTS
   // ===========================================================================
-  document.addEventListener('keydown', (e) => {
-    const viewer = document.getElementById('fcViewerView');
-    if (!viewer || viewer.style.display === 'none') return;
+  let _keyListenerActive = false;
 
+  function _handleKeyDown(e) {
     if (e.key === 'ArrowRight') navigateCard(1);
-    if (e.key === 'ArrowLeft') navigateCard(-1);
-    if (e.key === ' ') { e.preventDefault(); flipCard(); }
-  });
+    else if (e.key === 'ArrowLeft') navigateCard(-1);
+    else if (e.key === ' ') { e.preventDefault(); flipCard(); }
+  }
+
+  function _attachKeyListener() {
+    if (!_keyListenerActive) {
+      document.addEventListener('keydown', _handleKeyDown);
+      _keyListenerActive = true;
+    }
+  }
+
+  function _detachKeyListener() {
+    if (_keyListenerActive) {
+      document.removeEventListener('keydown', _handleKeyDown);
+      _keyListenerActive = false;
+    }
+  }
+
+  /** Called by Studio.js when navigating away from the flashcards panel. */
+  function cleanup() {
+    _detachKeyListener();
+  }
 
   // ===========================================================================
   // PUBLIC API
@@ -375,6 +399,7 @@
     showBrowse,
     openQuiz,
     openNotes,
+    cleanup,
   };
 
   // Legacy compatibility shim for Topics.js inline onclick handlers

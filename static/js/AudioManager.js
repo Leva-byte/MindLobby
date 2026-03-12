@@ -15,7 +15,8 @@
       name: 'Default',
       sfx: {
         correct: '/static/audio/default/correct.mp3',
-        wrong:   '/static/audio/default/wrong.mp3'
+        wrong:   '/static/audio/default/wrong.mp3',
+        flip:    '/static/audio/default/flip.mp3'
       },
       music: {
         lobby: '/static/audio/default/lobby-bgm.mp3',
@@ -106,6 +107,14 @@
     a.play().catch(function () {});
   }
 
+  function playFlip() {
+    var a = _ensureSfx('flip');
+    if (!a) return;
+    a.volume = sfxVolume();
+    a.currentTime = 0;
+    a.play().catch(function () {});
+  }
+
   // ── Background music ──────────────────────────────────────────────────────
   function startMusic(context) {
     var theme = _themePaths();
@@ -184,6 +193,7 @@
   window.AudioManager = {
     playCorrect:    playCorrect,
     playWrong:      playWrong,
+    playFlip:       playFlip,
     startMusic:     startMusic,
     stopMusic:      stopMusic,
     setSfxVolume:   setSfxVolume,

@@ -190,6 +190,11 @@ function showView(viewName) {
   // Refresh sidebar docs (topic dot colors may have changed)
   loadDocuments();
 
+  // Clean up listeners from panels we're leaving
+  if (viewName !== 'flashcards' && window.Flashcards && Flashcards.cleanup) {
+    Flashcards.cleanup();
+  }
+
   // Panel-specific hooks
   switch (viewName) {
     case 'overview':
@@ -690,6 +695,12 @@ function _formatElapsed(isoStr) {
 }
 
 
+/** Return usable img src for a profile image value (data URI or legacy path). */
+function _profileImgSrc(val, fallback) {
+  if (!val) return fallback;
+  return val.startsWith('data:') ? val : '/' + val;
+}
+
 /** Load profile picture and banner into the welcome banner */
 async function _loadWelcomeBannerProfile() {
   try {
@@ -702,27 +713,26 @@ async function _loadWelcomeBannerProfile() {
     // Banner background
     const bannerBg = document.getElementById('welcomeBannerBg');
     if (bannerBg) {
-      bannerBg.src = p.banner ? '/' + p.banner : '/static/img/default-banner.png';
+      bannerBg.src = _profileImgSrc(p.banner, '/static/img/default-banner.png');
     }
 
     // Profile picture
     const pfpImg = document.getElementById('welcomePfpImg');
     if (pfpImg) {
-      pfpImg.src = p.profile_picture
-        ? '/' + p.profile_picture
-        : '/static/img/default-pfp.png';
+      pfpImg.src = _profileImgSrc(p.profile_picture, '/static/img/default-pfp.png');
     }
 
     // Also update header avatar
     const headerAvatar = document.querySelector('.header-actions .user-avatar');
     if (headerAvatar && p.profile_picture) {
+      const src = _profileImgSrc(p.profile_picture, null);
       const existingImg = headerAvatar.querySelector('img');
       if (existingImg) {
-        existingImg.src = '/' + p.profile_picture;
+        existingImg.src = src;
       } else {
         headerAvatar.textContent = '';
         const img = document.createElement('img');
-        img.src = '/' + p.profile_picture;
+        img.src = src;
         img.alt = 'Profile';
         headerAvatar.appendChild(img);
       }
@@ -811,6 +821,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })
     .catch(() => {});
+});
+
+// Prevent stale page from showing via back-button after logout.
+// 'pageshow' fires even when the page is restored from bfcache.
+window.addEventListener('pageshow', function (e) {
+  if (e.persisted) {
+    fetch('/check-auth').then(r => r.json()).then(function (data) {
+      if (!data.authenticated) window.location.replace('/');
+    }).catch(function () {});
+  }
 });
 
 // ============================================================================

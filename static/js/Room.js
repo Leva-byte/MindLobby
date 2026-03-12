@@ -136,7 +136,7 @@
             ? 'The Mind Master has departed the neural network.'
             : 'The mental arena has been dissolved.';
         showNotification(reason, 'error', 'Neural Network Dissolved');
-        setTimeout(function () { window.location.href = '/quickplay'; }, 3000);
+        setTimeout(function () { window.location.replace('/quickplay'); }, 3000);
     });
 
     socket.on('error', function (data) {
@@ -167,7 +167,7 @@
     // =========================================================================
     socket.on('player_kicked', function () {
         showNotification('You have been removed from the lobby by the host.', 'error', 'Kicked');
-        setTimeout(function () { window.location.href = '/quickplay'; }, 2000);
+        setTimeout(function () { window.location.replace('/quickplay'); }, 2000);
     });
 
     // =========================================================================
@@ -463,7 +463,7 @@
     }
 
     function backToLobby() {
-        window.location.href = '/quickplay';
+        window.location.replace('/quickplay');
     }
 
     // =========================================================================
@@ -652,7 +652,7 @@
             updateStatus('Disconnecting...', 'fas fa-power-off');
             socket.emit('leave_room', { room: room });
             showNotification('Leaving lobby...', 'info', 'Goodbye');
-            setTimeout(function () { window.location.href = '/quickplay'; }, 1000);
+            setTimeout(function () { window.location.replace('/quickplay'); }, 1000);
         });
     }
 
@@ -765,6 +765,15 @@
         if (socket.connected) {
             socket.emit('leave_room', { room: room });
             socket.disconnect();
+        }
+    });
+
+    // Back-button prevention: if page restored from bfcache, re-check auth
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) {
+            fetch('/check-auth').then(function (r) { return r.json(); }).then(function (data) {
+                if (!data.authenticated) window.location.replace('/');
+            }).catch(function () {});
         }
     });
 

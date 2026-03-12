@@ -6,6 +6,12 @@
 
   let _profile = null;
 
+  /** Return a usable src for a profile image value (data URI or legacy file path). */
+  function _imgSrc(val, fallback) {
+    if (!val) return fallback;
+    return val.startsWith('data:') ? val : '/' + val;
+  }
+
   // ===========================================================================
   // LOAD PROFILE
   // ===========================================================================
@@ -21,18 +27,14 @@
       // Banner
       const bannerImg = document.getElementById('profileBannerImg');
       if (bannerImg) {
-        bannerImg.src = _profile.banner
-          ? '/' + _profile.banner
-          : '/static/img/default-banner.png';
+        bannerImg.src = _imgSrc(_profile.banner, '/static/img/default-banner.png');
       }
 
       // Avatar — always show image (default or custom), hide letter
       const avatarImg = document.getElementById('profileAvatarImg');
       const avatarLetter = document.getElementById('profileAvatarLetter');
       if (avatarImg) {
-        avatarImg.src = _profile.profile_picture
-          ? '/' + _profile.profile_picture
-          : '/static/img/default-pfp.png';
+        avatarImg.src = _imgSrc(_profile.profile_picture, '/static/img/default-pfp.png');
         avatarImg.style.display = 'block';
       }
       if (avatarLetter) avatarLetter.style.display = 'none';
@@ -102,7 +104,7 @@
         const avatarImg = document.getElementById('profileAvatarImg');
         const avatarLetter = document.getElementById('profileAvatarLetter');
         if (avatarImg) {
-          avatarImg.src = '/' + data.profile_picture + '?t=' + Date.now();
+          avatarImg.src = _imgSrc(data.profile_picture, '/static/img/default-pfp.png');
           avatarImg.style.display = 'block';
         }
         if (avatarLetter) avatarLetter.style.display = 'none';
@@ -141,7 +143,7 @@
 
       if (data.success) {
         const bannerImg = document.getElementById('profileBannerImg');
-        if (bannerImg) bannerImg.src = '/' + data.banner + '?t=' + Date.now();
+        if (bannerImg) bannerImg.src = _imgSrc(data.banner, '/static/img/default-banner.png');
         if (_profile) _profile.banner = data.banner;
         _updateWelcomeBanner();
         _toast('Banner updated');
@@ -345,22 +347,17 @@
   // ===========================================================================
   function _updateWelcomeBanner() {
     if (!_profile) return;
-    var t = '?t=' + Date.now();
 
     // Welcome banner background
     var bannerBg = document.getElementById('welcomeBannerBg');
     if (bannerBg) {
-      bannerBg.src = _profile.banner
-        ? '/' + _profile.banner + t
-        : '/static/img/default-banner.png';
+      bannerBg.src = _imgSrc(_profile.banner, '/static/img/default-banner.png');
     }
 
     // Welcome profile picture
     var pfpImg = document.getElementById('welcomePfpImg');
     if (pfpImg) {
-      pfpImg.src = _profile.profile_picture
-        ? '/' + _profile.profile_picture + t
-        : '/static/img/default-pfp.png';
+      pfpImg.src = _imgSrc(_profile.profile_picture, '/static/img/default-pfp.png');
     }
   }
 
@@ -369,14 +366,15 @@
     if (!headerAvatar || !_profile) return;
 
     if (_profile.profile_picture) {
+      var src = _imgSrc(_profile.profile_picture, null);
       // Replace letter with image
       const existingImg = headerAvatar.querySelector('img');
       if (existingImg) {
-        existingImg.src = '/' + _profile.profile_picture + '?t=' + Date.now();
+        existingImg.src = src;
       } else {
         headerAvatar.textContent = '';
         const img = document.createElement('img');
-        img.src = '/' + _profile.profile_picture + '?t=' + Date.now();
+        img.src = src;
         img.alt = 'Profile';
         img.style.width = '100%';
         img.style.height = '100%';

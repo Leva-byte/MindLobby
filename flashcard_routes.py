@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
+from utils import get_real_ip
 from werkzeug.utils import secure_filename
 from flashcard_service import process_file_to_flashcards
 from database import (
@@ -87,7 +88,7 @@ def upload_document():
 
         log_user_activity(user_id, session.get('username'), 'document_upload',
                           detail=f"{original_filename} — {len(flashcards)} flashcards generated",
-                          ip_address=request.remote_addr)
+                          ip_address=get_real_ip())
         return jsonify({
             'success': True,
             'message': f'Successfully generated {len(flashcards)} flashcards!',
@@ -135,7 +136,7 @@ def get_flashcards(document_id):
 
     log_user_activity(session['user_id'], session.get('username'), 'flashcard_view',
                       detail=f"{doc['original_filename']} — {len(cards)} cards",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({
         'success': True,
         'document_id': document_id,
@@ -168,7 +169,7 @@ def delete_document(document_id):
 
     log_user_activity(session['user_id'], session.get('username'), 'document_delete',
                       detail=f"Deleted: {doc_name}",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'message': 'Document and flashcards deleted'})
 
 
@@ -191,7 +192,7 @@ def rename_doc(document_id):
 
     log_user_activity(session['user_id'], session.get('username'), 'document_rename',
                       detail=f"Renamed to: {new_name}",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'message': 'Document renamed'})
 
 

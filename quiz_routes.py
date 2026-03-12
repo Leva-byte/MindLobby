@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, session
+from utils import get_real_ip
 from database import (
     log_user_activity,
     get_flashcards_for_document,
@@ -70,7 +71,7 @@ def submit_quiz():
     result_id = save_quiz_result(document_id, session['user_id'], score, total, wrong_answers)
     log_user_activity(session['user_id'], session.get('username'), 'quiz_attempt',
                       detail=f"Score: {score}/{total} on document ID {document_id}",
-                      ip_address=request.remote_addr)
+                      ip_address=get_real_ip())
     return jsonify({'success': True, 'result_id': result_id})
 
 
