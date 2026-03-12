@@ -1,10 +1,9 @@
 import os
-import time
+import base64
 import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from werkzeug.security import check_password_hash
-from werkzeug.utils import secure_filename
 from database import (
     get_user_by_id,
     update_user_profile_picture,
@@ -24,10 +23,16 @@ logger = logging.getLogger(__name__)
 
 profile_bp = Blueprint('profile', __name__)
 
-PROFILE_UPLOAD_FOLDER = os.path.join('static', 'uploads', 'profiles')
-BANNER_UPLOAD_FOLDER = os.path.join('static', 'uploads', 'banners')
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp'}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+# MIME type map for base64 data URIs
+MIME_TYPES = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+}
 
 
 def _allowed_image(filename):
@@ -36,12 +41,17 @@ def _allowed_image(filename):
     return ext in ALLOWED_IMAGE_EXTENSIONS
 
 
-def _save_image(file, folder, user_id):
-    """Save an uploaded image file. Returns the relative path or None."""
+def _file_to_base64(file):
+    """
+    Convert an uploaded image file to a base64 data URI.
+    Stored directly in the database — survives Railway redeploys.
+    Returns data URI string or None on failure.
+    """
     if not file or not file.filename:
         return None
 
-    if not _allowed_image(file.filename):
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_IMAGE_EXTENSIONS:
         return None
 
     # Check file size
@@ -51,21 +61,9 @@ def _save_image(file, folder, user_id):
     if size > MAX_IMAGE_SIZE:
         return None
 
-    ext = os.path.splitext(file.filename)[1].lower()
-    safe_name = f"{user_id}_{int(time.time())}{ext}"
-    os.makedirs(folder, exist_ok=True)
-    file_path = os.path.join(folder, safe_name)
-    file.save(file_path)
-    return file_path
-
-
-def _delete_old_image(path):
-    """Delete an old image file if it exists."""
-    if path and os.path.isfile(path):
-        try:
-            os.remove(path)
-        except OSError:
-            pass
+    mime = MIME_TYPES.get(ext, 'image/jpeg')
+    data = base64.b64encode(file.read()).decode('utf-8')
+    return f"data:{mime};base64,{data}"
 
 
 # ============================================================================
@@ -96,7 +94,7 @@ def get_profile():
 
 @profile_bp.route('/api/profile/picture', methods=['POST'])
 def upload_picture():
-    """Upload a new profile picture."""
+    """Upload a new profile picture — stored as base64 in the database."""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Not logged in'}), 401
 
@@ -109,27 +107,22 @@ def upload_picture():
 
     user_id = session['user_id']
 
-    # Delete old picture
-    user = get_user_by_id(user_id)
-    if user and user['profile_picture']:
-        _delete_old_image(user['profile_picture'])
+    data_uri = _file_to_base64(file)
+    if not data_uri:
+        return jsonify({'success': False, 'message': 'Failed to process image. Max size is 5MB.'}), 400
 
-    path = _save_image(file, PROFILE_UPLOAD_FOLDER, user_id)
-    if not path:
-        return jsonify({'success': False, 'message': 'Failed to save image. Max size is 5MB.'}), 400
-
-    update_user_profile_picture(user_id, path)
+    update_user_profile_picture(user_id, data_uri)
 
     return jsonify({
         'success': True,
-        'profile_picture': path,
+        'profile_picture': data_uri,
         'message': 'Profile picture updated',
     })
 
 
 @profile_bp.route('/api/profile/banner', methods=['POST'])
 def upload_banner():
-    """Upload a new banner image."""
+    """Upload a new banner image — stored as base64 in the database."""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Not logged in'}), 401
 
@@ -142,20 +135,15 @@ def upload_banner():
 
     user_id = session['user_id']
 
-    # Delete old banner
-    user = get_user_by_id(user_id)
-    if user and user['banner']:
-        _delete_old_image(user['banner'])
+    data_uri = _file_to_base64(file)
+    if not data_uri:
+        return jsonify({'success': False, 'message': 'Failed to process image. Max size is 5MB.'}), 400
 
-    path = _save_image(file, BANNER_UPLOAD_FOLDER, user_id)
-    if not path:
-        return jsonify({'success': False, 'message': 'Failed to save image. Max size is 5MB.'}), 400
-
-    update_user_banner(user_id, path)
+    update_user_banner(user_id, data_uri)
 
     return jsonify({
         'success': True,
-        'banner': path,
+        'banner': data_uri,
         'message': 'Banner updated',
     })
 
@@ -253,16 +241,8 @@ def delete_account():
     user_id = session['user_id']
     username = user['username']
 
-    # Delete all user data and get file paths to clean up
-    file_paths = delete_user_account(user_id)
-
-    # Delete physical files
-    for path in file_paths:
-        if path and os.path.isfile(path):
-            try:
-                os.remove(path)
-            except OSError:
-                pass
+    # Delete all user data
+    delete_user_account(user_id)
 
     # Clear session
     session.clear()
