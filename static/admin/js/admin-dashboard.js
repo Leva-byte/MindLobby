@@ -40,6 +40,7 @@ function showTab(tabId, clickedBtn) {
   if (tabId === 'tab-analytics')    loadAnalytics();
   if (tabId === 'tab-lobbies')      loadLobbies();
   if (tabId === 'tab-content')      loadContent();
+  if (tabId === 'tab-useractivity') loadUserActivity(true);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1041,4 +1042,87 @@ function closeTokenDetail() {
   const panel = document.getElementById('tokenDetailPanel');
   if (panel) panel.style.display = 'none';
   _tokenViewUserId = null;
+}
+
+// ============================================================================
+// USER ACTIVITY LOG
+// ============================================================================
+
+let activityOffset = 0;
+const ACTIVITY_LIMIT = 50;
+
+const ACTIVITY_ICONS = {
+  login:           { icon: 'fa-right-to-bracket', cls: 'activity-login'   },
+  logout:          { icon: 'fa-right-from-bracket', cls: 'activity-logout' },
+  signup:          { icon: 'fa-user-plus',         cls: 'activity-signup'  },
+  otp_verified:    { icon: 'fa-envelope-circle-check', cls: 'activity-otp' },
+  document_upload: { icon: 'fa-cloud-arrow-up',    cls: 'activity-upload'  },
+  quiz_attempt:    { icon: 'fa-circle-question',   cls: 'activity-quiz'    },
+  youtube_import:  { icon: 'fa-youtube',           cls: 'activity-youtube' },
+  notes_download:  { icon: 'fa-file-arrow-down',   cls: 'activity-notes'   },
+  default:         { icon: 'fa-bolt',              cls: 'activity-default' },
+};
+
+function loadUserActivity(reset = false) {
+  if (reset) activityOffset = 0;
+
+  const container = document.getElementById('userActivityContainer');
+  const eventType = document.getElementById('activityFilter')?.value || '';
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Loading…</span></div>';
+
+  const params = new URLSearchParams({
+    limit:  ACTIVITY_LIMIT,
+    offset: activityOffset,
+  });
+  if (eventType) params.append('event_type', eventType);
+
+  fetch(`/${ADMIN_PATH}/api/user-activity?${params}`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) { container.innerHTML = `<div class="empty-state">${data.message}</div>`; return; }
+
+      if (!data.entries.length) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No activity recorded yet.</p></div>';
+        document.getElementById('activityPagination').style.display = 'none';
+        return;
+      }
+
+      const rows = data.entries.map(e => {
+        const meta = ACTIVITY_ICONS[e.event_type] || ACTIVITY_ICONS.default;
+        return `
+          <div class="activity-row">
+            <div class="activity-icon-wrap ${meta.cls}">
+              <i class="fas ${meta.icon}"></i>
+            </div>
+            <div class="activity-body">
+              <div class="activity-main">
+                <span class="activity-username">${e.username || '<i>deleted</i>'}</span>
+                <span class="activity-badge ${meta.cls}">${e.event_type.replace('_', ' ')}</span>
+                ${e.detail ? `<span class="activity-detail">${e.detail}</span>` : ''}
+              </div>
+              <div class="activity-meta">
+                <span><i class="fas fa-clock"></i> ${formatDateTime(e.created_at)}</span>
+                ${e.ip_address ? `<span><i class="fas fa-location-dot"></i> ${e.ip_address}</span>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      container.innerHTML = `<div class="activity-feed">${rows}</div>`;
+
+      // Pagination
+      const total   = data.total;
+      const page    = Math.floor(activityOffset / ACTIVITY_LIMIT) + 1;
+      const maxPage = Math.ceil(total / ACTIVITY_LIMIT);
+      document.getElementById('activityPagination').style.display = total > ACTIVITY_LIMIT ? 'flex' : 'none';
+      document.getElementById('activityPageInfo').textContent = `Page ${page} of ${maxPage} (${total} events)`;
+      document.getElementById('activityPrevBtn').disabled = activityOffset === 0;
+      document.getElementById('activityNextBtn').disabled = activityOffset + ACTIVITY_LIMIT >= total;
+    })
+    .catch(() => { container.innerHTML = '<div class="empty-state">Failed to load activity log.</div>'; });
+}
+
+function activityPage(dir) {
+  activityOffset = Math.max(0, activityOffset + dir * ACTIVITY_LIMIT);
+  loadUserActivity(false);
 }

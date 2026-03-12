@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify, session
 from werkzeug.utils import secure_filename
 from flashcard_service import process_file_to_flashcards
 from database import (
+    log_user_activity,
     save_document,
     save_flashcards,
     get_documents_for_user,
@@ -84,6 +85,9 @@ def upload_document():
         # Save all flashcards to DB
         save_flashcards(doc_id, user_id, flashcards)
 
+        log_user_activity(user_id, session.get('username'), 'document_upload',
+                          detail=f"{original_filename} — {len(flashcards)} flashcards generated",
+                          ip_address=request.remote_addr)
         return jsonify({
             'success': True,
             'message': f'Successfully generated {len(flashcards)} flashcards!',

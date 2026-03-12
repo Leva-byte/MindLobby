@@ -5,7 +5,7 @@ import yt_dlp
 from concurrent.futures import ThreadPoolExecutor
 from flask import Blueprint, request, jsonify, session
 from flashcard_service import generate_flashcards, generate_notes
-from database import save_document, save_flashcards
+from database import save_document, save_flashcards, log_user_activity
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +180,9 @@ def import_youtube():
     save_flashcards(doc_id, user_id, flashcards)
 
     logger.info(f"YouTube import complete: doc_id={doc_id}, {len(flashcards)} flashcards")
+    log_user_activity(user_id, session.get('username'), 'youtube_import',
+                      detail=f"{display_title} — {len(flashcards)} flashcards generated",
+                      ip_address=request.remote_addr)
 
     return jsonify({
         'success': True,

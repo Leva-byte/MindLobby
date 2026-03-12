@@ -74,6 +74,9 @@
       <button class="sidebar-item" onclick="showTab('tab-failedlogins', this)">
         <i class="fas fa-triangle-exclamation"></i> Failed Logins
       </button>
+      <button class="sidebar-item" onclick="showTab('tab-useractivity', this)">
+        <i class="fas fa-chart-line"></i> User Activity
+      </button>
 
     </nav>
 
@@ -332,6 +335,50 @@
 
         <div class="stats-grid analytics-stats-grid" id="analyticsStatsGrid">
           <div class="loading-state"><div class="spinner"></div><span>Loading analytics…</span></div>
+        </div>
+
+      </div>
+
+      <!-- ── TAB: User Activity ──────────────────────────────────────────────── -->
+      <div id="tab-useractivity" class="tab-section">
+
+        <div class="page-title-row">
+          <div>
+            <div class="page-title">User Activity</div>
+            <div class="page-subtitle">All platform events — logins, uploads, quizzes, and more</div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <select class="modal-input" id="activityFilter" onchange="loadUserActivity(true)" style="padding:6px 12px; font-size:13px; width:160px;">
+              <option value="">All Events</option>
+              <option value="login">Logins</option>
+              <option value="logout">Logouts</option>
+              <option value="signup">Signups</option>
+              <option value="otp_verified">OTP Verified</option>
+              <option value="document_upload">Uploads</option>
+              <option value="quiz_attempt">Quiz Attempts</option>
+              <option value="youtube_import">YouTube Imports</option>
+              <option value="notes_download">Notes Downloads</option>
+            </select>
+            <button class="btn-refresh" id="refreshActivityBtn" onclick="loadUserActivity(true)">
+              <i class="fas fa-rotate-right"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="data-panel">
+          <div class="panel-body" id="userActivityContainer">
+            <div class="loading-state"><div class="spinner"></div><span>Loading activity…</span></div>
+          </div>
+        </div>
+
+        <div class="pagination-row" id="activityPagination" style="display:none;">
+          <button class="btn-refresh" id="activityPrevBtn" onclick="activityPage(-1)">
+            <i class="fas fa-chevron-left"></i> Prev
+          </button>
+          <span id="activityPageInfo" style="color:rgba(255,255,255,0.6); font-size:13px;"></span>
+          <button class="btn-refresh" id="activityNextBtn" onclick="activityPage(1)">
+            Next <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
 
       </div>

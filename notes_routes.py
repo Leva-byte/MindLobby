@@ -1,7 +1,7 @@
 import re
 import io
-from flask import Blueprint, jsonify, session, send_file
-from database import get_db_connection
+from flask import Blueprint, jsonify, session, send_file, request
+from database import get_db_connection, log_user_activity
 from docx import Document as DocxDocument
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -137,6 +137,9 @@ def download_document_notes(document_id):
     safe_name = re.sub(r'[^\w\-.]', '_', row['original_filename'].rsplit('.', 1)[0])
     download_name = f"{safe_name}_notes.docx"
 
+    log_user_activity(session['user_id'], session.get('username'), 'notes_download',
+                      detail=f"Downloaded notes for: {row['original_filename']}",
+                      ip_address=request.remote_addr)
     return send_file(
         buf,
         as_attachment=True,

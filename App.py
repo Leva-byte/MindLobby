@@ -13,6 +13,7 @@ from db_adapter import get_db_connection
 # ORIGINAL IMPORTS (UNCHANGED)
 # ============================================================================
 from database import (
+    log_user_activity,
     init_db,
     create_user,
     get_user_by_email,
@@ -235,6 +236,9 @@ def signup():
                 session['pending_username'] = username
 
                 logger.info(f"New user registered (pending OTP): {username}")
+                log_user_activity(user_id, username, 'signup',
+                                  detail='Pending OTP verification',
+                                  ip_address=request.remote_addr)
                 return jsonify({
                     'success': True,
                     'message': 'Verification code sent to your email',
@@ -300,6 +304,9 @@ def login():
         session['show_welcome'] = True
 
         logger.info(f"User logged in: {user['username']}")
+        log_user_activity(user['id'], user['username'], 'login',
+                          detail=f"IP: {request.remote_addr}",
+                          ip_address=request.remote_addr)
         return jsonify({'success': True, 'message': 'Login successful', 'username': user['username']})
         
     except Exception as e:
@@ -310,6 +317,9 @@ def login():
 def logout():
     """Handle user logout"""
     username = session.get('username', 'Unknown')
+    user_id = session.get('user_id')
+    log_user_activity(user_id, username, 'logout',
+                      ip_address=request.remote_addr)
     session.clear()
     logger.info(f"User logged out: {username}")
     return jsonify({'success': True, 'message': 'Logged out successfully'})
@@ -391,6 +401,9 @@ def api_verify_otp():
             pass
 
         logger.info(f"User verified: {user['username']}")
+        log_user_activity(user['id'], user['username'], 'otp_verified',
+                          detail='Email verified successfully',
+                          ip_address=request.remote_addr)
         return jsonify({'success': True, 'message': 'Email verified! Welcome to MindLobby!'})
     else:
         return jsonify({'success': False, 'message': 'Invalid or expired code. Please try again.'}), 400
@@ -1104,6 +1117,29 @@ if GATEKEEPER_AVAILABLE:
 
         except Exception as e:
             logger.error(f"❌ Audit log error: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    # ── User Activity Log ─────────────────────────────────────────────────────
+    @app.route(f'/{ADMIN_URL_PATH}/api/user-activity', methods=['GET'])
+    @admin_required
+    def admin_user_activity():
+        """Fetch platform-wide user activity log with pagination and filters."""
+        try:
+            from database import get_user_activity_log
+            limit      = min(int(request.args.get('limit', 50)), 200)
+            offset     = int(request.args.get('offset', 0))
+            event_type = request.args.get('event_type') or None
+            user_id    = request.args.get('user_id') or None
+            if user_id:
+                user_id = int(user_id)
+
+            entries, total = get_user_activity_log(limit=limit, offset=offset,
+                                                    event_type=event_type,
+                                                    user_id=user_id)
+            return jsonify({'success': True, 'entries': entries,
+                            'total': total, 'limit': limit, 'offset': offset})
+        except Exception as e:
+            logger.error(f"User activity log error: {e}")
             return jsonify({'success': False, 'message': str(e)}), 500
 
     # ── Failed Login Attempts ──────────────────────────────────────────────

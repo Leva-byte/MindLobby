@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from database import (
+    log_user_activity,
     get_flashcards_for_document,
     save_quiz_result,
     get_quiz_results_for_user,
@@ -67,6 +68,9 @@ def submit_quiz():
 
     wrong_answers = data.get('wrong_answers', [])
     result_id = save_quiz_result(document_id, session['user_id'], score, total, wrong_answers)
+    log_user_activity(session['user_id'], session.get('username'), 'quiz_attempt',
+                      detail=f"Score: {score}/{total} on document ID {document_id}",
+                      ip_address=request.remote_addr)
     return jsonify({'success': True, 'result_id': result_id})
 
 

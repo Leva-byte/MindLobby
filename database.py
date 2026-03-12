@@ -176,6 +176,19 @@ def init_db():
         )
     ''')
 
+    # User activity log — platform-wide event tracking for admin oversight
+    cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS user_activity_log (
+            id {PK},
+            user_id INTEGER,
+            username TEXT,
+            event_type TEXT NOT NULL,
+            detail TEXT,
+            ip_address TEXT,
+            created_at TEXT NOT NULL
+        )
+    ''')
+
     # --- SQLite-only migrations (add columns if missing on older dev DBs) ---
     if not is_postgres():
         existing_cols = [row[1] for row in cursor.execute('PRAGMA table_info(users)').fetchall()]
@@ -191,6 +204,60 @@ def init_db():
     conn.commit()
     conn.close()
     print("✅ Database initialized successfully!")
+
+# ============================================================================
+# USER ACTIVITY LOGGING
+# ============================================================================
+
+def log_user_activity(user_id, username, event_type, detail=None, ip_address=None):
+    """
+    Log a user activity event to user_activity_log.
+    event_type examples: 'login', 'logout', 'signup', 'otp_verified',
+                         'document_upload', 'quiz_attempt', 'flashcard_view'
+    """
+    try:
+        conn = get_db_connection()
+        conn.execute(
+            '''INSERT INTO user_activity_log (user_id, username, event_type, detail, ip_address, created_at)
+               VALUES (?, ?, ?, ?, ?, ?)''',
+            (user_id, username, event_type, detail, ip_address, datetime.now().isoformat())
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass  # Never let logging break the main request
+
+def get_user_activity_log(limit=100, offset=0, event_type=None, user_id=None):
+    """Return paginated user activity log for admin dashboard."""
+    conn = get_db_connection()
+
+    conditions = []
+    params = []
+
+    if event_type:
+        conditions.append('event_type = ?')
+        params.append(event_type)
+    if user_id:
+        conditions.append('user_id = ?')
+        params.append(user_id)
+
+    where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
+
+    rows = conn.execute(
+        f'''SELECT id, user_id, username, event_type, detail, ip_address, created_at
+            FROM user_activity_log
+            {where}
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?''',
+        params + [limit, offset]
+    ).fetchall()
+
+    total = conn.execute(
+        f'SELECT COUNT(*) as cnt FROM user_activity_log {where}', params
+    ).fetchone()['cnt']
+
+    conn.close()
+    return [dict(r) for r in rows], total
 
 # ============================================================================
 # SECURITY HELPER FUNCTIONS
