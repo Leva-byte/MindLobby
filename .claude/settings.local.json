@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find 'd:\\\\Personal Folder\\\\School Stuff\\\\Coding Projects\\\\MindLobby_test' -maxdepth 2 -name *.env* -o -name config* -o -name settings*)"
-    ]
-  }
-}

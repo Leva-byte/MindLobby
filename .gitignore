@@ -6,6 +6,9 @@ __pycache__/
 *.py[cod]
 venv/
 
+# Claude Code
+.claude/
+
 # Database & Uploads
 mindlobby.db
 uploads/
