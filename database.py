@@ -406,7 +406,8 @@ _SETTINGS_DEFAULTS = {
     'sfxVolume': 0.7,
     'musicVolume': 0.5,
     'musicMuted': False,
-    'defaultLobbyType': 'public'
+    'defaultLobbyType': 'public',
+    'tutorial_completed': False
 }
 
 def get_user_settings(user_id):
@@ -727,9 +728,10 @@ def delete_document_and_flashcards(document_id, user_id):
 # ADMIN CONTENT MODERATION FUNCTIONS
 # ============================================================================
 
-def get_all_documents_admin(search=None):
+def get_all_documents_admin(search=None, file_type=None, uploader=None):
     """Return all documents across all users for admin content moderation.
     Joins with users for uploader name, counts flashcards and pending reports.
+    Supports filtering by file_type, uploader, and text search (filename, username, content).
     Sorts flagged documents first, then by upload date."""
     conn = get_db_connection()
     query = '''
@@ -751,9 +753,18 @@ def get_all_documents_admin(search=None):
         ) rp ON rp.document_id = d.id
     '''
     params = []
+    conditions = []
     if search:
-        query += " WHERE (u.username LIKE ? OR d.original_filename LIKE ?)"
-        params = [f'%{search}%', f'%{search}%']
+        conditions.append("(u.username LIKE ? OR d.original_filename LIKE ? OR d.markdown_text LIKE ?)")
+        params.extend([f'%{search}%', f'%{search}%', f'%{search}%'])
+    if file_type:
+        conditions.append("d.file_type = ?")
+        params.append(file_type)
+    if uploader:
+        conditions.append("u.username = ?")
+        params.append(uploader)
+    if conditions:
+        query += ' WHERE ' + ' AND '.join(conditions)
     query += ' ORDER BY rp.report_count DESC, d.upload_date DESC'
     rows = conn.execute(query, params).fetchall()
     conn.close()

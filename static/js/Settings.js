@@ -211,12 +211,13 @@
   /** Collect current localStorage settings into a plain object. */
   function _collectSettings() {
     return {
-      theme:            localStorage.getItem(KEYS.theme) || 'dark',
-      sfxVolume:        _getFloat(KEYS.sfxVolume, 0.7),
-      musicVolume:      _getFloat(KEYS.musicVolume, 0.5),
-      musicMuted:       localStorage.getItem(KEYS.musicMuted) === 'true',
-      defaultLobbyType: localStorage.getItem(KEYS.lobbyType) || 'public',
-      audioTheme:       localStorage.getItem('ml_audioTheme') || 'default'
+      theme:              localStorage.getItem(KEYS.theme) || 'dark',
+      sfxVolume:          _getFloat(KEYS.sfxVolume, 0.7),
+      musicVolume:        _getFloat(KEYS.musicVolume, 0.5),
+      musicMuted:         localStorage.getItem(KEYS.musicMuted) === 'true',
+      defaultLobbyType:   localStorage.getItem(KEYS.lobbyType) || 'public',
+      audioTheme:         localStorage.getItem('ml_audioTheme') || 'default',
+      tutorial_completed: localStorage.getItem('ml_tutorialCompleted') === 'true'
     };
   }
 
@@ -242,6 +243,7 @@
     if (obj.musicMuted != null) localStorage.setItem(KEYS.musicMuted, JSON.stringify(obj.musicMuted));
     if (obj.defaultLobbyType) localStorage.setItem(KEYS.lobbyType, obj.defaultLobbyType);
     if (obj.audioTheme) localStorage.setItem('ml_audioTheme', obj.audioTheme);
+    if (obj.tutorial_completed != null) localStorage.setItem('ml_tutorialCompleted', JSON.stringify(!!obj.tutorial_completed));
 
     // Re-apply theme in case it changed
     applyTheme();
@@ -256,9 +258,16 @@
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
+  /** Mark tutorial as completed and sync full settings to server. */
+  function syncTutorialCompleted() {
+    localStorage.setItem('ml_tutorialCompleted', 'true');
+    _syncToServer();
+  }
+
   window.Settings = {
     loadSettings:   loadSettings,
-    loadFromServer: loadFromServer
+    loadFromServer: loadFromServer,
+    syncTutorialCompleted: syncTutorialCompleted
   };
 })();
 

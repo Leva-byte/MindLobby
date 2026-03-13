@@ -171,6 +171,7 @@
 
       _showView('quiz');
       _renderQuestion();
+      _attachQzKeyListener();
 
       // Start quiz background music
       if (window.AudioManager) AudioManager.startMusic('quiz');
@@ -379,6 +380,7 @@
     var modal = document.getElementById('qzExitModal');
     if (modal) { modal.style.display = 'none'; }
     if (window.AudioManager) AudioManager.stopMusic();
+    _detachQzKeyListener();
     showBrowse();
   }
 
@@ -562,12 +564,11 @@
   }
 
   // ===========================================================================
-  // KEYBOARD SHORTCUTS
+  // KEYBOARD SHORTCUTS  (attach/detach to avoid leaking into other views)
   // ===========================================================================
-  document.addEventListener('keydown', function (e) {
-    var quizView = document.getElementById('qzQuizView');
-    if (!quizView || quizView.style.display === 'none') return;
+  var _qzKeyListenerActive = false;
 
+  function _qzHandleKeyDown(e) {
     // 1-4 or A-D to select answer
     var key = e.key.toUpperCase();
     if (!_answered) {
@@ -579,7 +580,26 @@
       e.preventDefault();
       nextQuestion();
     }
-  });
+  }
+
+  function _attachQzKeyListener() {
+    if (!_qzKeyListenerActive) {
+      document.addEventListener('keydown', _qzHandleKeyDown);
+      _qzKeyListenerActive = true;
+    }
+  }
+
+  function _detachQzKeyListener() {
+    if (_qzKeyListenerActive) {
+      document.removeEventListener('keydown', _qzHandleKeyDown);
+      _qzKeyListenerActive = false;
+    }
+  }
+
+  /** Called by Studio.js when navigating away from quizzes. */
+  function cleanup() {
+    _detachQzKeyListener();
+  }
 
   // ===========================================================================
   // PUBLIC API
@@ -597,5 +617,6 @@
     confirmExit: confirmExit,
     openHeatmap: openHeatmap,
     closeHeatmap: closeHeatmap,
+    cleanup: cleanup,
   };
 })();

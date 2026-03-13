@@ -1882,9 +1882,126 @@ body.light-mode .end-game-modal-msg {
 }
 
 /* ============================================================================
-   LIGHT MODE OVERRIDES
-   Applied when Settings.js adds body.light-mode class.
+   HOST PLAYER CAP CONTROL
    ============================================================================ */
+.cap-control-block {
+    margin-top: 24px;
+    padding: 20px 22px;
+    background: rgba(124, 119, 198, 0.08);
+    border: 1px solid rgba(124, 119, 198, 0.2);
+    border-radius: 16px;
+}
+
+.cap-control-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1em;
+    font-weight: 700;
+    color: #7c77c6;
+    margin-bottom: 16px;
+}
+
+.cap-control-label i {
+    font-size: 1em;
+}
+
+.cap-value-badge {
+    margin-left: auto;
+    background: linear-gradient(135deg, #7c77c6 0%, #a8a4e3 100%);
+    color: white;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 800;
+    min-width: 36px;
+    text-align: center;
+    box-shadow: 0 3px 8px rgba(124, 119, 198, 0.35);
+    font-family: 'Orbitron', monospace;
+    transition: background 0.3s ease;
+}
+
+/* Slider — full width, no surrounding row needed */
+.cap-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(124, 119, 198, 0.25); /* overridden inline by JS */
+    outline: none;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: opacity 0.2s ease;
+}
+
+.cap-slider:hover {
+    opacity: 0.9;
+}
+
+.cap-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--thumb-color, #7c77c6);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.3s ease;
+}
+
+.cap-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.cap-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: var(--thumb-color, #7c77c6);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    transition: background 0.3s ease;
+}
+
+/* Pip row — one number per step */
+.cap-pips {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2px;
+}
+
+.cap-pip {
+    font-size: 0.8em;
+    font-weight: 700;
+    font-family: 'Orbitron', monospace;
+    opacity: 0.4;
+    cursor: default;
+    transition: color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, font-weight 0.2s ease;
+    user-select: none;
+}
+
+/* Light mode overrides */
+body.light-mode .cap-control-block {
+    background: rgba(108, 99, 192, 0.05);
+    border-color: rgba(108, 99, 192, 0.15);
+}
+
+body.light-mode .cap-control-label {
+    color: #6c63c0;
+}
+
+body.light-mode .cap-slider {
+    opacity: 0.85;
+}
+
+/* ============================================================================ */
+/*    Applied when Settings.js adds body.light-mode class.
+/* ============================================================================ */
 body.light-mode {
     background: linear-gradient(135deg, #f5f5fa 0%, #eaeaf2 30%, #e0ddf0 70%, #eaeaf2 100%);
     color: #1a1a2e;

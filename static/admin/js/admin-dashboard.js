@@ -753,18 +753,36 @@ async function loadContent(silent) {
   const container = document.getElementById('contentTableContainer');
   const btn       = document.getElementById('refreshContentBtn');
   const search    = document.getElementById('contentSearchInput')?.value.trim() || '';
+  const fileType  = document.getElementById('contentFileTypeFilter')?.value || '';
+  const uploader  = document.getElementById('contentUploaderFilter')?.value || '';
 
   if (!silent) setLoading(container, 'Loading documents…');
   if (btn) btn.classList.add('spinning');
 
   try {
-    const url  = `/${ADMIN_PATH}/api/content` + (search ? `?search=${encodeURIComponent(search)}` : '');
+    const params = new URLSearchParams();
+    if (search)   params.set('search', search);
+    if (fileType) params.set('file_type', fileType);
+    if (uploader) params.set('uploader', uploader);
+    const qs  = params.toString();
+    const url = `/${ADMIN_PATH}/api/content` + (qs ? `?${qs}` : '');
     const res  = await fetch(url);
     const data = await res.json();
     if (!data.success) throw new Error(data.message);
 
+    // Populate uploader dropdown (preserving current selection)
+    const uploaderSelect = document.getElementById('contentUploaderFilter');
+    if (uploaderSelect && data.uploaders) {
+      const current = uploaderSelect.value;
+      uploaderSelect.innerHTML = '<option value="">All Uploaders</option>' +
+        data.uploaders.map(function (u) {
+          return '<option value="' + u + '"' + (u === current ? ' selected' : '') + '>' + u + '</option>';
+        }).join('');
+    }
+
     if (!data.documents.length) {
-      setEmpty(container, 'fa-file-alt', search ? 'No documents match your search.' : 'No documents uploaded yet.');
+      const hasFilters = search || fileType || uploader;
+      setEmpty(container, 'fa-file-alt', hasFilters ? 'No documents match your filters.' : 'No documents uploaded yet.');
       return;
     }
 

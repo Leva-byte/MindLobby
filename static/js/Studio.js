@@ -194,6 +194,9 @@ function showView(viewName) {
   if (viewName !== 'flashcards' && window.Flashcards && Flashcards.cleanup) {
     Flashcards.cleanup();
   }
+  if (viewName !== 'quizzes' && window.Quizzes && Quizzes.cleanup) {
+    Quizzes.cleanup();
+  }
 
   // Panel-specific hooks
   switch (viewName) {
@@ -818,6 +821,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
           showNotification('Welcome to your Studio! 🎉', 'success');
         }, 500);
+      }
+      // Auto-trigger tutorial only on first ever login (tutorial never completed/skipped)
+      if (window.Tutorial && Tutorial.shouldShow(data.settings)) {
+        setTimeout(() => Tutorial.start(), 800);
       }
     })
     .catch(() => {});

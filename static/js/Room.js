@@ -15,6 +15,9 @@
     var connectionStatus  = 'connecting';
     var lobbyStartTime    = Date.now();
     var peakPlayerCount   = 0;
+    var MAX_PLAYERS       = 7;   // Absolute hard cap — must match MAX_PLAYERS_PER_ROOM in App.py
+    var MIN_PLAYERS       = 2;   // Minimum — must match MIN_PLAYERS_PER_ROOM in App.py
+    var roomCap           = MAX_PLAYERS; // Current cap for this room (host-configurable)
 
     // Game state
     var totalQuestions      = 0;
@@ -23,6 +26,8 @@
     var timerInterval       = null;
     var selectedDocId       = null;
     var hasAnswered         = false;
+    var timerEndTime        = 0;       // timestamp when current question timer expires
+    var timerTotalSeconds   = 0;       // total seconds for current question
 
     // Cached DOM elements (filled on load)
     var el = {};
@@ -95,6 +100,9 @@
     socket.on('room_joined', function (data) {
         console.log('Successfully joined the mind lobby:', data);
         isHost = data.is_host;
+        if (data.room_cap) {
+            roomCap = data.room_cap;
+        }
         updateStatus(isHost
             ? 'You are the Mind Master! Select a document and prepare to challenge others.'
             : 'Neural link established. Awaiting Mind Master\'s command.'
@@ -105,10 +113,14 @@
         if (isHost) {
             document.getElementById('documentSelectSection').style.display = 'block';
             loadHostDocuments();
+            renderCapControl();
         }
     });
 
-    socket.on('update_player_list', function (players) {
+    socket.on('update_player_list', function (data) {
+        // Support both formats: array of players (legacy) or {players, host_username} object
+        var players = Array.isArray(data) ? data : data.players;
+        var hostUsername = Array.isArray(data) ? null : data.host_username;
         console.log('Mind network updated:', players);
         updatePlayerList(players);
         updatePlayerCount(players.length);
@@ -118,7 +130,12 @@
             el.peakPlayers.textContent = peakPlayerCount;
         }
 
-        isHost = players.length > 0 && players[0].username === username;
+        // Trust server's host_username when available, fallback to array position
+        if (hostUsername) {
+            isHost = (hostUsername === username);
+        } else {
+            isHost = players.length > 0 && players[0].username === username;
+        }
         updateHostControls();
 
         if (isHost) {
@@ -147,6 +164,102 @@
     // =========================================================================
     // SOCKET — DOCUMENT SELECTION
     // =========================================================================
+    socket.on('room_cap_updated', function (data) {
+        roomCap = data.cap;
+        var slider = document.getElementById('capSlider');
+        var label  = document.getElementById('capValueLabel');
+        if (slider) slider.value = data.cap;
+        if (label)  label.textContent = data.cap;
+        applyCapColor(data.cap);
+        var count = parseInt(el.playerCount.textContent.split(' / ')[0]) || 0;
+        el.playerCount.textContent = count + ' / ' + roomCap;
+    });
+
+    // =========================================================================
+    // HOST — PLAYER CAP CONTROL
+    // =========================================================================
+    var CAP_COLORS = {
+        2: { grad: 'linear-gradient(135deg, #27ae60, #2ecc71)', hex: '#2ecc71' },
+        3: { grad: 'linear-gradient(135deg, #1abc9c, #16a085)', hex: '#1abc9c' },
+        4: { grad: 'linear-gradient(135deg, #2980b9, #3498db)', hex: '#3498db' },
+        5: { grad: 'linear-gradient(135deg, #7c77c6, #a8a4e3)', hex: '#a8a4e3' },
+        6: { grad: 'linear-gradient(135deg, #e67e22, #f39c12)', hex: '#f39c12' },
+        7: { grad: 'linear-gradient(135deg, #c0392b, #e74c3c)', hex: '#e74c3c' }
+    };
+
+    function applyCapColor(val) {
+        var color = CAP_COLORS[val] || CAP_COLORS[7];
+        var badge  = document.getElementById('capValueLabel');
+        var slider = document.getElementById('capSlider');
+        var track  = document.getElementById('capTrackFill');
+
+        if (badge)  badge.style.background = color.grad;
+        if (slider) {
+            slider.style.setProperty('--thumb-color', color.hex);
+            // Fill track from left to current thumb position
+            var pct = ((val - MIN_PLAYERS) / (MAX_PLAYERS - MIN_PLAYERS)) * 100;
+            slider.style.background =
+                'linear-gradient(to right, ' + color.hex + ' 0%, ' + color.hex + ' ' + pct + '%, rgba(124,119,198,0.25) ' + pct + '%, rgba(124,119,198,0.25) 100%)';
+        }
+
+        // Highlight the matching pip
+        for (var i = MIN_PLAYERS; i <= MAX_PLAYERS; i++) {
+            var pip = document.getElementById('capPip' + i);
+            if (!pip) continue;
+            if (i === val) {
+                pip.style.color      = CAP_COLORS[i].hex;
+                pip.style.opacity    = '1';
+                pip.style.transform  = 'scale(1.35)';
+                pip.style.fontWeight = '800';
+            } else {
+                pip.style.color      = '';
+                pip.style.opacity    = '0.4';
+                pip.style.transform  = '';
+                pip.style.fontWeight = '';
+            }
+        }
+    }
+
+    function renderCapControl() {
+        var section = document.getElementById('documentSelectSection');
+        if (!section || document.getElementById('capControlBlock')) return;
+
+        // Build pip labels  2 · 3 · 4 · 5 · 6 · 7
+        var pipsHtml = '';
+        for (var i = MIN_PLAYERS; i <= MAX_PLAYERS; i++) {
+            pipsHtml +=
+                '<span id="capPip' + i + '" class="cap-pip" style="color:' + CAP_COLORS[i].hex + '">' + i + '</span>';
+        }
+
+        var block = document.createElement('div');
+        block.id = 'capControlBlock';
+        block.className = 'cap-control-block';
+        block.innerHTML =
+            '<div class="cap-control-label">' +
+                '<i class="fas fa-users-cog"></i>' +
+                'Player Cap' +
+                '<span class="cap-value-badge" id="capValueLabel">' + roomCap + '</span>' +
+            '</div>' +
+            '<input type="range" id="capSlider" class="cap-slider"' +
+                ' min="' + MIN_PLAYERS + '" max="' + MAX_PLAYERS + '"' +
+                ' value="' + roomCap + '" step="1">' +
+            '<div class="cap-pips">' + pipsHtml + '</div>';
+
+        section.appendChild(block);
+
+        applyCapColor(roomCap);
+
+        document.getElementById('capSlider').addEventListener('input', function () {
+            var val = parseInt(this.value);
+            document.getElementById('capValueLabel').textContent = val;
+            applyCapColor(val);
+        });
+
+        document.getElementById('capSlider').addEventListener('change', function () {
+            socket.emit('set_room_cap', { room: room, cap: parseInt(this.value) });
+        });
+    }
+
     socket.on('document_selected', function (data) {
         var info   = document.getElementById('selectedDocInfo');
         var nameEl = document.getElementById('selectedDocName');
@@ -191,11 +304,12 @@
         hasAnswered = false;
         showPhase('game');
         renderQuestion(data);
-        startTimer(data.time_limit || 15);
+        startTimer(data.time_limit || 20);
     });
 
     socket.on('question_end', function (data) {
         clearInterval(timerInterval);
+        timerEndTime = 0;
         renderReveal(data);
         showPhase('reveal');
     });
@@ -224,6 +338,10 @@
             el.startBtn.querySelector('.btn-subtitle').textContent = 'Choose a document above';
         }
         showNotification('Back to lobby! Host can pick a new document.', 'info', 'Game Reset');
+        // Re-render cap control for host if it was removed during game phase
+        if (isHost && !document.getElementById('capControlBlock')) {
+            renderCapControl();
+        }
     });
 
     // =========================================================================
@@ -330,7 +448,9 @@
 
     function startTimer(seconds) {
         clearInterval(timerInterval);
-        var remaining = seconds;
+        timerTotalSeconds = seconds;
+        timerEndTime = Date.now() + (seconds * 1000);
+
         var bar  = document.getElementById('timerBar');
         var text = document.getElementById('timerText');
 
@@ -342,12 +462,13 @@
 
         bar.style.transition = 'width ' + seconds + 's linear';
         bar.style.width = '0%';
-        text.textContent = remaining;
+        text.textContent = seconds;
 
         timerInterval = setInterval(function () {
-            remaining--;
-            if (remaining <= 0) { remaining = 0; clearInterval(timerInterval); }
+            // Use wall-clock time so tab throttling doesn't desync
+            var remaining = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
             text.textContent = remaining;
+            if (remaining <= 0) { clearInterval(timerInterval); }
             if (remaining <= 5) {
                 bar.classList.add('timer-danger');
                 text.classList.add('timer-danger-text');
@@ -356,6 +477,24 @@
             }
         }, 1000);
     }
+
+    // Handle tab visibility changes — resync timer when user returns
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible' && timerEndTime > 0) {
+            var remaining = Math.max(0, (timerEndTime - Date.now()) / 1000);
+            var bar  = document.getElementById('timerBar');
+            var text = document.getElementById('timerText');
+            if (bar && remaining > 0) {
+                // Re-sync the CSS transition to match actual remaining time
+                bar.style.transition = 'none';
+                bar.style.width = (remaining / timerTotalSeconds * 100) + '%';
+                void bar.offsetWidth;
+                bar.style.transition = 'width ' + remaining + 's linear';
+                bar.style.width = '0%';
+            }
+            if (text) text.textContent = Math.ceil(remaining);
+        }
+    });
 
     // =========================================================================
     // REVEAL RENDERING
@@ -456,6 +595,17 @@
 
         var playAgainBtn = document.getElementById('playAgainBtn');
         if (playAgainBtn) playAgainBtn.style.display = isHost ? 'flex' : 'none';
+
+        // Host: "Back to Lobby" resets for everyone; Non-host: "Leave Room" just exits
+        var backBtn = document.getElementById('backToLobbyBtn');
+        if (backBtn) {
+            var span = backBtn.querySelector('span');
+            if (isHost) {
+                if (span) span.textContent = 'Back to Lobby';
+            } else {
+                if (span) span.textContent = 'Leave Room';
+            }
+        }
     }
 
     function playAgain() {
@@ -463,7 +613,13 @@
     }
 
     function backToLobby() {
-        window.location.replace('/quickplay');
+        if (isHost) {
+            // Host: reset game back to lobby for everyone
+            socket.emit('reset_game', { room: room });
+        } else {
+            // Non-host: just leave the room
+            window.location.replace('/quickplay');
+        }
     }
 
     // =========================================================================
@@ -534,7 +690,7 @@
     }
 
     function updatePlayerCount(count) {
-        el.playerCount.textContent = count;
+        el.playerCount.textContent = count + ' / ' + roomCap;
         el.playerCount.style.animation = 'pulse 0.5s ease';
         setTimeout(function () { el.playerCount.style.animation = ''; }, 500);
     }

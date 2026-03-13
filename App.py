@@ -129,9 +129,13 @@ room_creation_time = {}
 room_games = {}              # room_code -> game state dict
 room_settings = {}           # room_code -> {'public': True/False}
 
+MAX_PLAYERS_PER_ROOM = 7    # Absolute hard cap — no schema changes needed
+MIN_PLAYERS_PER_ROOM = 2    # Minimum enforced by both server and UI
+
 
 def _build_player_list(room_code):
-    """Build player list with profile pictures for socket emission."""
+    """Build player list with profile pictures for socket emission.
+    Returns a dict with players array and host_username for client-side host detection."""
     players = []
     for u in room_users.get(room_code, []):
         entry = {'username': u['username'], 'profile_picture': None}
@@ -143,7 +147,13 @@ def _build_player_list(room_code):
                 # base64 data URIs are used directly; legacy file paths need / prefix
                 entry['profile_picture'] = pic if pic.startswith('data:') else '/' + pic
         players.append(entry)
-    return players
+    # Include host username so each client can determine their own is_host status
+    host_sid = room_hosts.get(room_code)
+    host_user = next((u for u in room_users.get(room_code, []) if u['sid'] == host_sid), None)
+    return {
+        'players': players,
+        'host_username': host_user['username'] if host_user else None
+    }
 
 
 # Configure logging
@@ -295,7 +305,7 @@ def login():
             return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
         
         # Check if email is verified
-        if not user.get('email_verified'):
+        if not user['email_verified']:
             # Store pending info so they can verify from the OTP modal
             session['pending_user_id'] = user['id']
             session['pending_email'] = user['email']
@@ -1287,8 +1297,13 @@ if GATEKEEPER_AVAILABLE:
         """Return all documents across all users for moderation review."""
         try:
             search = request.args.get('search', '').strip() or None
-            docs = get_all_documents_admin(search=search)
-            return jsonify({'success': True, 'documents': docs, 'total': len(docs)})
+            file_type = request.args.get('file_type', '').strip().lower() or None
+            uploader = request.args.get('uploader', '').strip() or None
+            docs = get_all_documents_admin(search=search, file_type=file_type, uploader=uploader)
+            # Distinct uploaders from ALL docs (unfiltered) for the dropdown
+            all_docs = get_all_documents_admin()
+            uploaders = sorted(set(d['uploader_username'] for d in all_docs))
+            return jsonify({'success': True, 'documents': docs, 'total': len(docs), 'uploaders': uploaders})
         except Exception as e:
             logger.error(f"Admin content error: {e}")
             return jsonify({'success': False, 'message': str(e)}), 500
@@ -1478,6 +1493,12 @@ def handle_join_room(data):
                 emit('error', {'message': 'This is a private lobby. Sign in to join.'})
                 return
 
+        # Hard cap: reject if lobby is already full (use host-configured cap, fallback to global max)
+        room_cap = room_settings.get(room_code, {}).get('max_players', MAX_PLAYERS_PER_ROOM)
+        if len(room_users.get(room_code, [])) >= room_cap:
+            emit('error', {'message': f'This lobby is full ({room_cap}/{room_cap} players). Try again later.'})
+            return
+
         join_room(room_code)
 
         if not room_users[room_code]:
@@ -1504,9 +1525,32 @@ def handle_join_room(data):
             'room': room_code,
             'username': username,
             'is_host': room_hosts.get(room_code) == sid,
-            'player_count': len(room_users[room_code])
+            'player_count': len(room_users[room_code]),
+            'room_cap': room_settings.get(room_code, {}).get('max_players', MAX_PLAYERS_PER_ROOM)
         })
-        
+
+        # If a game is already in progress, sync this player into it
+        game = room_games.get(room_code)
+        if game and game.get('phase') in ('playing', 'question_active', 'question_reveal'):
+            # Ensure player has a score entry
+            if username not in game.get('player_scores', {}):
+                game['player_scores'][username] = {'total_score': 0, 'correct_count': 0}
+            emit('game_started', {
+                'room': room_code,
+                'total_questions': len(game.get('questions', []))
+            })
+            # If a question is currently active, send it to this player
+            if game['phase'] == 'question_active':
+                idx = game['current_question_index']
+                q = game['questions'][idx]
+                emit('question_start', {
+                    'question_index': idx,
+                    'question_text': q['question'],
+                    'options': q['options'],
+                    'total': len(game['questions']),
+                    'time_limit': 20
+                })
+
     except Exception as e:
         logger.error(f"Error in handle_join_room: {str(e)}")
         emit('error', {'message': 'Failed to join room'})
@@ -1629,6 +1673,35 @@ def handle_select_document(data):
         emit('error', {'message': 'Failed to select document'})
 
 
+@socketio.on('set_room_cap')
+def handle_set_room_cap(data):
+    """Host sets the maximum number of players allowed in the room."""
+    try:
+        room_code = data.get('room', '').strip().upper()
+        new_cap = data.get('cap')
+        sid = request.sid
+
+        if room_hosts.get(room_code) != sid:
+            emit('error', {'message': 'Only the host can change the player cap'})
+            return
+
+        if not isinstance(new_cap, int) or not (MIN_PLAYERS_PER_ROOM <= new_cap <= MAX_PLAYERS_PER_ROOM):
+            emit('error', {'message': f'Player cap must be between {MIN_PLAYERS_PER_ROOM} and {MAX_PLAYERS_PER_ROOM}'})
+            return
+
+        if room_code not in room_settings:
+            room_settings[room_code] = {}
+        room_settings[room_code]['max_players'] = new_cap
+
+        # Broadcast the new cap so all clients can update their counter
+        emit('room_cap_updated', {'cap': new_cap}, to=room_code)
+        logger.info(f"Room {room_code} cap set to {new_cap} by host")
+
+    except Exception as e:
+        logger.error(f"Error in handle_set_room_cap: {str(e)}")
+        emit('error', {'message': 'Failed to update player cap'})
+
+
 @socketio.on('start_game')
 def handle_start_game(data):
     """Host starts the quiz game."""
@@ -1717,15 +1790,15 @@ def send_next_question(room_code):
         'question_text': q['question'],
         'options': q['options'],
         'total': len(game['questions']),
-        'time_limit': 15
+        'time_limit': 20
     }, to=room_code, namespace='/')
 
     socketio.start_background_task(_question_timer, room_code, idx)
 
 
 def _question_timer(room_code, question_index):
-    """Background task that ends a question after 15 seconds."""
-    socketio.sleep(15)
+    """Background task that ends a question after 20 seconds."""
+    socketio.sleep(20)
     game = room_games.get(room_code)
     if not game:
         return
@@ -1792,8 +1865,8 @@ def end_question(room_code):
         ans = answers.get(uname)
         if ans and ans['answer_index'] == correct_index:
             elapsed = (ans['timestamp'] - start_time).total_seconds()
-            remaining = max(0, 15 - elapsed)
-            score = round(500 * (remaining / 15))
+            remaining = max(0, 20 - elapsed)
+            score = round(500 * (remaining / 20))
             if uname in game['player_scores']:
                 game['player_scores'][uname]['total_score'] += score
                 game['player_scores'][uname]['correct_count'] += 1

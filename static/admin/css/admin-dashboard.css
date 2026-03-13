@@ -971,6 +971,28 @@ body::before {
 /* ── Content search row ── */
 .content-search-row {
   margin-bottom: 16px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.content-filter-select {
+  max-width: 180px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-family: 'JetBrains Mono', monospace;
+  transition: border-color 0.2s;
+  cursor: pointer;
+}
+
+.content-filter-select:focus {
+  outline: none;
+  border-color: var(--border-bright);
 }
 
 .content-search-input {

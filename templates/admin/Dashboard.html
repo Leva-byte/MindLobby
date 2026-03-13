@@ -272,8 +272,19 @@
 
         <div class="content-search-row">
           <input class="modal-input content-search-input" type="text"
-                 id="contentSearchInput" placeholder="Search by username or filename…"
+                 id="contentSearchInput" placeholder="Search by username, filename, or content…"
                  oninput="debounceContentSearch()">
+          <select class="modal-input content-filter-select" id="contentFileTypeFilter" onchange="loadContent()">
+            <option value="">All Types</option>
+            <option value="pdf">PDF</option>
+            <option value="docx">DOCX</option>
+            <option value="pptx">PPTX</option>
+            <option value="txt">TXT</option>
+            <option value="youtube">YouTube</option>
+          </select>
+          <select class="modal-input content-filter-select" id="contentUploaderFilter" onchange="loadContent()">
+            <option value="">All Uploaders</option>
+          </select>
         </div>
 
         <div class="data-panel">
