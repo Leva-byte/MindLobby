@@ -628,6 +628,24 @@ function handleBackspace(event, current, prevId) {
   }
 }
 
+function handleOTPPaste(event) {
+  const pasted = (event.clipboardData || window.clipboardData).getData('text');
+  const digits = pasted.replace(/\D/g, '').slice(0, 6);
+  if (digits.length === 0) return;
+
+  event.preventDefault();
+  for (let i = 0; i < 6; i++) {
+    document.getElementById(`otp${i + 1}`).value = digits[i] || '';
+  }
+  // Focus last filled box or the next empty one
+  const focusIdx = Math.min(digits.length, 6);
+  document.getElementById(`otp${focusIdx}`).focus();
+
+  if (digits.length === 6) {
+    setTimeout(() => verifyOTP(), 300);
+  }
+}
+
 function handleOTPComplete() {
   const allFilled = Array.from({length: 6}, (_, i) => 
     document.getElementById(`otp${i+1}`).value
