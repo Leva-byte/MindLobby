@@ -235,8 +235,35 @@ body.light-mode .settings-preview-btn:hover {
   color: white;
 }
 
+/* ── Disabled setting row ──────────────────────────────────────────────────── */
+.profile-setting-row.disabled-row {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ── Coming soon disclaimer ───────────────────────────────────────────────── */
+.settings-coming-soon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  margin-top: 2px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.4);
+  font-style: italic;
+}
+.settings-coming-soon i {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.3);
+}
+
 @media (max-width: 768px) {
   .profile-section h3 {
     margin-top: 30px;
+  }
+  .settings-coming-soon {
+    font-size: 0.75rem;
+    padding: 8px 12px;
   }
 }

@@ -9,6 +9,48 @@ const AUDIT_LIMIT = 30;
 let pendingAction = null;   // { type, userId, username }
 let usersCache    = [];
 
+// ── Client-side pagination state ──────────────────────────────────────────────
+const TABLE_PAGE_SIZE = 15;   // rows per page for data tables
+const LOG_PAGE_SIZE   = 20;   // rows per page for log-style lists
+
+let _pgState = {
+  users:        { data: [], page: 1 },
+  banned:       { data: [], page: 1 },
+  content:      { data: [], page: 1 },
+  lobbies:      { data: [], page: 1 },
+  failedLogins: { data: [], page: 1 },
+};
+
+// ── Reusable pagination renderer ──────────────────────────────────────────────
+function renderPaginationControls(paginationId, page, totalItems, pageSize) {
+  const el = document.getElementById(paginationId);
+  if (!el) return;
+  const maxPage = Math.ceil(totalItems / pageSize);
+  if (maxPage <= 1) { el.style.display = 'none'; return; }
+
+  el.style.display = 'flex';
+  const info = el.querySelector('.pg-info');
+  const prev = el.querySelector('.pg-prev');
+  const next = el.querySelector('.pg-next');
+  if (info) info.textContent = `Page ${page} of ${maxPage} (${totalItems} items)`;
+  if (prev) prev.disabled = page <= 1;
+  if (next) next.disabled = page >= maxPage;
+}
+
+function changePage(key, dir, renderFn) {
+  const s = _pgState[key];
+  const maxPage = Math.ceil(s.data.length / (key === 'failedLogins' ? LOG_PAGE_SIZE : TABLE_PAGE_SIZE));
+  s.page = Math.max(1, Math.min(maxPage, s.page + dir));
+  renderFn();
+}
+
+function slicePage(key) {
+  const s = _pgState[key];
+  const size = key === 'failedLogins' ? LOG_PAGE_SIZE : TABLE_PAGE_SIZE;
+  const start = (s.page - 1) * size;
+  return s.data.slice(start, start + size);
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadUsers(true);   // silent — don't log the initial page load fetch
@@ -123,9 +165,15 @@ async function loadUsers(silent = false) {
     setText('totalUsers',    usersCache.length);
     setText('verifiedUsers', usersCache.filter(u => u.email_verified === 1).length);
 
-    if (!usersCache.length) { setEmpty(container, 'fa-users-slash', 'No users found.'); return; }
+    if (!usersCache.length) {
+      setEmpty(container, 'fa-users-slash', 'No users found.');
+      document.getElementById('usersPagination').style.display = 'none';
+      return;
+    }
 
-    container.innerHTML = buildUsersTable(usersCache);
+    _pgState.users.data = usersCache;
+    _pgState.users.page = 1;
+    renderUsersPage();
     updateTimestamp();
 
   } catch (err) {
@@ -198,6 +246,13 @@ function buildUsersTable(users) {
     </table>`;
 }
 
+function renderUsersPage() {
+  const container = document.getElementById('usersTableContainer');
+  container.innerHTML = buildUsersTable(slicePage('users'));
+  renderPaginationControls('usersPagination', _pgState.users.page, _pgState.users.data.length, TABLE_PAGE_SIZE);
+}
+function usersPage(dir) { changePage('users', dir, renderUsersPage); }
+
 // ── Security Stats ────────────────────────────────────────────────────────────
 async function loadSecurityStats() {
   const container = document.getElementById('securityStatsContainer');
@@ -258,10 +313,13 @@ async function loadBannedUsers() {
 
     if (!data.banned_users.length) {
       setEmpty(container, 'fa-ban', 'No banned users at the moment.');
+      document.getElementById('bannedPagination').style.display = 'none';
       return;
     }
 
-    container.innerHTML = buildBannedUsersTable(data.banned_users);
+    _pgState.banned.data = data.banned_users;
+    _pgState.banned.page = 1;
+    renderBannedPage();
 
   } catch (err) {
     console.error('loadBannedUsers:', err);
@@ -309,6 +367,13 @@ function buildBannedUsersTable(users) {
       <tbody>${rows}</tbody>
     </table>`;
 }
+
+function renderBannedPage() {
+  const container = document.getElementById('bannedUsersContainer');
+  container.innerHTML = buildBannedUsersTable(slicePage('banned'));
+  renderPaginationControls('bannedPagination', _pgState.banned.page, _pgState.banned.data.length, TABLE_PAGE_SIZE);
+}
+function bannedPage(dir) { changePage('banned', dir, renderBannedPage); }
 
 // ── Recent Activity (overview snapshot) ───────────────────────────────────────
 async function loadRecentActivity() {
@@ -406,20 +471,13 @@ async function loadFailedLogins() {
 
     if (!data.entries.length) {
       setEmpty(container, 'fa-triangle-exclamation', 'No failed login attempts on record.');
+      document.getElementById('failedLoginsPagination').style.display = 'none';
       return;
     }
 
-    container.innerHTML = data.entries.map(e => `
-      <div class="log-entry">
-        <div class="log-icon t-ban"><i class="fas fa-triangle-exclamation"></i></div>
-        <div class="log-body">
-          <div class="log-action">${escapeHTML(e.ip_address ?? 'Unknown IP')}</div>
-          <div class="log-detail">${escapeHTML(e.reason ?? '—')}</div>
-        </div>
-        <div class="log-meta">
-          <div class="log-time">${formatDateTime(e.attempted_at)}</div>
-        </div>
-      </div>`).join('');
+    _pgState.failedLogins.data = data.entries;
+    _pgState.failedLogins.page = 1;
+    renderFailedLoginsPage();
 
   } catch (err) {
     console.error('loadFailedLogins:', err);
@@ -428,6 +486,24 @@ async function loadFailedLogins() {
     if (btn) btn.classList.remove('spinning');
   }
 }
+
+function renderFailedLoginsPage() {
+  const container = document.getElementById('failedLoginsContainer');
+  const entries = slicePage('failedLogins');
+  container.innerHTML = entries.map(e => `
+    <div class="log-entry">
+      <div class="log-icon t-ban"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="log-body">
+        <div class="log-action">${escapeHTML(e.ip_address ?? 'Unknown IP')}</div>
+        <div class="log-detail">${escapeHTML(e.reason ?? '—')}</div>
+      </div>
+      <div class="log-meta">
+        <div class="log-time">${formatDateTime(e.attempted_at)}</div>
+      </div>
+    </div>`).join('');
+  renderPaginationControls('failedLoginsPagination', _pgState.failedLogins.page, _pgState.failedLogins.data.length, LOG_PAGE_SIZE);
+}
+function failedLoginsPage(dir) { changePage('failedLogins', dir, renderFailedLoginsPage); }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 function openModal({ icon, iconClass, title, message, confirmClass, confirmLabel, banOptions, action }) {
@@ -667,10 +743,13 @@ async function loadLobbies() {
 
     if (!data.lobbies.length) {
       setEmpty(container, 'fa-door-open', 'No active lobbies right now.');
+      document.getElementById('lobbiesPagination').style.display = 'none';
       return;
     }
 
-    container.innerHTML = buildLobbiesTable(data.lobbies);
+    _pgState.lobbies.data = data.lobbies;
+    _pgState.lobbies.page = 1;
+    renderLobbiesPage();
     updateTimestamp();
 
   } catch (err) {
@@ -730,6 +809,13 @@ function buildLobbiesTable(lobbies) {
     </table>`;
 }
 
+function renderLobbiesPage() {
+  const container = document.getElementById('lobbiesTableContainer');
+  container.innerHTML = buildLobbiesTable(slicePage('lobbies'));
+  renderPaginationControls('lobbiesPagination', _pgState.lobbies.page, _pgState.lobbies.data.length, TABLE_PAGE_SIZE);
+}
+function lobbiesPage(dir) { changePage('lobbies', dir, renderLobbiesPage); }
+
 function confirmCloseLobby(roomCode) {
   openModal({
     icon: 'fa-door-closed', iconClass: 'danger',
@@ -783,10 +869,13 @@ async function loadContent(silent) {
     if (!data.documents.length) {
       const hasFilters = search || fileType || uploader;
       setEmpty(container, 'fa-file-alt', hasFilters ? 'No documents match your filters.' : 'No documents uploaded yet.');
+      document.getElementById('contentPagination').style.display = 'none';
       return;
     }
 
-    container.innerHTML = buildContentTable(data.documents);
+    _pgState.content.data = data.documents;
+    _pgState.content.page = 1;
+    renderContentPage();
     updateTimestamp();
 
   } catch (err) {
@@ -849,6 +938,13 @@ function buildContentTable(docs) {
       <tbody>${rows}</tbody>
     </table>`;
 }
+
+function renderContentPage() {
+  const container = document.getElementById('contentTableContainer');
+  container.innerHTML = buildContentTable(slicePage('content'));
+  renderPaginationControls('contentPagination', _pgState.content.page, _pgState.content.data.length, TABLE_PAGE_SIZE);
+}
+function contentPage(dir) { changePage('content', dir, renderContentPage); }
 
 function confirmDeleteDocument(docId, filename) {
   openModal({

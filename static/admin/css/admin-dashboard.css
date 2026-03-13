@@ -1145,6 +1145,36 @@ body::before {
   gap: 16px;
   padding: 16px 0;
 }
+
+/* ── Pagination buttons ───────────────────────────────────────────────────── */
+.pg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.pg-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border-color: rgba(255,255,255,0.2);
+}
+.pg-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.pg-info {
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  min-width: 140px;
+  text-align: center;
+}
 .activity-youtube  { background: rgba(255,0,0,0.15);     color: #ff4444; }
 .activity-notes    { background: rgba(0,206,209,0.15);   color: #00ced1; }
 .activity-badge.activity-youtube { background: rgba(255,0,0,0.15);   color: #ff4444; }
