@@ -625,9 +625,6 @@ async function updateDashboardStats() {
     const mobileBadge = document.getElementById('mobileTopicsBadge');
     if (mobileBadge) mobileBadge.textContent = data.topics || 0;
 
-    // --- Load profile images for welcome banner ---
-    _loadWelcomeBannerProfile();
-
     // --- Recent Activity ---
     const feed = document.getElementById('activityFeed');
     if (!feed) return;
@@ -806,8 +803,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load saved documents from the server
   loadDocuments();
 
-  // Load dashboard stats and recent activity
+  // Load dashboard stats, recent activity, and profile images in parallel
   updateDashboardStats();
+  _loadWelcomeBannerProfile();
   
   // Show welcome notification only once per login
   fetch('/check-auth')

@@ -189,6 +189,21 @@ def init_db():
         )
     ''')
 
+    # --- Performance indexes on foreign-key / frequently-queried columns ---
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_documents_user_id        ON documents (user_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_flashcards_user_id       ON flashcards (user_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_flashcards_document_id   ON flashcards (document_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_topics_user_id           ON topics (user_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_document_topics_doc_id   ON document_topics (document_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_document_topics_topic_id ON document_topics (topic_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_quiz_results_user_id     ON quiz_results (user_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_quiz_results_doc_id      ON quiz_results (document_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_otp_codes_user_id        ON otp_codes (user_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_room_history_host_id     ON room_history (host_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_log_user_id     ON user_activity_log (user_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_log_event_type  ON user_activity_log (event_type)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_doc_reports_doc_id       ON document_reports (document_id)')
+
     # --- SQLite-only migrations (add columns if missing on older dev DBs) ---
     if not is_postgres():
         existing_cols = [row[1] for row in cursor.execute('PRAGMA table_info(users)').fetchall()]
@@ -670,11 +685,15 @@ def get_documents_for_user(user_id):
     rows = conn.execute('''
         SELECT d.*, COALESCE(fc.cnt, 0) AS flashcard_count
         FROM documents d
-        LEFT JOIN (SELECT document_id, COUNT(*) AS cnt FROM flashcards GROUP BY document_id) fc
-            ON fc.document_id = d.id
+        LEFT JOIN (
+            SELECT document_id, COUNT(*) AS cnt
+            FROM flashcards
+            WHERE user_id = ?
+            GROUP BY document_id
+        ) fc ON fc.document_id = d.id
         WHERE d.user_id = ?
         ORDER BY d.upload_date DESC
-    ''', (user_id,)).fetchall()
+    ''', (user_id, user_id)).fetchall()
     conn.close()
     return [dict(row) for row in rows]
 
