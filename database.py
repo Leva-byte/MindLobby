@@ -385,6 +385,10 @@ def delete_user_account(user_id):
         conn.execute('DELETE FROM room_history WHERE host_id = ?', (user_id,))
     except Exception:
         pass
+    try:
+        conn.execute('DELETE FROM user_activity_log WHERE user_id = ?', (user_id,))
+    except Exception:
+        pass
     conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
 
     conn.commit()

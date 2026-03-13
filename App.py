@@ -1083,9 +1083,16 @@ if GATEKEEPER_AVAILABLE:
                 return jsonify({'success': False, 'message': 'User not found'}), 404
 
             username_snap = user['username']
-            conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
-            conn.commit()
             conn.close()
+
+            from database import delete_user_account
+            file_paths = delete_user_account(user_id)
+            for fp in file_paths:
+                if os.path.exists(fp):
+                    try:
+                        os.remove(fp)
+                    except OSError:
+                        pass
 
             log_admin_action(session.get('admin_user_id'), 'delete_user',
                              f"Deleted user #{user_id} ({username_snap})", request)
