@@ -537,7 +537,7 @@ async function handleFileUpload(files) {
       
       // Reload documents list if function exists
       if (typeof loadDocuments === 'function') {
-        loadDocuments();
+        loadDocuments(true);
       }
       
       // Update stats
@@ -858,14 +858,24 @@ function _esc(str) {
   return d.innerHTML;
 }
 
-async function loadDocuments() {
-  try {
-    const res = await fetch('/api/documents');
-    const data = await res.json();
-    if (data.success) renderSidebarDocList(data.documents);
-  } catch (e) {
-    console.error('Could not load documents:', e);
-  }
+let _loadDocsTimer = null;
+let _loadDocsForce = false;
+
+async function loadDocuments(force) {
+  // Debounce rapid calls (e.g. view switches) — 300ms window
+  // force=true bypasses debounce (used after upload/delete/rename)
+  if (force) _loadDocsForce = true;
+  clearTimeout(_loadDocsTimer);
+  _loadDocsTimer = setTimeout(async () => {
+    _loadDocsForce = false;
+    try {
+      const res = await fetch('/api/documents');
+      const data = await res.json();
+      if (data.success) renderSidebarDocList(data.documents);
+    } catch (e) {
+      console.error('Could not load documents:', e);
+    }
+  }, _loadDocsForce ? 0 : 300);
 }
 
 function renderSidebarDocList(documents) {
@@ -946,7 +956,7 @@ function deleteDocument(docId, btnEl) {
       const data = await res.json();
       if (data.success) {
         showNotification('Document deleted', 'success');
-        loadDocuments();
+        loadDocuments(true);
         if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
         if (window.Notes && Notes.loadDocs) Notes.loadDocs();
         if (window.Topics && window.Topics.refreshDetail) window.Topics.refreshDetail();
@@ -1014,7 +1024,7 @@ function openRenameModal(docId, currentName) {
       const data = await res.json();
       if (data.success) {
         showNotification('Document renamed', 'success');
-        loadDocuments();
+        loadDocuments(true);
         if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
         if (window.Notes && Notes.loadDocs) Notes.loadDocs();
         if (window.Topics && window.Topics.refreshDetail) window.Topics.refreshDetail();
@@ -1397,7 +1407,7 @@ async function submitYoutubeUrl() {
       }
 
       // Reload sidebar documents
-      if (typeof loadDocuments === 'function') loadDocuments();
+      if (typeof loadDocuments === 'function') loadDocuments(true);
       if (typeof updateDashboardStats === 'function') updateDashboardStats();
       if (window.Flashcards && Flashcards.loadDocs) Flashcards.loadDocs();
       if (window.Notes && Notes.loadDocs) Notes.loadDocs();

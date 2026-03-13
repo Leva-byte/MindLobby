@@ -79,6 +79,9 @@ from utils import get_real_ip
 
 app = Flask(__name__)
 
+# Cache static assets (JS/CSS/images) for 1 hour — avoids re-downloading on every page load
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 3600
+
 # Secret key - unique per app run so all sessions are invalidated on restart
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production') + uuid.uuid4().hex
 
