@@ -413,6 +413,14 @@ async function handleLogin(e) {
     if (data.success) {
       closeAuthModal();
       showTransitionOverlay('Entering Studio...', '/studio');
+    } else if (data.needs_verification) {
+      closeAuthModal();
+      showOTPModal(email);
+      showNotification('Please verify your email to continue.', 'warning');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Log In';
+      }
     } else {
       showNotification(data.message, 'error');
       if (submitBtn) {

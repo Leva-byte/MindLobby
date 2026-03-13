@@ -294,12 +294,20 @@ def login():
                               ip_address=get_real_ip())
             return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
         
+        # Check if email is verified
+        if not user.get('email_verified'):
+            # Store pending info so they can verify from the OTP modal
+            session['pending_user_id'] = user['id']
+            session['pending_email'] = user['email']
+            session['pending_username'] = user['username']
+            return jsonify({'success': False, 'message': 'Please verify your email first. Check your inbox for the verification code.', 'needs_verification': True}), 403
+
         # Check if this account is banned
         if GATEKEEPER_AVAILABLE:
             if is_banned(get_real_ip(), f"user:{user['id']}"):
                 logger.warning(f"Banned account login attempt: {user['username']}")
                 return jsonify({'success': False, 'message': 'This account has been suspended. Please contact support.'}), 403
-        
+
         # Update last login
         update_last_login(email)
         
