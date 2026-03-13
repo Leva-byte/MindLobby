@@ -37,6 +37,28 @@
   var _sfx        = {};    // loaded Audio elements keyed by "theme:name"
   var _music      = {};    // loaded Audio elements keyed by "theme:ctx"
   var _currentCtx = null;  // currently playing key ("theme:ctx")
+  var _pendingMusic = null; // context waiting for user gesture to unlock autoplay
+  var _unlocked     = false;
+
+  // ── Autoplay unlock ──────────────────────────────────────────────────────
+  // Browsers block audio.play() until the user interacts with the page.
+  // If startMusic() is called before any gesture (e.g. on page load for
+  // guests in a Room), we store the request and retry on first interaction.
+  function _onFirstInteraction() {
+    if (_unlocked) return;
+    _unlocked = true;
+    document.removeEventListener('click', _onFirstInteraction, true);
+    document.removeEventListener('touchstart', _onFirstInteraction, true);
+    document.removeEventListener('keydown', _onFirstInteraction, true);
+    if (_pendingMusic) {
+      var ctx = _pendingMusic;
+      _pendingMusic = null;
+      startMusic(ctx);
+    }
+  }
+  document.addEventListener('click', _onFirstInteraction, true);
+  document.addEventListener('touchstart', _onFirstInteraction, true);
+  document.addEventListener('keydown', _onFirstInteraction, true);
 
   // ── localStorage helpers ───────────────────────────────────────────────────
   function _get(key, fallback) {
@@ -139,7 +161,13 @@
     a.volume = musicVolume();
     a.muted  = musicMuted();
     a.currentTime = 0;
-    a.play().catch(function () {});
+    a.play().then(function () {
+      _unlocked = true;
+      _pendingMusic = null;
+    }).catch(function () {
+      // Autoplay blocked — save context and retry on first user gesture
+      _pendingMusic = context;
+    });
     _currentCtx = key;
   }
 
