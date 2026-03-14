@@ -830,9 +830,12 @@ if GATEKEEPER_AVAILABLE:
             from database import get_db_connection
             
             conn = get_db_connection()
-            users = conn.execute('''
-                SELECT id, username, email, role, email_verified, created_at, last_login 
+            order = request.args.get('order', 'desc').lower()
+            order_dir = 'ASC' if order == 'asc' else 'DESC'
+            users = conn.execute(f'''
+                SELECT id, username, email, role, email_verified, created_at, last_login
                 FROM users
+                ORDER BY (role = 'admin') DESC, id {order_dir}
             ''').fetchall()
             conn.close()
             

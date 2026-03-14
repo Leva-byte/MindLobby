@@ -159,6 +159,10 @@
     socket.on('error', function (data) {
         console.error('Neural network error:', data);
         showNotification(data.message || 'An unexpected error occurred', 'error', 'System Error');
+        if (isHost && el.startBtn) {
+            el.startBtn.disabled = false;
+            el.startBtn.querySelector('span').textContent = 'Begin Mental Challenge';
+        }
     });
 
     // =========================================================================

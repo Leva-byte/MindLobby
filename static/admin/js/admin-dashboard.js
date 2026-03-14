@@ -156,7 +156,8 @@ async function loadUsers(silent = false) {
   if (btn) btn.classList.add('spinning');
 
   try {
-    const url  = silent ? `/${ADMIN_PATH}/api/users?silent=1` : `/${ADMIN_PATH}/api/users`;
+    const order = document.getElementById('usersSortOrder')?.value || 'desc';
+    const url  = `/${ADMIN_PATH}/api/users?order=${order}${silent ? '&silent=1' : ''}`;
     const res  = await fetch(url);
     const data = await res.json();
     if (!data.success) throw new Error(data.message);
