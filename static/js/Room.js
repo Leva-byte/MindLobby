@@ -26,6 +26,8 @@
     var timerInterval       = null;
     var selectedDocId       = null;
     var hasAnswered         = false;
+    var roomTimeLimit       = 20;      // synced from server
+    var roomPointCap        = 500;     // synced from server
     var timerEndTime        = 0;       // timestamp when current question timer expires
     var timerTotalSeconds   = 0;       // total seconds for current question
 
@@ -114,6 +116,8 @@
             document.getElementById('documentSelectSection').style.display = 'block';
             loadHostDocuments();
             renderCapControl();
+            var settingsBtn = document.getElementById('settingsBtn');
+            if (settingsBtn) settingsBtn.style.display = '';
         }
     });
 
@@ -177,6 +181,21 @@
         applyCapColor(data.cap);
         var count = parseInt(el.playerCount.textContent.split(' / ')[0]) || 0;
         el.playerCount.textContent = count + ' / ' + roomCap;
+    });
+
+    socket.on('room_settings_updated', function (data) {
+        roomTimeLimit = data.time_limit;
+        roomPointCap  = data.point_cap;
+        // Sync sliders if modal is open
+        var ts = document.getElementById('timerSlider');
+        var ps = document.getElementById('pointCapSlider');
+        var tl = document.getElementById('timerValueLabel');
+        var pl = document.getElementById('pointCapValueLabel');
+        if (ts) ts.value = roomTimeLimit;
+        if (ps) ps.value = roomPointCap;
+        if (tl) tl.textContent = roomTimeLimit + 's';
+        if (pl) pl.textContent = roomPointCap;
+        showNotification('Game settings updated: ' + roomTimeLimit + 's timer, ' + roomPointCap + ' point cap', 'info', 'Settings Updated');
     });
 
     // =========================================================================
@@ -960,6 +979,43 @@
     }
 
     // =========================================================================
+    // ROOM SETTINGS MODAL
+    // =========================================================================
+    function openSettings() {
+        if (!isHost) return;
+        var ts = document.getElementById('timerSlider');
+        var ps = document.getElementById('pointCapSlider');
+        var tl = document.getElementById('timerValueLabel');
+        var pl = document.getElementById('pointCapValueLabel');
+        if (ts) ts.value = roomTimeLimit;
+        if (ps) ps.value = roomPointCap;
+        if (tl) tl.textContent = roomTimeLimit + 's';
+        if (pl) pl.textContent = roomPointCap;
+
+        ts.addEventListener('input', function () {
+            tl.textContent = this.value + 's';
+        });
+        ps.addEventListener('input', function () {
+            pl.textContent = this.value;
+        });
+
+        document.getElementById('settingsBackdrop').classList.add('open');
+        document.getElementById('settingsModal').classList.add('open');
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsBackdrop').classList.remove('open');
+        document.getElementById('settingsModal').classList.remove('open');
+    }
+
+    function saveSettings() {
+        var timeLimit = parseInt(document.getElementById('timerSlider').value);
+        var pointCap  = parseInt(document.getElementById('pointCapSlider').value);
+        socket.emit('set_room_settings', { room: room, time_limit: timeLimit, point_cap: pointCap });
+        closeSettings();
+    }
+
+    // =========================================================================
     // PUBLIC API — for onclick handlers in HTML
     // =========================================================================
     window.Room = {
@@ -974,7 +1030,10 @@
         backToLobby:      backToLobby,
         confirmEndGame:   confirmEndGame,
         cancelEndGame:    cancelEndGame,
-        endGame:          endGame
+        endGame:          endGame,
+        openSettings:     openSettings,
+        closeSettings:    closeSettings,
+        saveSettings:     saveSettings
     };
 
     console.log('MindLobby Neural Network initialized!');

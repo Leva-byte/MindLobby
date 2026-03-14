@@ -130,10 +130,12 @@ room_hosts = {}              # room_code -> host socket SID
 room_host_user_ids = {}      # room_code -> host's user_id (for DB access)
 room_creation_time = {}
 room_games = {}              # room_code -> game state dict
-room_settings = {}           # room_code -> {'public': True/False}
+room_settings = {}           # room_code -> {'public': True/False, 'time_limit': 20, 'point_cap': 500}
 
 MAX_PLAYERS_PER_ROOM = 7    # Absolute hard cap — no schema changes needed
 MIN_PLAYERS_PER_ROOM = 2    # Minimum enforced by both server and UI
+DEFAULT_TIME_LIMIT   = 20   # seconds per question
+DEFAULT_POINT_CAP    = 500  # max points per correct answer
 
 
 def _build_player_list(room_code):
@@ -1549,12 +1551,13 @@ def handle_join_room(data):
             if game['phase'] == 'question_active':
                 idx = game['current_question_index']
                 q = game['questions'][idx]
+                settings = room_settings.get(room_code, {})
                 emit('question_start', {
                     'question_index': idx,
                     'question_text': q['question'],
                     'options': q['options'],
                     'total': len(game['questions']),
-                    'time_limit': 20
+                    'time_limit': settings.get('time_limit', DEFAULT_TIME_LIMIT)
                 })
 
     except Exception as e:
@@ -1708,6 +1711,41 @@ def handle_set_room_cap(data):
         emit('error', {'message': 'Failed to update player cap'})
 
 
+@socketio.on('set_room_settings')
+def handle_set_room_settings(data):
+    """Host updates game settings (time limit per question, point cap)."""
+    try:
+        room_code = data.get('room', '').strip().upper()
+        sid = request.sid
+
+        if room_hosts.get(room_code) != sid:
+            emit('error', {'message': 'Only the host can change settings'})
+            return
+
+        time_limit = data.get('time_limit')
+        point_cap = data.get('point_cap')
+
+        if not isinstance(time_limit, int) or not (5 <= time_limit <= 60):
+            emit('error', {'message': 'Timer must be between 5 and 60 seconds'})
+            return
+
+        if not isinstance(point_cap, int) or not (100 <= point_cap <= 1000):
+            emit('error', {'message': 'Point cap must be between 100 and 1000'})
+            return
+
+        if room_code not in room_settings:
+            room_settings[room_code] = {}
+        room_settings[room_code]['time_limit'] = time_limit
+        room_settings[room_code]['point_cap'] = point_cap
+
+        emit('room_settings_updated', {'time_limit': time_limit, 'point_cap': point_cap}, to=room_code)
+        logger.info(f"Room {room_code} settings updated: timer={time_limit}s, points={point_cap}")
+
+    except Exception as e:
+        logger.error(f"Error in handle_set_room_settings: {str(e)}")
+        emit('error', {'message': 'Failed to update settings'})
+
+
 @socketio.on('start_game')
 def handle_start_game(data):
     """Host starts the quiz game."""
@@ -1791,20 +1829,25 @@ def send_next_question(room_code):
     game['phase'] = 'question_active'
 
     # Send question WITHOUT correct_index (anti-cheat)
+    settings = room_settings.get(room_code, {})
+    time_limit = settings.get('time_limit', DEFAULT_TIME_LIMIT)
+
     socketio.emit('question_start', {
         'question_index': idx,
         'question_text': q['question'],
         'options': q['options'],
         'total': len(game['questions']),
-        'time_limit': 20
+        'time_limit': time_limit
     }, to=room_code, namespace='/')
 
-    socketio.start_background_task(_question_timer, room_code, idx)
+    socketio.start_background_task(_question_timer, room_code, idx, time_limit)
 
 
-def _question_timer(room_code, question_index):
-    """Background task that ends a question after 20 seconds."""
-    socketio.sleep(20)
+def _question_timer(room_code, question_index, time_limit=None):
+    """Background task that ends a question after the configured time limit."""
+    if time_limit is None:
+        time_limit = room_settings.get(room_code, {}).get('time_limit', DEFAULT_TIME_LIMIT)
+    socketio.sleep(time_limit)
     game = room_games.get(room_code)
     if not game:
         return
@@ -1865,14 +1908,18 @@ def end_question(room_code):
     start_time = game['question_start_time']
     answers = game['player_answers'].get(idx, {})
 
+    settings = room_settings.get(room_code, {})
+    time_limit = settings.get('time_limit', DEFAULT_TIME_LIMIT)
+    point_cap = settings.get('point_cap', DEFAULT_POINT_CAP)
+
     player_results = []
     for u in room_users.get(room_code, []):
         uname = u['username']
         ans = answers.get(uname)
         if ans and ans['answer_index'] == correct_index:
             elapsed = (ans['timestamp'] - start_time).total_seconds()
-            remaining = max(0, 20 - elapsed)
-            score = round(500 * (remaining / 20))
+            remaining = max(0, time_limit - elapsed)
+            score = round(point_cap * (remaining / time_limit))
             if uname in game['player_scores']:
                 game['player_scores'][uname]['total_score'] += score
                 game['player_scores'][uname]['correct_count'] += 1

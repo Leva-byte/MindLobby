@@ -96,6 +96,11 @@
             </div>
 
             <div class="secondary-actions">
+                <button class="btn btn-secondary" onclick="Room.openSettings()" id="settingsBtn" style="display:none;">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </button>
+
                 <button class="btn btn-secondary" onclick="Room.inviteFriends()" id="inviteBtn">
                     <i class="fas fa-user-plus"></i>
                     Invite Minds
@@ -230,6 +235,45 @@
                     <span>Back to Lobby</span>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         ROOM SETTINGS MODAL (Host only)
+         ===================================================================== -->
+    <div class="end-game-modal-backdrop" id="settingsBackdrop" onclick="Room.closeSettings()"></div>
+    <div class="end-game-modal" id="settingsModal">
+        <i class="fas fa-cog" style="font-size:2.5em; color:#6c63c0; margin-bottom:16px;"></i>
+        <h3 class="end-game-modal-title">Game Settings</h3>
+        <p class="end-game-modal-msg">Configure the rules for this lobby. Settings persist across rounds.</p>
+
+        <div class="room-settings-body">
+            <div class="setting-group">
+                <label class="setting-label">
+                    <i class="fas fa-clock"></i> Question Timer
+                    <span class="setting-value" id="timerValueLabel">20s</span>
+                </label>
+                <input type="range" id="timerSlider" class="settings-slider" min="5" max="60" value="20" step="5">
+                <div class="setting-range-labels"><span>5s</span><span>60s</span></div>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">
+                    <i class="fas fa-star"></i> Point Cap
+                    <span class="setting-value" id="pointCapValueLabel">500</span>
+                </label>
+                <input type="range" id="pointCapSlider" class="settings-slider" min="100" max="1000" value="500" step="50">
+                <div class="setting-range-labels"><span>100</span><span>1000</span></div>
+            </div>
+        </div>
+
+        <div class="end-game-modal-actions">
+            <button class="btn btn-secondary" onclick="Room.closeSettings()">
+                <i class="fas fa-arrow-left"></i> Cancel
+            </button>
+            <button class="btn-danger" onclick="Room.saveSettings()" style="background:linear-gradient(135deg, #6c63c0, #7c77c6);">
+                <i class="fas fa-check"></i> Save Settings
+            </button>
         </div>
     </div>
 
