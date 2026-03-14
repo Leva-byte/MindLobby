@@ -51,6 +51,11 @@
     <!-- Main Menu -->
     <main id="mainMenu">
       <div class="menu-container">
+        <!-- Back to Home -->
+        <a href="/home" class="back-home-link" id="backHomeLink">
+          <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+
         <!-- Welcome Section -->
         <div class="welcome-section">
           <h2>Welcome to the Arena</h2>
@@ -293,6 +298,9 @@
             nameInput.value = data.username;
             nameInput.readOnly = true;
             nameInput.style.opacity = '0.7';
+            var backLink = document.getElementById('backHomeLink');
+            backLink.href = '/studio';
+            backLink.innerHTML = '<i class="fas fa-arrow-left"></i> Back to Studio';
             document.getElementById('lobbyTypeToggle').style.display = 'flex';
             // Apply saved default lobby type from Settings
             var savedLobby = localStorage.getItem('ml_defaultLobbyType');

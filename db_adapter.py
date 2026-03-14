@@ -18,24 +18,40 @@ USE_POSTGRES = DATABASE_URL is not None
 if USE_POSTGRES:
     import psycopg2
     import psycopg2.extras
+    import psycopg2.pool
+
+# ── Connection pool (PostgreSQL only) ─────────────────────────────────────
+# Keeps a small pool of open connections so each request reuses an existing
+# connection instead of opening a brand-new TCP handshake to Postgres.
+_pg_pool = None
+
+def _get_pg_pool():
+    """Lazily initialize the PostgreSQL connection pool."""
+    global _pg_pool
+    if _pg_pool is None:
+        db_url = DATABASE_URL
+        if db_url.startswith('postgres://'):
+            db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        _pg_pool = psycopg2.pool.ThreadedConnectionPool(
+            minconn=2,
+            maxconn=10,
+            dsn=db_url
+        )
+    return _pg_pool
 
 def get_db_connection():
     """
     Returns a database connection.
-    - Production (DATABASE_URL set): PostgreSQL via psycopg2
+    - Production (DATABASE_URL set): PostgreSQL via psycopg2 (pooled)
     - Development (no DATABASE_URL): SQLite via sqlite3
 
     Both return dict-like row access.
     """
     if USE_POSTGRES:
-        # Railway may use postgres:// but psycopg2 needs postgresql://
-        db_url = DATABASE_URL
-        if db_url.startswith('postgres://'):
-            db_url = db_url.replace('postgres://', 'postgresql://', 1)
-
-        conn = psycopg2.connect(db_url)
+        pool = _get_pg_pool()
+        conn = pool.getconn()
         conn.autocommit = False
-        return PgConnectionWrapper(conn)
+        return PgConnectionWrapper(conn, pool)
     else:
         conn = sqlite3.connect('mindlobby.db')
         conn.row_factory = sqlite3.Row
@@ -159,8 +175,9 @@ class PgCursorWrapper:
 class PgConnectionWrapper:
     """Wraps a psycopg2 connection to behave like an sqlite3 connection."""
 
-    def __init__(self, conn):
+    def __init__(self, conn, pool=None):
         self._conn = conn
+        self._pool = pool
 
     def cursor(self):
         return PgCursorWrapper(self._conn.cursor())
@@ -175,7 +192,11 @@ class PgConnectionWrapper:
         self._conn.commit()
 
     def close(self):
-        self._conn.close()
+        """Return connection to pool (or close if no pool)."""
+        if self._pool:
+            self._pool.putconn(self._conn)
+        else:
+            self._conn.close()
 
     def __enter__(self):
         return self
@@ -183,4 +204,4 @@ class PgConnectionWrapper:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
             self._conn.rollback()
-        self._conn.close()
+        self.close()

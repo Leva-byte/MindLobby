@@ -138,6 +138,25 @@ body::before {
   animation: slideInDown 0.8s ease;
 }
 
+.back-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.82rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  text-decoration: none;
+  margin-bottom: 18px;
+  transition: color 0.2s;
+}
+.back-home-link:hover {
+  color: #a8a4e3;
+}
+.back-home-link i {
+  font-size: 0.72rem;
+}
+
 .logo-container {
   display: flex;
   flex-direction: column;
@@ -643,7 +662,7 @@ input[type="text"]::placeholder {
   .main-logo {
     font-size: 2.5em;
   }
-  
+
   .logo-icon i {
     font-size: 2.2em;
   }
@@ -780,6 +799,12 @@ body.light-mode .main-header {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   border-bottom-color: rgba(108, 99, 192, 0.1);
+}
+body.light-mode .back-home-link {
+  color: rgba(26, 26, 46, 0.45);
+}
+body.light-mode .back-home-link:hover {
+  color: #6c63c0;
 }
 
 /* Header logo — solid color instead of gradient for readability */
