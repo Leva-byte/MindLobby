@@ -176,9 +176,9 @@ body {
   background: rgba(124, 119, 198, 0.4);
 }
 
-/* Sidebar nav section scrolls if content is too tall */
+/* Sidebar nav section — allow shrinking on short viewports so docs list stays scrollable */
 .sidebar > nav {
-  flex-shrink: 0;
+  flex-shrink: 1;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -201,7 +201,7 @@ body {
 }
 
 .sidebar > nav {
-  flex-shrink: 0;
+  flex-shrink: 1;
 }
 
 .nav-section {
@@ -1058,11 +1058,46 @@ body {
 
   .main-content {
     margin-left: 240px;
+    padding: 30px 20px;
   }
 
-  /* Give the sidebar docs list a tighter max-height so it doesn't overflow */
-  #sidebarDocsList {
-    max-height: 28vh;
+  /* Let nav shrink and scroll when sidebar is short */
+  .sidebar > nav {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  /* Docs section takes remaining space and scrolls independently */
+  .sidebar-docs-section {
+    flex: 1;
+    min-height: 80px;
+  }
+
+  /* Tighten Quick Actions cards so 2-col grid fits */
+  .action-card {
+    padding: 20px 16px;
+  }
+
+  .quick-actions {
+    gap: 14px;
+  }
+}
+
+/* Short viewports (768px height) — ensure sidebar docs list stays scrollable */
+@media (max-height: 800px) and (min-width: 769px) {
+  .sidebar > nav {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .nav-section {
+    margin-bottom: 18px;
+  }
+
+  .sidebar-docs-section {
+    min-height: 100px;
   }
 }
 
