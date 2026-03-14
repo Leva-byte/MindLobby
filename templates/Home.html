@@ -29,6 +29,10 @@
       <div class="nav-brand">
         <img src="/static/images/favicon.png" alt="MindLobby icon" class="brand-favicon">
         <span>MindLobby</span>
+        <button class="nav-status-btn" onclick="document.getElementById('statusModal').classList.add('visible')" title="Known Issues">
+          <span class="nav-status-dot"></span>
+          <span class="nav-status-label">Status</span>
+        </button>
       </div>
       <div class="nav-actions">
         <a href="/quickplay" class="nav-link">Quick Play</a>
@@ -506,6 +510,35 @@
             Reset Password
           </button>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status / Known Issues Modal -->
+  <div class="status-modal-backdrop" id="statusModal" onclick="if(event.target===this)this.classList.remove('visible')">
+    <div class="status-modal">
+      <button type="button" class="status-modal-close" title="Close" onclick="document.getElementById('statusModal').classList.remove('visible')">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="status-modal-header">
+        <div class="status-modal-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h2>Platform Status</h2>
+        <p class="status-modal-subtitle">Known issues we're actively working on</p>
+      </div>
+      <div class="status-modal-body">
+        <div class="status-issue">
+          <div class="status-issue-tag">iOS / Safari</div>
+          <h3>Background music may not play on Apple devices</h3>
+          <p>Due to Safari's strict autoplay restrictions, background music in multiplayer rooms may not start automatically on iPhones, iPads, and Safari browsers. Sound effects (correct/wrong answers) and Quiz background music should work as expected.</p>
+          <div class="status-issue-meta">
+            <span><i class="fas fa-wrench"></i> Fix scheduled for next build</span>
+          </div>
+        </div>
+      </div>
+      <div class="status-modal-footer">
+        <p>Have other issues? Reach out via our <a href="/contact#message-form">Contact page</a>.</p>
       </div>
     </div>
   </div>

@@ -1727,3 +1727,248 @@ body.light-mode .ml-transition-message {
 body.light-mode .ml-transition-bar-track {
   background: rgba(26, 26, 46, 0.1);
 }
+
+/* ============================================================================
+   STATUS INDICATOR + MODAL
+   ============================================================================ */
+
+/* ── Nav Button ──────────────────────────────────────────────────────────── */
+.nav-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  margin-left: 10px;
+  border: 1px solid rgba(255, 160, 40, 0.35);
+  border-radius: 20px;
+  background: rgba(255, 160, 40, 0.08);
+  color: #ffa028;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s;
+}
+.nav-status-btn:hover {
+  background: rgba(255, 160, 40, 0.16);
+  border-color: rgba(255, 160, 40, 0.55);
+}
+
+.nav-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffa028;
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 160, 40, 0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 160, 40, 0); }
+}
+
+/* ── Modal Backdrop ──────────────────────────────────────────────────────── */
+.status-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+.status-modal-backdrop.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ── Modal Card ──────────────────────────────────────────────────────────── */
+.status-modal {
+  position: relative;
+  width: 90%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: #16162a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 32px 28px 24px;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.3s;
+}
+.status-modal-backdrop.visible .status-modal {
+  transform: translateY(0) scale(1);
+}
+
+.status-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.status-modal-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.status-modal-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.status-modal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 160, 40, 0.12);
+  color: #ffa028;
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+.status-modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px;
+}
+.status-modal-subtitle {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+}
+
+/* ── Issue Cards ─────────────────────────────────────────────────────────── */
+.status-issue {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 18px 16px;
+  margin-bottom: 12px;
+}
+.status-issue-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(255, 160, 40, 0.12);
+  color: #ffa028;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.status-issue h3 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px;
+}
+.status-issue p {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0 0 12px;
+}
+.status-issue-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.status-issue-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+.status-issue-meta i {
+  font-size: 0.7rem;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.status-modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 16px;
+  margin-top: 8px;
+  text-align: center;
+}
+.status-modal-footer p {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+}
+.status-modal-footer a {
+  color: #ffa028;
+  text-decoration: none;
+}
+.status-modal-footer a:hover {
+  text-decoration: underline;
+}
+
+/* ── Mobile (768px) ──────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .nav-status-label { display: none; }
+  .nav-status-btn {
+    padding: 5px 8px;
+    min-width: 28px;
+    justify-content: center;
+    margin-left: 4px;
+  }
+  .nav-status-dot {
+    width: 7px;
+    height: 7px;
+  }
+  .status-modal {
+    width: 94%;
+    padding: 24px 18px 20px;
+  }
+}
+
+/* ── Light mode ──────────────────────────────────────────────────────────── */
+body.light-mode .nav-status-btn {
+  border-color: rgba(200, 120, 0, 0.3);
+  background: rgba(255, 160, 40, 0.06);
+}
+body.light-mode .status-modal {
+  background: #f8f8fc;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+body.light-mode .status-modal-close {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.4);
+}
+body.light-mode .status-modal-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #000;
+}
+body.light-mode .status-modal-header h2 { color: #1a1a2e; }
+body.light-mode .status-modal-subtitle { color: rgba(0, 0, 0, 0.45); }
+body.light-mode .status-issue {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+body.light-mode .status-issue h3 { color: #1a1a2e; }
+body.light-mode .status-issue p { color: rgba(0, 0, 0, 0.55); }
+body.light-mode .status-issue-meta span { color: rgba(0, 0, 0, 0.35); }
+body.light-mode .status-modal-footer {
+  border-color: rgba(0, 0, 0, 0.06);
+}
+body.light-mode .status-modal-footer p { color: rgba(0, 0, 0, 0.35); }
