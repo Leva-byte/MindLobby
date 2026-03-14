@@ -1501,6 +1501,12 @@ def handle_join_room(data):
                 emit('error', {'message': 'This is a private lobby. Sign in to join.'})
                 return
 
+        # Reject if a game is already in progress
+        game = room_games.get(room_code)
+        if game and game.get('phase') in ('playing', 'question_active', 'question_reveal'):
+            emit('error', {'message': 'A game is already in progress. Please wait for it to finish.'})
+            return
+
         # Hard cap: reject if lobby is already full (use host-configured cap, fallback to global max)
         room_cap = room_settings.get(room_code, {}).get('max_players', MAX_PLAYERS_PER_ROOM)
         if len(room_users.get(room_code, [])) >= room_cap:
@@ -1537,28 +1543,6 @@ def handle_join_room(data):
             'room_cap': room_settings.get(room_code, {}).get('max_players', MAX_PLAYERS_PER_ROOM)
         })
 
-        # If a game is already in progress, sync this player into it
-        game = room_games.get(room_code)
-        if game and game.get('phase') in ('playing', 'question_active', 'question_reveal'):
-            # Ensure player has a score entry
-            if username not in game.get('player_scores', {}):
-                game['player_scores'][username] = {'total_score': 0, 'correct_count': 0}
-            emit('game_started', {
-                'room': room_code,
-                'total_questions': len(game.get('questions', []))
-            })
-            # If a question is currently active, send it to this player
-            if game['phase'] == 'question_active':
-                idx = game['current_question_index']
-                q = game['questions'][idx]
-                settings = room_settings.get(room_code, {})
-                emit('question_start', {
-                    'question_index': idx,
-                    'question_text': q['question'],
-                    'options': q['options'],
-                    'total': len(game['questions']),
-                    'time_limit': settings.get('time_limit', DEFAULT_TIME_LIMIT)
-                })
 
     except Exception as e:
         logger.error(f"Error in handle_join_room: {str(e)}")
