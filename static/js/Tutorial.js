@@ -224,49 +224,75 @@
   function positionTooltip(el, position) {
     var rect = el.getBoundingClientRect();
     var tt = tooltipEl;
+    var TOOLTIP_W = 340;   // matches max-width in CSS
+    var TOOLTIP_H = 220;   // conservative estimate; real height measured after
+    var MARGIN    = 12;    // min gap from viewport edge
+    var FLIP_BUFFER = Math.min(400, window.innerWidth * 0.30); // wider on tight screens
 
-    // Reset any inline positioning
-    tt.style.top = '';
-    tt.style.left = '';
-    tt.style.right = '';
-    tt.style.bottom = '';
+    // Reset inline positioning
+    tt.style.top       = '';
+    tt.style.left      = '';
+    tt.style.right     = '';
+    tt.style.bottom    = '';
     tt.style.transform = '';
+
+    var top, left;
 
     switch (position) {
       case 'top':
-        tt.style.top = Math.max(10, rect.top - 12) + 'px';
-        tt.style.left = Math.max(10, rect.left) + 'px';
-        tt.style.transform = 'translateY(-100%)';
+        top  = rect.top - TOOLTIP_H - MARGIN;
+        left = rect.left;
+        // Flip below if not enough room above
+        if (top < MARGIN) top = rect.bottom + MARGIN;
         break;
+
       case 'right':
-        tt.style.top = Math.max(10, rect.top) + 'px';
-        tt.style.left = (rect.right + 16) + 'px';
-        // If tooltip goes off-screen to the right, flip to bottom
-        if (rect.right + 320 > window.innerWidth) {
-          tt.style.left = '';
-          tt.style.top = (rect.bottom + 12) + 'px';
-          tt.style.left = Math.max(10, rect.left) + 'px';
+        top  = rect.top;
+        left = rect.right + MARGIN;
+        // Flip below if tooltip would bleed off right edge
+        if (left + TOOLTIP_W + MARGIN > window.innerWidth || rect.right + FLIP_BUFFER > window.innerWidth) {
+          left = rect.left;
+          top  = rect.bottom + MARGIN;
         }
         break;
+
       case 'bottom':
-        tt.style.top = (rect.bottom + 12) + 'px';
-        tt.style.left = Math.max(10, rect.left) + 'px';
+        top  = rect.bottom + MARGIN;
+        left = rect.left;
+        // Flip above if not enough room below
+        if (top + TOOLTIP_H > window.innerHeight - MARGIN) top = rect.top - TOOLTIP_H - MARGIN;
         break;
+
       case 'top-left':
-        tt.style.top = Math.max(10, rect.top - 12) + 'px';
-        tt.style.left = '';
-        tt.style.right = (window.innerWidth - rect.left + 12) + 'px';
-        tt.style.transform = 'translateY(-100%)';
-        // If it goes off-screen left, just position above centered
-        if (rect.left < 320) {
-          tt.style.right = '';
-          tt.style.left = '10px';
-        }
+        top  = rect.top - TOOLTIP_H - MARGIN;
+        left = rect.left - TOOLTIP_W - MARGIN;
+        // If goes off left edge, anchor to left edge instead
+        if (left < MARGIN) left = MARGIN;
+        // If not enough room above, flip below
+        if (top < MARGIN) top = rect.bottom + MARGIN;
         break;
+
       default:
-        tt.style.top = (rect.bottom + 12) + 'px';
-        tt.style.left = Math.max(10, rect.left) + 'px';
+        top  = rect.bottom + MARGIN;
+        left = rect.left;
     }
+
+    // ── Clamp to viewport ────────────────────────────────────────────────
+    // Right edge
+    if (left + TOOLTIP_W + MARGIN > window.innerWidth) {
+      left = window.innerWidth - TOOLTIP_W - MARGIN;
+    }
+    // Left edge
+    if (left < MARGIN) left = MARGIN;
+    // Bottom edge — flip above if we'd go off-screen
+    if (top + TOOLTIP_H + MARGIN > window.innerHeight) {
+      top = rect.top - TOOLTIP_H - MARGIN;
+    }
+    // Top edge (last resort)
+    if (top < MARGIN) top = MARGIN;
+
+    tt.style.top  = top + 'px';
+    tt.style.left = left + 'px';
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────
