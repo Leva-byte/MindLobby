@@ -1791,15 +1791,21 @@ body.light-mode .ml-transition-bar-track {
   position: relative;
   width: 90%;
   max-width: 520px;
-  max-height: 85vh;
-  overflow-y: auto;
   background: #16162a;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 32px 28px 24px;
+  padding: 14px 0 0;
   transform: translateY(20px) scale(0.97);
   transition: transform 0.3s;
+  /* overflow:hidden removed — it was clipping the custom scrollbar track */
 }
+
+/* Inner content area */
+.status-modal-inner {
+  padding: 18px 24px 24px 28px;
+  border-radius: 0 0 16px 16px;
+}
+
 .status-modal-backdrop.visible .status-modal {
   transform: translateY(0) scale(1);
 }
@@ -1855,13 +1861,78 @@ body.light-mode .ml-transition-bar-track {
   margin: 0;
 }
 
+/* ── Slides ──────────────────────────────────────────────────────────────── */
+.status-slide {
+  display: none;
+  opacity: 0;
+  transform: translateX(12px);
+}
+.status-slide.active {
+  display: block;
+  animation: statusSlideIn 0.3s ease forwards;
+}
+.status-slide.slide-reverse {
+  transform: translateX(-12px);
+}
+@keyframes statusSlideIn {
+  from { opacity: 0; }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Pagination ─────────────────────────────────────────────────────────── */
+.status-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+.status-page-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.status-page-btn:hover:not(:disabled) {
+  background: rgba(255, 160, 40, 0.12);
+  border-color: rgba(255, 160, 40, 0.3);
+  color: #ffa028;
+}
+.status-page-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.status-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dots .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: background 0.25s, transform 0.25s;
+}
+.status-dots .status-dot.active {
+  background: #ffa028;
+  transform: scale(1.25);
+}
+
 /* ── Issue Cards ─────────────────────────────────────────────────────────── */
 .status-issue {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   padding: 18px 16px;
-  margin-bottom: 12px;
 }
 .status-issue-tag {
   display: inline-block;
@@ -1938,7 +2009,9 @@ body.light-mode .ml-transition-bar-track {
   }
   .status-modal {
     width: 94%;
-    padding: 24px 18px 20px;
+  }
+  .status-modal-inner {
+    padding: 16px 14px 18px 18px;
   }
 }
 
@@ -1968,6 +2041,22 @@ body.light-mode .status-issue {
 body.light-mode .status-issue h3 { color: #1a1a2e; }
 body.light-mode .status-issue p { color: rgba(0, 0, 0, 0.55); }
 body.light-mode .status-issue-meta span { color: rgba(0, 0, 0, 0.35); }
+body.light-mode .status-page-btn {
+  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.03);
+  color: rgba(0, 0, 0, 0.4);
+}
+body.light-mode .status-page-btn:hover:not(:disabled) {
+  background: rgba(255, 160, 40, 0.1);
+  border-color: rgba(255, 160, 40, 0.3);
+  color: #e08800;
+}
+body.light-mode .status-dots .status-dot {
+  background: rgba(0, 0, 0, 0.12);
+}
+body.light-mode .status-dots .status-dot.active {
+  background: #e08800;
+}
 body.light-mode .status-modal-footer {
   border-color: rgba(0, 0, 0, 0.06);
 }

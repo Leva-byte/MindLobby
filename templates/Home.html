@@ -520,36 +520,78 @@
       <button type="button" class="status-modal-close" title="Close" onclick="document.getElementById('statusModal').classList.remove('visible')">
         <i class="fas fa-times"></i>
       </button>
-      <div class="status-modal-header">
-        <div class="status-modal-icon">
-          <i class="fas fa-exclamation-triangle"></i>
+      <div class="status-modal-inner">
+        <div class="status-modal-header">
+          <div class="status-modal-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <h2>Platform Status</h2>
+          <p class="status-modal-subtitle">Known issues we're actively working on</p>
         </div>
-        <h2>Platform Status</h2>
-        <p class="status-modal-subtitle">Known issues we're actively working on</p>
-      </div>
-      <div class="status-modal-body">
-        <div class="status-issue">
-          <div class="status-issue-tag">iOS / Safari</div>
-          <h3>Background music may not play on Apple devices</h3>
-          <p>Due to Safari's strict autoplay restrictions, background music in multiplayer rooms may not start automatically on iPhones, iPads, and Safari browsers. Sound effects (correct/wrong answers) and Quiz background music should work as expected.</p>
-          <div class="status-issue-meta">
-            <span><i class="fas fa-wrench"></i> Fix scheduled for next build</span>
+        <div class="status-modal-body">
+          <!-- Slide 1 -->
+          <div class="status-slide active">
+            <div class="status-issue">
+              <div class="status-issue-tag">iOS / Safari</div>
+              <h3>Background music may not play on Apple devices</h3>
+              <p>Due to Safari's strict autoplay restrictions, background music in multiplayer rooms may not start automatically on iPhones, iPads, and Safari browsers. Sound effects (correct/wrong answers) and Quiz background music should work as expected.</p>
+              <div class="status-issue-meta">
+                <span><i class="fas fa-wrench"></i> Fix scheduled for next build</span>
+              </div>
+            </div>
+          </div>
+          <!-- Slide 2 -->
+          <div class="status-slide">
+            <div class="status-issue">
+              <div class="status-issue-tag">Desktop / Layout</div>
+              <h3>Sidebar document list and Quick Actions grid may display incorrectly on some screen sizes</h3>
+              <p>On certain desktop resolutions — particularly 1366×768, 1440×900, and monitors running at 125% display scaling — the Studio sidebar's document list may overflow its bounds and become unscrollable, and Quick Actions may not wrap into a 2×2 grid as intended. All content remains accessible via the main area.</p>
+              <div class="status-issue-meta">
+                <span><i class="fas fa-wrench"></i> Fix scheduled for next build</span>
+              </div>
+            </div>
+          </div>
+          <!-- Pagination controls -->
+          <div class="status-pagination">
+            <button type="button" class="status-page-btn" id="statusPrev" onclick="statusNav(-1)" title="Previous issue" disabled>
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="status-dots" id="statusDots">
+              <span class="status-dot active"></span>
+              <span class="status-dot"></span>
+            </div>
+            <button type="button" class="status-page-btn" id="statusNext" onclick="statusNav(1)" title="Next issue">
+              <i class="fas fa-chevron-right"></i>
+            </button>
           </div>
         </div>
-        <div class="status-issue">
-          <div class="status-issue-tag">Desktop / Layout</div>
-          <h3>Sidebar document list and Quick Actions grid may display incorrectly on some screen sizes</h3>
-          <p>On certain desktop resolutions — particularly 1366×768, 1440×900, and monitors running at 125% display scaling — the Studio sidebar's document list may overflow its bounds and become unscrollable, and Quick Actions may not wrap into a 2×2 grid as intended. All content remains accessible via the main area.</p>
-          <div class="status-issue-meta">
-            <span><i class="fas fa-wrench"></i> Fix scheduled for next build</span>
-          </div>
+        <div class="status-modal-footer">
+          <p>Have other issues? Reach out via our <a href="/contact#message-form">Contact page</a>.</p>
         </div>
-      </div>
-      <div class="status-modal-footer">
-        <p>Have other issues? Reach out via our <a href="/contact#message-form">Contact page</a>.</p>
       </div>
     </div>
   </div>
+  <script>
+  (function(){
+    var idx = 0;
+    window.statusNav = function(dir) {
+      var slides = document.querySelectorAll('.status-slide');
+      var dots = document.querySelectorAll('.status-dots .status-dot');
+      var newIdx = Math.max(0, Math.min(slides.length - 1, idx + dir));
+      if (newIdx === idx) return;
+      slides[idx].classList.remove('active', 'slide-reverse');
+      dots[idx].classList.remove('active');
+      idx = newIdx;
+      // Going backward → slide from left; forward → slide from right (default)
+      if (dir < 0) slides[idx].classList.add('slide-reverse');
+      else slides[idx].classList.remove('slide-reverse');
+      slides[idx].classList.add('active');
+      dots[idx].classList.add('active');
+      document.getElementById('statusPrev').disabled = idx === 0;
+      document.getElementById('statusNext').disabled = idx === slides.length - 1;
+    };
+  })();
+  </script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="/static/js/Home.js"></script>
